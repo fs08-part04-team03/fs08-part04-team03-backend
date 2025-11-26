@@ -1,46 +1,38 @@
-// ========================================
-// TypeScript 프로젝트 엔트리 포인트
-// ========================================
+import express, { Application, Request, Response } from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import dotenv from 'dotenv';
 
-/**
- * 환경 변수 타입 정의
- */
-interface EnvConfig {
-  NODE_ENV: string;
-  PORT: number;
-}
+// 환경 변수 로드
+dotenv.config();
 
-/**
- * 환경 변수 로드
- */
-const getConfig = (): EnvConfig => ({
-  NODE_ENV: process.env.NODE_ENV || 'development',
-  PORT: parseInt(process.env.PORT || '3000', 10),
+// Express 앱 생성
+const app: Application = express();
+
+// 환경 변수
+const PORT = parseInt(process.env.PORT || '4000', 10);
+const NODE_ENV = process.env.NODE_ENV || 'development';
+
+// 미들웨어
+app.use(helmet());
+app.use(cors());
+app.use(express.json());
+
+// 헬스체크 엔드포인트
+app.get('/health', (_req: Request, res: Response) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-/**
- * 서버 시작 함수
- */
-const startServer = (config: EnvConfig): void => {
+// 기본 라우트
+app.get('/', (_req: Request, res: Response) => {
+  res.json({ message: '🚀 API 서버가 실행 중입니다!' });
+});
+
+// 서버 시작 - 이 부분이 핵심!
+app.listen(PORT, () => {
   console.log('🚀 서버 시작...');
-  console.log(`📌 환경: ${config.NODE_ENV}`);
-  console.log(`📌 포트: ${config.PORT}`);
+  console.log(`📌 환경: ${NODE_ENV}`);
+  console.log(`📌 포트: ${PORT}`);
   console.log('✅ 서버가 성공적으로 시작되었습니다!');
-  console.log(`🔗 http://localhost:${config.PORT}`);
-};
-
-/**
- * 메인 함수
- */
-const main = (): void => {
-  try {
-    const config = getConfig();
-    startServer(config);
-  } catch (error) {
-    console.error('❌ 서버 시작 실패:', error);
-    process.exit(1);
-  }
-};
-
-// 프로그램 실행
-main();
+  console.log(`🔗 http://localhost:${PORT}`);
+});
