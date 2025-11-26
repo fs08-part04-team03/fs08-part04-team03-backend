@@ -10,7 +10,7 @@ dotenv.config();
 const app: Application = express();
 
 // 환경 변수
-const PORT = parseInt(process.env.PORT || '3000', 10);
+const PORT = parseInt(process.env.PORT || '4000', 10);
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // 미들웨어
