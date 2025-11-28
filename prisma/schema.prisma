@@ -80,7 +80,7 @@ model companies {
 model users {
   id           String   @id @default(uuid(7)) @db.Uuid
   companyId    String   @db.Uuid
-  email        String
+  email        String   @unique
   password     String
   name         String   @db.VarChar(255)
   role         role     @default(USER)
@@ -95,6 +95,7 @@ model users {
   requestedPurchases purchaseRequests[] @relation("Requester")
   approvedPurchases  purchaseRequests[] @relation("Approver")
 
+  @@unique([companyId, email])
   @@map("users")
 }
 
@@ -235,9 +236,9 @@ model invitations {
   id        String   @id @default(uuid(7)) @db.Uuid
   companyId String   @db.Uuid
   name      String   @db.VarChar(255)
-  email     String   @db.VarChar(255)
-  token     String   @db.VarChar(255)
-  role      String   @db.VarChar(255)
+  email     String   @unique @db.VarChar(255)
+  token     String   @unique @db.VarChar(255)
+  role      role
   isUsed    Boolean  @default(false) // 초대장사용여부
   expiresAt DateTime
   isValid   Boolean  @default(true) // 초대장유효여부

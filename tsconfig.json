@@ -5,7 +5,7 @@
     "module": "commonjs", // 모듈 시스템
     "lib": ["ES2020"], // 사용할 라이브러리
     "outDir": "./dist", // 컴파일된 파일 출력 디렉토리
-    "rootDir": "./src", // 소스 파일 루트 디렉토리
+    "rootDir": "./", // 소스 파일 루트 디렉토리
 
     /* 모듈 해석 옵션 */
     "moduleResolution": "node", // Node.js 방식의 모듈 해석
@@ -48,7 +48,8 @@
     "emitDecoratorMetadata": true // 데코레이터 메타데이터 생성
   },
   "include": [
-    "src/**/*" // 컴파일할 파일
+    "src/**/*", // 컴파일할 파일
+    "prisma/**/*" // Prisma 시드 파일
   ],
   "exclude": [
     "node_modules", // 제외할 디렉토리
