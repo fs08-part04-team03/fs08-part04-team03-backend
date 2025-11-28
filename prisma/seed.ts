@@ -680,8 +680,9 @@ async function main() {
   console.log('👤 테스트 사용자 생성 중...');
 
   // 테스트용 비밀번호 (실제 운영 환경에서는 다른 비밀번호 사용)
-  const testPassword = 'test';
-  const hashedPassword = await argon2.hash(testPassword);
+  let textPassword = process.env.SEED_ADMIN_PASSWORD ?? 'testA';
+  let hashedPassword = await argon2.hash(textPassword);
+  console.log(`   관리자 비밀번호: ${textPassword}\n`);
 
   await prisma.users.create({
     data: {
@@ -693,6 +694,10 @@ async function main() {
     },
   });
 
+  textPassword = process.env.SEED_MANAGER_PASSWORD ?? 'testM';
+  hashedPassword = await argon2.hash(textPassword);
+  console.log(`   매니저 비밀번호: ${textPassword}\n`);
+
   await prisma.users.create({
     data: {
       companyId: company.id,
@@ -702,6 +707,10 @@ async function main() {
       role: 'MANAGER',
     },
   });
+
+  textPassword = process.env.SEED_USER_PASSWORD ?? 'testU';
+  hashedPassword = await argon2.hash(textPassword);
+  console.log(`   일반사용자 비밀번호: ${textPassword}\n`);
 
   await prisma.users.create({
     data: {
@@ -713,7 +722,6 @@ async function main() {
     },
   });
   console.log(`✅ 사용자 3명 생성 완료 (ADMIN, MANAGER, USER)`);
-  console.log(`   테스트 비밀번호: ${testPassword}\n`);
 
   // 7. 예산 기준 설정
   console.log('💰 예산 기준 설정 중...');
