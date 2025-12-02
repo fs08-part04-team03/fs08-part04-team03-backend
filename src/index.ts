@@ -7,11 +7,10 @@ import path from 'path';
 // 환경 변수 설정
 const nodeEnv = process.env.NODE_ENV || 'development';
 
+// 개발 환경에서만 .env 파일 로드
+// 프로덕션에서는 배포 플랫폼의 환경 변수 사용
 if (nodeEnv === 'development') {
   dotenv.config({ path: path.resolve(process.cwd(), '.env') });
-} else {
-  // Production 환경 등에서는 시스템 환경변수를 우선하되, 파일이 있다면 로드
-  dotenv.config();
 }
 
 // Express 앱 생성
