@@ -1,10 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import dotenv from 'dotenv';
-
-// 환경 변수 로드
-dotenv.config();
+import 'dotenv/config';
+import { rateLimiter } from './common/middlewares/rateLimiter.middleware';
 
 // Express 앱 생성
 const app = express();
@@ -13,9 +11,13 @@ const app = express();
 const PORT = parseInt(process.env.PORT || '4000', 10);
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
+// proxy 신뢰 설정
+app.set('trust proxy', 1);
+
 // 미들웨어
 app.use(helmet());
 app.use(cors());
+app.use(rateLimiter);
 app.use(express.json());
 
 // 헬스체크 엔드포인트
