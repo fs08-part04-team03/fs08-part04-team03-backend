@@ -1,7 +1,7 @@
 {
-  "name": "project-name",
+  "name": "스낵 프로젝트",
   "version": "1.0.0",
-  "description": "프로젝트 설명",
+  "description": "스낵 프로젝트 백엔드",
   "main": "dist/index.js",
   "scripts": {
     "dev": "nodemon --watch src --exec ts-node src/index.ts",
