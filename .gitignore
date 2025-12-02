@@ -18,20 +18,7 @@ build/
 
 # IDE - WebStorm/IntelliJ
 # 개인 설정 파일들만 제외 (팀 공유 설정은 커밋)
-.idea/workspace.xml
-.idea/tasks.xml
-.idea/usage.statistics.xml
-.idea/shelf/
-.idea/dictionaries/
-.idea/httpRequests/
-.idea/sonarlint/
-.idea/**/workspace.xml
-.idea/**/tasks.xml
-.idea/**/dataSources/
-.idea/**/dataSources.ids
-.idea/**/dataSources.local.xml
-.idea/**/sqlDataSources.xml
-.idea/**/dynamic.xml
+.idea
 
 # OS
 .DS_Store

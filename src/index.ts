@@ -1,4 +1,4 @@
-import express, { Application, Request, Response } from 'express';
+import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
@@ -7,7 +7,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Express 앱 생성
-const app: Application = express();
+const app = express();
 
 // 환경 변수
 const PORT = parseInt(process.env.PORT || '4000', 10);
@@ -19,16 +19,16 @@ app.use(cors());
 app.use(express.json());
 
 // 헬스체크 엔드포인트
-app.get('/health', (_req: Request, res: Response) => {
+app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // 기본 라우트
-app.get('/', (_req: Request, res: Response) => {
+app.get('/', (_req, res) => {
   res.json({ message: '🚀 API 서버가 실행 중입니다!' });
 });
 
-// 서버 시작 - 이 부분이 핵심!
+// 서버 시작
 app.listen(PORT, () => {
   console.log('🚀 서버 시작...');
   console.log(`📌 환경: ${NODE_ENV}`);
