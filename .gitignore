@@ -44,3 +44,6 @@ coverage/
 *.swp
 *.swo
 *~
+/.idea/dataSources.xml
+/.idea/sqldialects.xml
+/.idea/
