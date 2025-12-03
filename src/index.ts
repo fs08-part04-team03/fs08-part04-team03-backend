@@ -2,7 +2,7 @@ import express, { type Application, type Request, type Response } from 'express'
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import path from 'path';
-import corsMiddleware from './config/cors.config';
+import { corsMiddleware } from './config/cors.config';
 import { rateLimiter } from './common/middlewares/rateLimiter.middleware';
 
 // 환경 변수 설정
@@ -24,8 +24,8 @@ const PORT = parseInt(process.env.PORT || '4000', 10);
 app.set('trust proxy', 1);
 
 // 미들웨어
+app.use(corsMiddleware());
 app.use(helmet());
-app.use(corsMiddleware);
 app.use(rateLimiter());
 app.use(express.json());
 
