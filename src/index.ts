@@ -1,7 +1,7 @@
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
 import 'dotenv/config';
+import express from 'express';
+import helmet from 'helmet';
+import corsMiddleware from './config/cors.config';
 import { rateLimiter } from './common/middlewares/rateLimiter.middleware';
 
 // Express 앱 생성
@@ -16,7 +16,7 @@ app.set('trust proxy', 1);
 
 // 미들웨어
 app.use(helmet());
-app.use(cors());
+app.use(corsMiddleware);
 app.use(rateLimiter);
 app.use(express.json());
 
