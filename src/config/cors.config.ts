@@ -2,8 +2,10 @@ import cors from 'cors';
 
 // CORS 미들웨어 설정
 export const corsMiddleware = () => {
-  // 환경 변수에서 허용된 출처 목록을 저장
-  const originList = process.env.ALLOWED_ORIGINS?.split(',').map((o) => o.trim());
+  // 환경 변수에서 허용된 출처 목록을 저장 (빈 origin 필터링)
+  const originList = process.env.ALLOWED_ORIGINS?.split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
 
   const corsOptions: cors.CorsOptions = {
     origin: originList,

@@ -7,12 +7,11 @@ export function rateLimiter() {
   const windowMs = Number(process.env.RATE_LIMIT_WINDOW_MS);
   const maxRequests = Number(process.env.RATE_LIMIT_MAX_REQUESTS);
 
-  // 환경 변수가 없거나 잘못된 경우 오류 로그 출력
+  // 환경 변수가 없거나 잘못된 경우 error 처리
   if (Number.isNaN(windowMs) || Number.isNaN(maxRequests)) {
-    console.warn('[rateLimiter] env not loaded or not numeric', {
-      windowMs: process.env.RATE_LIMIT_WINDOW_MS,
-      maxRequests: process.env.RATE_LIMIT_MAX_REQUESTS,
-    });
+    throw new Error(
+      '[rateLimiter] RATE_LIMIT_WINDOW_MS and RATE_LIMIT_MAX_REQUESTS must be valid numbers'
+    );
   }
 
   return rateLimit({
