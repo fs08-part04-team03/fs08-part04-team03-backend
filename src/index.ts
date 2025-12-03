@@ -26,7 +26,7 @@ app.set('trust proxy', 1);
 // 미들웨어
 app.use(helmet());
 app.use(corsMiddleware);
-app.use(rateLimiter);
+app.use(rateLimiter());
 app.use(express.json());
 
 // 헬스체크 엔드포인트
