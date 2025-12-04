@@ -1,10 +1,9 @@
-import type { Location, ValidationError } from 'express-validator';
+import type { ValidationError } from 'express-validator';
 
 // 안전한 검증 상세 정보 타입
 export type SafeValidationDetail = {
-  msg: string;
-  path: string;
-  location: Location;
+  field: string;
+  message: string;
 };
 
 // 공통 에러 클래스

@@ -14,10 +14,9 @@ export const validateRequest = (req: Request, _res: Response, next: NextFunction
   const safeDetails = result
     .array()
     .filter((e): e is FieldValidationError => e.type === 'field')
-    .map(({ msg, path, location }) => ({
-      msg: String(msg),
-      path,
-      location,
+    .map(({ msg, path }) => ({
+      field: path,
+      message: String(msg),
     }));
 
   throw new CustomError(
