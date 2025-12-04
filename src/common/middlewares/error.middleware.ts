@@ -1,4 +1,4 @@
-// aysnc-errors 패키지를 사용하여, 비동기 에러도 이 미들웨어로 전달
+// async-errors 패키지를 사용하여, 비동기 에러도 이 미들웨어로 전달
 import { Request, Response, NextFunction } from 'express';
 import {
   PrismaClientKnownRequestError,
