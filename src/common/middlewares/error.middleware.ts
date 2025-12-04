@@ -4,7 +4,7 @@ import {
   PrismaClientKnownRequestError,
   PrismaClientValidationError,
   PrismaClientInitializationError,
-} from '@prisma/client/runtime/library';
+} from '@prisma/client/runtime/library'; // Prisma 에러 타입들 (에러가 발생하여 직접 import)
 import type { ValidationError } from 'express-validator';
 import { CustomError } from '../utils/error.util';
 import { HttpStatus } from '../constants/httpStatus.constants';
@@ -32,7 +32,7 @@ function handlePrismaError(err: PrismaClientKnownRequestError, response: ErrorRe
   switch (err.code) {
     case 'P2002': {
       response.statusCode = HttpStatus.CONFLICT;
-      response.errorCode = ErrorCodes.USER_DETAIL_CONFLICT;
+      response.errorCode = ErrorCodes.DB_UNIQUE_CONSTRAINT_VIOLATION;
       response.message = '이미 존재하는 데이터입니다.';
 
       const meta = err.meta as unknown;
@@ -108,7 +108,7 @@ export const errorHandler = (err: unknown, _req: Request, res: Response, next: N
     errorResponse.name = err.name;
     errorResponse.message = err.message;
 
-    // http-errors, 커스텀 에러 등이 주는 statusCode/status 반영
+    // http-errors, custom error 등이 주는 statusCode/status 반영
     const maybeStatus = err as { statusCode?: unknown; status?: unknown };
     let statusFromErr: number | undefined;
     if (typeof maybeStatus.statusCode === 'number') {

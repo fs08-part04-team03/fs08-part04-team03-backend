@@ -17,5 +17,5 @@ export const validateRequest = (req: Request, _res: Response, next: NextFunction
     );
   }
 
-  return next();
+  next();
 };
