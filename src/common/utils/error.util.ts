@@ -1,4 +1,11 @@
-import type { ValidationError } from 'express-validator';
+import type { Location, ValidationError } from 'express-validator';
+
+// 안전한 검증 상세 정보 타입
+export type SafeValidationDetail = {
+  msg: string;
+  path: string;
+  location: Location;
+};
 
 // 공통 에러 클래스
 export class CustomError extends Error {
@@ -6,13 +13,13 @@ export class CustomError extends Error {
 
   public errorCode: string;
 
-  public details: ValidationError[] | string | null;
+  public details: ValidationError[] | SafeValidationDetail[] | string | null;
 
   constructor(
     statusCode: number,
     errorCode: string,
     message: string,
-    details: ValidationError[] | string | null = null
+    details: ValidationError[] | SafeValidationDetail[] | string | null = null
   ) {
     super(message);
     this.name = 'CustomError';

@@ -6,7 +6,7 @@ import {
   PrismaClientInitializationError,
 } from '@prisma/client/runtime/library'; // Prisma 에러 타입들 (에러가 발생하여 직접 import)
 import type { ValidationError } from 'express-validator';
-import { CustomError } from '../utils/error.util';
+import { CustomError, SafeValidationDetail } from '../utils/error.util';
 import { HttpStatus } from '../constants/httpStatus.constants';
 import { ErrorCodes } from '../constants/errorCodes.constants';
 
@@ -15,7 +15,7 @@ type ErrorResponse = {
   message: string;
   statusCode: number;
   errorCode: string;
-  details: ValidationError[] | string | null;
+  details: ValidationError[] | SafeValidationDetail[] | string | null;
 };
 
 function prismaTargetDetails(target: unknown): ErrorResponse['details'] {
@@ -81,9 +81,9 @@ export const errorHandler = (err: unknown, _req: Request, res: Response, next: N
   // CustomError
   if (err instanceof CustomError) {
     errorResponse.name = err.name;
-    errorResponse.message = err.message;
     errorResponse.statusCode = err.statusCode;
     errorResponse.errorCode = err.errorCode;
+    errorResponse.message = err.message;
     errorResponse.details = err.details;
   }
 
@@ -96,11 +96,13 @@ export const errorHandler = (err: unknown, _req: Request, res: Response, next: N
     errorResponse.statusCode = HttpStatus.BAD_REQUEST;
     errorResponse.errorCode = ErrorCodes.VAL_VALIDATION_ERROR;
     errorResponse.message = '데이터베이스 검증 오류: 입력값이 스키마와 일치하지 않습니다.';
+    if (process.env.NODE_ENV === 'development') errorResponse.details = err.message;
   } else if (err instanceof PrismaClientInitializationError) {
     errorResponse.name = err.name;
     errorResponse.statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
     errorResponse.errorCode = ErrorCodes.DB_CONNECTION_FAILED;
     errorResponse.message = '데이터베이스 연결 실패';
+    if (process.env.NODE_ENV === 'development') errorResponse.details = err.message;
   }
 
   // 일반 Error
@@ -117,6 +119,7 @@ export const errorHandler = (err: unknown, _req: Request, res: Response, next: N
       statusFromErr = maybeStatus.status;
     }
 
+    // errorResponse 업데이트
     if (statusFromErr) {
       errorResponse.statusCode = statusFromErr;
       errorResponse.errorCode =
