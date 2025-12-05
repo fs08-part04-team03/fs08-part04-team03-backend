@@ -5,8 +5,10 @@ import { HttpStatus } from '../constants/httpStatus.constants';
 import { ErrorCodes } from '../constants/errorCodes.constants';
 import type { AuthTokenPayload } from '../types/common.types';
 
+// access token 검증 미들웨어
 export function verifyAccessToken(req: Request, _res: Response, next: NextFunction) {
   try {
+    // Authorization 헤더 유효성 검사
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       throw new CustomError(
@@ -16,6 +18,7 @@ export function verifyAccessToken(req: Request, _res: Response, next: NextFuncti
       );
     }
 
+    // 토큰 존재 여부 검사
     const [, token] = authHeader.split(' ');
     if (!token) {
       throw new CustomError(

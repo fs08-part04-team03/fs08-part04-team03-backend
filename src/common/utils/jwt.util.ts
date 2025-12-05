@@ -8,6 +8,7 @@ import type { AuthTokenPayload } from '../types/common.types';
 type AccessPayload = Omit<AuthTokenPayload, 'iat' | 'exp'>;
 
 export class JwtUtil {
+  // access token 페이로드 생성
   static buildAccessPayload(user: {
     id: string;
     companyId: string;
@@ -17,6 +18,7 @@ export class JwtUtil {
     return { userId: user.id, companyId: user.companyId, email: user.email, role: user.role };
   }
 
+  // access token 생성
   static generateAccessToken(payload: AccessPayload): string {
     const { secret, expiresIn } = jwtConfig.accessToken;
     const options: SignOptions = {};
@@ -26,6 +28,7 @@ export class JwtUtil {
     return jwt.sign(payload, secret, options);
   }
 
+  // access token 검증
   static verifyAccessToken(token: string): AuthTokenPayload {
     try {
       return jwt.verify(token, jwtConfig.accessToken.secret) as AuthTokenPayload;

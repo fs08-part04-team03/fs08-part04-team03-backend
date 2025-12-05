@@ -1,5 +1,6 @@
 import type { Request } from 'express';
 
+// 인증 토큰 페이로드
 export type AuthTokenPayload = {
   userId: string;
   companyId: string;
