@@ -6,13 +6,15 @@ import path from 'path';
 import { corsMiddleware } from './config/cors.config';
 import { rateLimiter } from './common/middlewares/rateLimiter.middleware';
 import { errorHandler } from './common/middlewares/error.middleware';
+import { authRouter } from './domains/auth/auth.router';
 
 // 환경 변수 설정
 const nodeEnv = process.env.NODE_ENV || 'development';
 
-// 개발 환경에서만 .env 파일 로드
-// 프로덕션에서는 배포 플랫폼의 환경 변수 사용
-if (nodeEnv === 'development') {
+// 환경 변수 로드
+if (nodeEnv === 'production') {
+  dotenv.config({ path: path.resolve(process.cwd(), '.env.production') });
+} else {
   dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 }
 
@@ -40,6 +42,10 @@ app.get('/health', (_req: Request, res: Response) => {
 app.get('/', (_req: Request, res: Response) => {
   res.json({ message: '🚀 API 서버가 실행 중입니다!' });
 });
+
+// 도메인 라우트
+const API_VERSION = process.env.API_VERSION ?? 'v1';
+app.use(`/api/${API_VERSION}/auth`, authRouter);
 
 // 에러 처리 미들웨어
 app.use(errorHandler);
