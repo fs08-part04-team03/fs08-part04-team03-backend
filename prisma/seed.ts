@@ -606,16 +606,21 @@ async function main() {
 
   // 1. 기존 데이터 삭제 (역순으로 삭제 - FK 제약조건 고려)
   console.log('🗑️  기존 데이터 삭제 중...');
-  await prisma.purchaseItems.deleteMany();
-  await prisma.purchaseRequests.deleteMany();
-  await prisma.carts.deleteMany();
-  await prisma.products.deleteMany();
-  await prisma.categoies.deleteMany();
-  await prisma.budgets.deleteMany();
-  await prisma.budgetCriteria.deleteMany();
-  await prisma.invitations.deleteMany();
-  await prisma.users.deleteMany();
-  await prisma.companies.deleteMany();
+  try {
+    await prisma.purchaseItems.deleteMany();
+    await prisma.purchaseRequests.deleteMany();
+    await prisma.carts.deleteMany();
+    await prisma.products.deleteMany();
+    await prisma.categoies.deleteMany();
+    await prisma.budgets.deleteMany();
+    await prisma.budgetCriteria.deleteMany();
+    await prisma.invitations.deleteMany();
+    await prisma.users.deleteMany();
+    await prisma.companies.deleteMany();
+  } catch (e) {
+    console.log('에러 메시지: ', e);
+  }
+
   console.log('✅ 기존 데이터 삭제 완료\n');
 
   // 2. 테스트용 회사 생성
