@@ -6,6 +6,7 @@ import path from 'path';
 import { corsMiddleware } from './config/cors.config';
 import { rateLimiter } from './common/middlewares/rateLimiter.middleware';
 import { errorHandler } from './common/middlewares/error.middleware';
+import { authRouter } from './domains/auth/auth.router';
 
 // 환경 변수 설정
 const nodeEnv = process.env.NODE_ENV || 'development';
@@ -40,6 +41,9 @@ app.get('/health', (_req: Request, res: Response) => {
 app.get('/', (_req: Request, res: Response) => {
   res.json({ message: '🚀 API 서버가 실행 중입니다!' });
 });
+
+// 도메인 라우트
+app.use(`/api/${process.env.API_VERSION}/auth`, authRouter);
 
 // 에러 처리 미들웨어
 app.use(errorHandler);
