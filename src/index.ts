@@ -44,7 +44,8 @@ app.get('/', (_req: Request, res: Response) => {
 });
 
 // 도메인 라우트
-app.use(`/api/${process.env.API_VERSION}/auth`, authRouter);
+const API_VERSION = process.env.API_VERSION ?? 'v1';
+app.use(`/api/${API_VERSION}/auth`, authRouter);
 
 // 에러 처리 미들웨어
 app.use(errorHandler);

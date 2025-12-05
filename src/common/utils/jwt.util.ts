@@ -31,8 +31,32 @@ export class JwtUtil {
   // access token 검증
   static verifyAccessToken(token: string): AuthTokenPayload {
     try {
-      return jwt.verify(token, jwtConfig.accessToken.secret) as AuthTokenPayload;
+      const decoded = jwt.verify(token, jwtConfig.accessToken.secret);
+
+      // 페이로드 구조 검증
+      if (
+        typeof decoded === 'object' &&
+        decoded !== null &&
+        'userId' in decoded &&
+        'companyId' in decoded &&
+        'email' in decoded &&
+        'role' in decoded &&
+        typeof decoded.userId === 'string' &&
+        typeof decoded.companyId === 'string' &&
+        typeof decoded.email === 'string' &&
+        ['USER', 'MANAGER', 'ADMIN'].includes(decoded.role as string)
+      ) {
+        return decoded as AuthTokenPayload;
+      }
+      throw new CustomError(
+        HttpStatus.UNAUTHORIZED,
+        ErrorCodes.AUTH_INVALID_TOKEN,
+        'Invalid token payload structure'
+      );
     } catch (err) {
+      if (err instanceof CustomError) {
+        throw err;
+      }
       if (err instanceof jwt.TokenExpiredError) {
         throw new CustomError(
           HttpStatus.UNAUTHORIZED,
