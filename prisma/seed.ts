@@ -606,16 +606,27 @@ async function main() {
 
   // 1. 기존 데이터 삭제 (역순으로 삭제 - FK 제약조건 고려)
   console.log('🗑️  기존 데이터 삭제 중...');
-  await prisma.purchaseItems.deleteMany();
-  await prisma.purchaseRequests.deleteMany();
-  await prisma.carts.deleteMany();
-  await prisma.products.deleteMany();
-  await prisma.categoies.deleteMany();
-  await prisma.budgets.deleteMany();
-  await prisma.budgetCriteria.deleteMany();
-  await prisma.invitations.deleteMany();
-  await prisma.users.deleteMany();
-  await prisma.companies.deleteMany();
+  try {
+    await prisma.purchaseItems.deleteMany();
+    await prisma.purchaseRequests.deleteMany();
+    await prisma.carts.deleteMany();
+    await prisma.products.deleteMany();
+    await prisma.categoies.deleteMany();
+    await prisma.budgets.deleteMany();
+    await prisma.budgetCriteria.deleteMany();
+    await prisma.invitations.deleteMany();
+    await prisma.users.deleteMany();
+    await prisma.companies.deleteMany();
+  } catch (e) {
+    // 테이블이 존재하지 않는 경우만 무시
+    if (e instanceof Error && e.message.includes('does not exist')) {
+      console.log('⚠️  일부 테이블이 존재하지 않습니다. 계속 진행합니다.');
+    } else {
+      console.error('❌ 데이터 삭제 중 예상치 못한 오류 발생:', e);
+      console.log('⚠️  오류를 무시하고 계속 진행합니다. 이후 작업 실패 시 오류를 확인하세요.');
+    }
+  }
+
   console.log('✅ 기존 데이터 삭제 완료\n');
 
   // 2. 테스트용 회사 생성
