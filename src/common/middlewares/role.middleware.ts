@@ -13,18 +13,19 @@ const roleRank: Record<Role, number> = {
   ADMIN: 3,
 };
 
+// 인증 필요 에러 생성 헬퍼
+function buildAuthRequiredError() {
+  return new CustomError(
+    HttpStatus.UNAUTHORIZED,
+    ErrorCodes.AUTH_UNAUTHORIZED,
+    'Authentication required'
+  );
+}
+
 // 로그인 여부만 확인
 export function requireAuth() {
   return (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
-    if (!req.user) {
-      return next(
-        new CustomError(
-          HttpStatus.UNAUTHORIZED,
-          ErrorCodes.AUTH_UNAUTHORIZED,
-          'Authentication required'
-        )
-      );
-    }
+    if (!req.user) return next(buildAuthRequiredError());
     return next();
   };
 }
@@ -35,13 +36,7 @@ export function requireRoles(...allowed: Role[]) {
 
   return (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
     if (!req.user) {
-      return next(
-        new CustomError(
-          HttpStatus.UNAUTHORIZED,
-          ErrorCodes.AUTH_UNAUTHORIZED,
-          'Authentication required'
-        )
-      );
+      return next(buildAuthRequiredError());
     }
 
     if (!allowedSet.has(req.user.role)) {
@@ -58,13 +53,7 @@ export function requireMinRole(minRole: Role) {
 
   return (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
     if (!req.user) {
-      return next(
-        new CustomError(
-          HttpStatus.UNAUTHORIZED,
-          ErrorCodes.AUTH_UNAUTHORIZED,
-          'Authentication required'
-        )
-      );
+      return next(buildAuthRequiredError());
     }
 
     if (roleRank[req.user.role] < min) {
