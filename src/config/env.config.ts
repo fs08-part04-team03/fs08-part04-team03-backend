@@ -2,6 +2,8 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 const NODE_ENV = process.env.NODE_ENV || 'development';
+const defaultOrigins =
+  NODE_ENV === 'development' ? ['http://localhost:3000', 'http://localhost:4000'] : undefined;
 
 if (NODE_ENV === 'production') {
   dotenv.config({ path: path.resolve(process.cwd(), '.env.production') });
@@ -27,9 +29,12 @@ function str(name: string, defaultValue?: string): string {
   return raw;
 }
 
-function csv(name: string): string[] {
+function csv(name: string, defaultValue?: string[]): string[] {
   const raw = process.env[name];
-  if (!raw) return [];
+  if (raw == null || raw.trim() === '') {
+    if (defaultValue) return defaultValue;
+    throw new Error(`Missing env: ${name}`);
+  }
   return raw
     .split(',')
     .map((v) => v.trim())
@@ -49,7 +54,7 @@ export const env = {
   JWT_ACCESS_EXPIRY: str('JWT_ACCESS_EXPIRY', '5m'),
   JWT_REFRESH_EXPIRY: str('JWT_REFRESH_EXPIRY', '1h'),
 
-  ALLOWED_ORIGINS: csv('ALLOWED_ORIGINS'),
+  ALLOWED_ORIGINS: csv('ALLOWED_ORIGINS', defaultOrigins),
 
   RATE_LIMIT_WINDOW_MS: int('RATE_LIMIT_WINDOW_MS', 900000),
   RATE_LIMIT_MAX_REQUESTS: int('RATE_LIMIT_MAX_REQUESTS', 100),
