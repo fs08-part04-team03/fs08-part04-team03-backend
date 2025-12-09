@@ -6,6 +6,7 @@ import {
   PrismaClientInitializationError,
 } from '@prisma/client/runtime/library'; // Prisma 에러 타입들 (에러가 발생하여 직접 import)
 import type { ValidationError } from 'express-validator';
+import { env } from '../../config/env.config';
 import { CustomError, SafeValidationDetail } from '../utils/error.util';
 import { HttpStatus } from '../constants/httpStatus.constants';
 import { ErrorCodes } from '../constants/errorCodes.constants';
@@ -62,7 +63,7 @@ function handlePrismaError(err: PrismaClientKnownRequestError, response: ErrorRe
       response.statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
       response.errorCode = ErrorCodes.GENERAL_INTERNAL_ERROR;
       response.message = '서버 내부 데이터베이스 오류가 발생했습니다.';
-      if (process.env.NODE_ENV === 'development') response.details = err.message; // 개발 환경에서만 상세 메시지 포함
+      if (env.NODE_ENV === 'development') response.details = err.message; // 개발 환경에서만 상세 메시지 포함
       break;
   }
 }
@@ -96,13 +97,13 @@ export const errorHandler = (err: unknown, _req: Request, res: Response, next: N
     errorResponse.statusCode = HttpStatus.BAD_REQUEST;
     errorResponse.errorCode = ErrorCodes.VAL_VALIDATION_ERROR;
     errorResponse.message = '데이터베이스 검증 오류: 입력값이 스키마와 일치하지 않습니다.';
-    if (process.env.NODE_ENV === 'development') errorResponse.details = err.message;
+    if (env.NODE_ENV === 'development') errorResponse.details = err.message;
   } else if (err instanceof PrismaClientInitializationError) {
     errorResponse.name = err.name;
     errorResponse.statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
     errorResponse.errorCode = ErrorCodes.DB_CONNECTION_FAILED;
     errorResponse.message = '데이터베이스 연결 실패';
-    if (process.env.NODE_ENV === 'development') errorResponse.details = err.message;
+    if (env.NODE_ENV === 'development') errorResponse.details = err.message;
   }
 
   // 일반 Error
@@ -145,7 +146,7 @@ export const errorHandler = (err: unknown, _req: Request, res: Response, next: N
     }
   }
 
-  const isDev = process.env.NODE_ENV === 'development';
+  const isDev = env.NODE_ENV === 'development';
   // development일때만 상세 내역 출력
   if (isDev) {
     console.error(err);
