@@ -29,6 +29,14 @@ function str(name: string, defaultValue?: string): string {
   return raw;
 }
 
+function secret(name: string, minLength: number = 32): string {
+  const value = str(name);
+  if (value.length < minLength) {
+    throw new Error(`${name} must be at least ${minLength} characters long`);
+  }
+  return value;
+}
+
 function csv(name: string, defaultValue?: string[]): string[] {
   const raw = process.env[name];
   if (raw == null || raw.trim() === '') {
@@ -49,8 +57,8 @@ export const env = {
 
   DATABASE_URL: str('DATABASE_URL'),
 
-  JWT_ACCESS_SECRET: str('JWT_ACCESS_SECRET'),
-  JWT_REFRESH_SECRET: str('JWT_REFRESH_SECRET'),
+  JWT_ACCESS_SECRET: secret('JWT_ACCESS_SECRET'),
+  JWT_REFRESH_SECRET: secret('JWT_REFRESH_SECRET'),
   JWT_ACCESS_EXPIRY: str('JWT_ACCESS_EXPIRY', '5m'),
   JWT_REFRESH_EXPIRY: str('JWT_REFRESH_EXPIRY', '1h'),
 
