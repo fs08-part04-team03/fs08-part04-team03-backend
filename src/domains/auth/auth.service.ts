@@ -10,14 +10,23 @@ type LoginInput = { email: string; password: string };
 
 export const authService = {
   async login({ email, password }: LoginInput) {
+    // 인자가 제대로 넘어왔는지 확인
+    if (!email || !password) {
+      throw new CustomError(
+        HttpStatus.FORBIDDEN,
+        ErrorCodes.GENERAL_NOT_FOUND,
+        '이메일 및 비밀번호가 존재하지 않습니다.'
+      );
+    }
+
     const user = await prisma.users.findUnique({ where: { email } });
 
-    // 1) 이메일 없음
+    // 1) 사용자 정보 없음
     if (!user) {
       throw new CustomError(
         HttpStatus.NOT_FOUND,
         ErrorCodes.USER_NOT_FOUND,
-        '이메일이 존재하지 않습니다.'
+        '사용자 정보가 존재하지 않습니다.'
       );
     }
 
