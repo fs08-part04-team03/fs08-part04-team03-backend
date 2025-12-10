@@ -67,4 +67,35 @@ export const budgetService = {
   async getCriteria(companyId: string) {
     return prisma.budgetCriteria.findUnique({ where: { companyId } });
   },
+
+  // 예산 기준으로 월별 예산 생성
+  async seedMonthlyBudgetsFromCriteria(utcYear: number, utcMonth: number) {
+    // 예산 기준 조회 -> 없는 회사는 생성 X
+    const criteriaList = await prisma.budgetCriteria.findMany();
+
+    await Promise.all(
+      criteriaList.map(async (criteria) => {
+        const exists = await prisma.budgets.findUnique({
+          where: {
+            companyId_year_month: {
+              companyId: criteria.companyId,
+              year: utcYear,
+              month: utcMonth,
+            },
+          },
+        });
+        // 이미 예산이 있으면 생성 X
+        if (exists) return;
+
+        await prisma.budgets.create({
+          data: {
+            companyId: criteria.companyId,
+            year: utcYear,
+            month: utcMonth,
+            amount: criteria.amount ?? 0,
+          },
+        });
+      })
+    );
+  },
 };
