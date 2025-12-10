@@ -6,6 +6,7 @@ import { corsMiddleware } from './config/cors.config';
 import { rateLimiter } from './common/middlewares/rateLimiter.middleware';
 import { errorHandler } from './common/middlewares/error.middleware';
 import { authRouter } from './domains/auth/auth.router';
+import { purchaseRouter } from './domains/purchase/purchase.router';
 
 const app: Application = express();
 
@@ -30,6 +31,7 @@ app.get('/', (_req: Request, res: Response) => {
 
 // 도메인 라우트
 app.use(`/api/${env.API_VERSION}/auth`, authRouter);
+app.use(`/api/${env.API_VERSION}/purchase`, purchaseRouter);
 
 // 에러 처리 미들웨어
 app.use(errorHandler);
