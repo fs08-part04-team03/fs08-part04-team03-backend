@@ -1,37 +1,27 @@
 import argon2 from 'argon2';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../common/database/prisma.client';
 import { JwtUtil } from '../../common/utils/jwt.util';
 import { CustomError } from '../../common/utils/error.util';
 import { HttpStatus } from '../../common/constants/httpStatus.constants';
 import { ErrorCodes } from '../../common/constants/errorCodes.constants';
 
-const prisma = new PrismaClient();
 type LoginInput = { email: string; password: string };
 
 export const authService = {
   async login({ email, password }: LoginInput) {
     const user = await prisma.users.findUnique({ where: { email } });
 
-    // 1) 로그인 정보 오류 (이메일 혹은 비밀번호 없음)
-    if (!user) {
-      throw new CustomError(
-        HttpStatus.NOT_FOUND,
-        ErrorCodes.USER_NOT_FOUND,
-        '사용자 정보가 존재하지 않습니다.'
-      );
-    }
-
-    // 2) 비밀번호 불일치
-    const ok = await argon2.verify(user.password, password);
-    if (!ok) {
+    const ok = user && (await argon2.verify(user.password, password));
+    // 1) 로그인 정보 오류 (이메일 혹은 비밀번호 불일치)
+    if (!ok || !user) {
       throw new CustomError(
         HttpStatus.UNAUTHORIZED,
-        ErrorCodes.USER_INVALID_INFORMATION,
+        ErrorCodes.AUTH_INVALID_CREDENTIALS,
         '이메일 혹은 비밀번호가 틀렸습니다.'
       );
     }
 
-    // 3) 비활성 계정
+    // 2) 비활성 계정
     if (!user.isActive) {
       throw new CustomError(
         HttpStatus.UNAUTHORIZED,
@@ -40,7 +30,7 @@ export const authService = {
       );
     }
 
-    // 4) 토큰 발급 (companyId 포함)
+    // 3) 토큰 발급 (companyId 포함)
     const payload = JwtUtil.buildAccessPayload({
       companyId: user.companyId,
       id: user.id,

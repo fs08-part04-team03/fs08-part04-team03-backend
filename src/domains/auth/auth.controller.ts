@@ -30,7 +30,7 @@ export const authController = {
     if (!req.user) {
       throw new CustomError(
         HttpStatus.UNAUTHORIZED,
-        ErrorCodes.GENERAL_NOT_FOUND,
+        ErrorCodes.AUTH_UNAUTHORIZED,
         '인증되지 않은 사용자입니다.'
       );
     }
