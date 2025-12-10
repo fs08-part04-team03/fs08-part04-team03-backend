@@ -30,6 +30,8 @@ export const purchaseController = {
     const result = await purchaseService.getAllPurchases(req.user.companyId, query);
 
     // 응답 반환
-    res.status(HttpStatus.OK).json({ success: true, ...result });
+    res
+      .status(HttpStatus.OK)
+      .json({ success: true, ...result, message: '전체 구매 내역을 조회했습니다.' });
   },
 };
