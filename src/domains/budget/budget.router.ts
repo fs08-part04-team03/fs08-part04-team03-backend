@@ -6,11 +6,23 @@ import { budgetValidator } from './budget.validator';
 
 const router = Router();
 
+// 예산 기준 insert + update
+router.patch(
+  '/criteria',
+  verifyAccessToken,
+  requireMinRole('ADMIN'),
+  budgetValidator.upsertCriteria,
+  budgetController.upsertCriteria
+);
+
+// 예산 기준 조회
+router.get('/criteria', verifyAccessToken, requireMinRole('ADMIN'), budgetController.getCriteria);
+
 // 월 예산 생성
 router.post(
   '/',
   verifyAccessToken,
-  requireMinRole('MANAGER'),
+  requireMinRole('ADMIN'),
   budgetValidator.create,
   budgetController.create
 );
@@ -28,7 +40,7 @@ router.get(
 router.patch(
   '/:budgetId',
   verifyAccessToken,
-  requireMinRole('MANAGER'),
+  requireMinRole('ADMIN'),
   budgetValidator.update,
   budgetController.update
 );
