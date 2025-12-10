@@ -18,13 +18,13 @@ router.patch(
 // 예산 기준 조회
 router.get('/criteria', verifyAccessToken, requireMinRole('ADMIN'), budgetController.getCriteria);
 
-// 월 예산 생성
-router.post(
+// 월 예산 insert + update
+router.patch(
   '/',
   verifyAccessToken,
   requireMinRole('ADMIN'),
-  budgetValidator.create,
-  budgetController.create
+  budgetValidator.upsert,
+  budgetController.upsert
 );
 
 // 월 예산 목록 조회
@@ -34,15 +34,6 @@ router.get(
   requireMinRole('MANAGER'),
   budgetValidator.getList,
   budgetController.getList
-);
-
-// 월 예산 수정
-router.patch(
-  '/:budgetId',
-  verifyAccessToken,
-  requireMinRole('ADMIN'),
-  budgetValidator.update,
-  budgetController.update
 );
 
 export const budgetRouter = router;

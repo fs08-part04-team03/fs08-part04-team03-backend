@@ -4,14 +4,12 @@ import { HttpStatus } from '../../common/constants/httpStatus.constants';
 import { ErrorCodes } from '../../common/constants/errorCodes.constants';
 import { CustomError } from '../../common/utils/error.util';
 import type { AuthenticatedRequest } from '../../common/types/common.types';
-import type { CreateBudgetBody, UpdateBudgetBody, UpsertCriteriaBody } from './budget.types';
+import type { UpsertBudgetBody, UpsertCriteriaBody } from './budget.types';
 
-type CreateBudgetRequest = AuthenticatedRequest & Request<unknown, unknown, CreateBudgetBody>;
-type UpdateBudgetRequest = AuthenticatedRequest &
-  Request<{ budgetId: string }, unknown, UpdateBudgetBody>;
+type UpsertBudgetRequest = AuthenticatedRequest & Request<unknown, unknown, UpsertBudgetBody>;
+type UpsertCriteriaRequest = AuthenticatedRequest & Request<unknown, unknown, UpsertCriteriaBody>;
 type GetBudgetsRequest = AuthenticatedRequest &
   Request<unknown, unknown, unknown, { year?: string; month?: string }>;
-type UpsertCriteriaRequest = AuthenticatedRequest & Request<unknown, unknown, UpsertCriteriaBody>;
 
 // 회사 ID 추출
 const getCompanyId = (req: AuthenticatedRequest) => {
@@ -27,20 +25,12 @@ const getCompanyId = (req: AuthenticatedRequest) => {
 };
 
 export const budgetController = {
-  // 월 별 예산 생성
-  create: async (req: CreateBudgetRequest, res: Response) => {
+  // 월 별 예산 insert + update
+  upsert: async (req: UpsertBudgetRequest, res: Response) => {
     const companyId = getCompanyId(req);
-    const payload = req.body as CreateBudgetBody;
-    const budget = await budgetService.createBudget(companyId, payload);
-    res.status(HttpStatus.CREATED).json({ success: true, data: budget });
-  },
-
-  // 월 별 예산 수정
-  update: async (req: UpdateBudgetRequest, res: Response) => {
-    const companyId = getCompanyId(req);
-    const payload = req.body as UpdateBudgetBody;
-    const budget = await budgetService.updateBudget(companyId, req.params.budgetId, payload);
-    res.status(HttpStatus.OK).json({ success: true, data: budget });
+    const payload = req.body as UpsertBudgetBody;
+    const { budget, created } = await budgetService.upsertBudget(companyId, payload);
+    res.status(created ? HttpStatus.CREATED : HttpStatus.OK).json({ success: true, data: budget });
   },
 
   // 예산 목록 조회

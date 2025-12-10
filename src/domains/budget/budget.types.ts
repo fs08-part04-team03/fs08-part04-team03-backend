@@ -1,11 +1,7 @@
 // budget에서 사용되는 타입 정의
-export type CreateBudgetBody = {
+export type UpsertBudgetBody = {
   year: number;
   month: number;
-  amount: number;
-};
-
-export type UpdateBudgetBody = {
   amount: number;
 };
 

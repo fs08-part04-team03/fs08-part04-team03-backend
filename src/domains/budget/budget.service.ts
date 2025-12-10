@@ -1,44 +1,22 @@
 import { prisma } from '../../common/database/prisma.client';
-import { CustomError } from '../../common/utils/error.util';
-import { HttpStatus } from '../../common/constants/httpStatus.constants';
-import { ErrorCodes } from '../../common/constants/errorCodes.constants';
-import type {
-  CreateBudgetBody,
-  UpdateBudgetBody,
-  BudgetQuery,
-  UpsertCriteriaBody,
-} from './budget.types';
+import type { UpsertBudgetBody, BudgetQuery, UpsertCriteriaBody } from './budget.types';
 
 export const budgetService = {
-  // 월 별 예산 생성
-  async createBudget(companyId: string, payload: CreateBudgetBody) {
+  // 월 별 예산 insert + update
+  async upsertBudget(companyId: string, payload: UpsertBudgetBody) {
     const { year, month, amount } = payload;
 
-    const exists = await prisma.budgets.findUnique({
+    const existing = await prisma.budgets.findUnique({
       where: { companyId_year_month: { companyId, year, month } },
     });
-    if (exists) {
-      throw new CustomError(
-        HttpStatus.CONFLICT,
-        ErrorCodes.DB_UNIQUE_CONSTRAINT_VIOLATION,
-        'Budget already exists for this year and month'
-      );
-    }
 
-    return prisma.budgets.create({ data: { companyId, year, month, amount } });
-  },
-
-  // 월 별 예산 수정
-  async updateBudget(companyId: string, budgetId: string, payload: UpdateBudgetBody) {
-    const budget = await prisma.budgets.findFirst({ where: { id: budgetId, companyId } });
-    if (!budget) {
-      throw new CustomError(HttpStatus.NOT_FOUND, ErrorCodes.GENERAL_NOT_FOUND, 'Budget not found');
-    }
-
-    return prisma.budgets.update({
-      where: { id: budgetId },
-      data: { amount: payload.amount },
+    const budget = await prisma.budgets.upsert({
+      where: { companyId_year_month: { companyId, year, month } },
+      create: { companyId, year, month, amount },
+      update: { amount },
     });
+
+    return { budget, created: !existing };
   },
 
   // 예산 목록 조회
