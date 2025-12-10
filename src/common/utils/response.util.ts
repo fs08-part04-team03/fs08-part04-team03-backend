@@ -11,10 +11,11 @@ export class ResponseUtil {
     message = '조회 성공'
   ) {
     const { page, limit, total } = pagination;
+    const totalPages = limit > 0 ? Math.ceil(total / limit) : 0;
     return {
       success: true,
       data,
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+      pagination: { page, limit, total, totalPages },
       message,
     };
   }
