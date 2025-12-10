@@ -3,11 +3,12 @@ import express, { type Application, type Request, type Response } from 'express'
 import helmet from 'helmet';
 import { env } from './config/env.config';
 import { corsMiddleware } from './config/cors.config';
+import { startBudgetScheduler } from './config/cron.config';
 import { rateLimiter } from './common/middlewares/rateLimiter.middleware';
 import { errorHandler } from './common/middlewares/error.middleware';
+import { swaggerDocs } from './config/swagger.config';
 import { authRouter } from './domains/auth/auth.router';
 import { budgetRouter } from './domains/budget/budget.router';
-import { startBudgetScheduler } from './config/cron.config';
 
 const app: Application = express();
 
@@ -36,6 +37,9 @@ app.use(`/api/${env.API_VERSION}/budget`, budgetRouter);
 
 // 에러 처리 미들웨어
 app.use(errorHandler);
+
+// Swagger 문서 설정
+swaggerDocs(app);
 
 // 예산 스케줄러 시작
 startBudgetScheduler();
