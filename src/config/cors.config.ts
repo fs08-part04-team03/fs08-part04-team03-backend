@@ -1,14 +1,10 @@
 import cors from 'cors';
+import { env } from './env.config';
 
 // CORS 미들웨어 설정
 export const corsMiddleware = () => {
-  // 환경 변수에서 허용된 출처 목록을 저장 (빈 origin 필터링)
-  const originList = process.env.ALLOWED_ORIGINS?.split(',')
-    .map((o) => o.trim())
-    .filter(Boolean);
-
   const corsOptions: cors.CorsOptions = {
-    origin: originList,
+    origin: env.ALLOWED_ORIGINS,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     credentials: true,

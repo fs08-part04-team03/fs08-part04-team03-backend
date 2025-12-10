@@ -1,26 +1,13 @@
 import 'express-async-errors';
 import express, { type Application, type Request, type Response } from 'express';
 import helmet from 'helmet';
-import dotenv from 'dotenv';
-import path from 'path';
+import { env } from './config/env.config';
 import { corsMiddleware } from './config/cors.config';
 import { rateLimiter } from './common/middlewares/rateLimiter.middleware';
 import { errorHandler } from './common/middlewares/error.middleware';
+import { authRouter } from './domains/auth/auth.router';
 
-// 환경 변수 설정
-const nodeEnv = process.env.NODE_ENV || 'development';
-
-// 개발 환경에서만 .env 파일 로드
-// 프로덕션에서는 배포 플랫폼의 환경 변수 사용
-if (nodeEnv === 'development') {
-  dotenv.config({ path: path.resolve(process.cwd(), '.env') });
-}
-
-// Express 앱 생성
 const app: Application = express();
-
-// 환경 변수
-const PORT = parseInt(process.env.PORT || '4000', 10);
 
 // proxy 신뢰 설정
 app.set('trust proxy', 1);
@@ -41,13 +28,16 @@ app.get('/', (_req: Request, res: Response) => {
   res.json({ message: '🚀 API 서버가 실행 중입니다!' });
 });
 
+// 도메인 라우트
+app.use(`/api/${env.API_VERSION}/auth`, authRouter);
+
 // 에러 처리 미들웨어
 app.use(errorHandler);
 
 // 서버 시작
-app.listen(PORT, () => {
+app.listen(env.PORT, () => {
   console.log('🚀 서버 시작...');
-  console.log(`📌 환경: ${nodeEnv}`); // 현재 환경 명시적 출력
-  console.log(`📌 포트: ${PORT}`);
+  console.log(`📌 환경: ${env.NODE_ENV}`); // 현재 환경 명시적 출력
+  console.log(`📌 포트: ${env.PORT}`);
   console.log('✅ 서버가 성공적으로 시작되었습니다!');
 });
