@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { requireMinRole } from '@/common/middlewares/role.middleware';
 import { verifyAccessToken } from '@/common/middlewares/auth.middleware';
 import { validateRequest } from '@/common/middlewares/validator.middleware';
+import { purchaseValidator } from '@/domains/purchase/purchase.validator';
 import { purchaseController } from './purchase.controller';
 
 const router = Router();
@@ -12,6 +13,7 @@ router.get(
   verifyAccessToken,
   requireMinRole('MANAGER'),
   validateRequest,
+  purchaseValidator.validatePurchaseList,
   purchaseController.getAllPurchases
 );
 

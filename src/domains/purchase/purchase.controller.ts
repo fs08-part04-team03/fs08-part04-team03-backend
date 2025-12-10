@@ -27,7 +27,7 @@ export const purchaseController = {
     };
 
     // 서비스 호출
-    const result = await purchaseService.getAllPurchases(req.user.userId, query);
+    const result = await purchaseService.getAllPurchases(req.user.companyId, query);
 
     // 응답 반환
     res.status(HttpStatus.OK).json({ success: true, ...result });

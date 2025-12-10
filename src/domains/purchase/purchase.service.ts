@@ -3,7 +3,7 @@ import type { GetAllPurchasesQuery } from './purchase.types';
 
 export const purchaseService = {
   // 💰 [Purchase] 전체 구매 내역 목록 API (관리자)
-  async getAllPurchases(approverId: string, query: GetAllPurchasesQuery) {
+  async getAllPurchases(companyId: string, query: GetAllPurchasesQuery) {
     // 기본 값 설정
     const page = query.page || 1;
     const limit = query.limit || 10;
@@ -15,7 +15,7 @@ export const purchaseService = {
     // 전체 개수 조회
     const totalItems = await prisma.purchaseRequests.count({
       where: {
-        approverId,
+        companyId,
       },
     });
 
@@ -57,7 +57,7 @@ export const purchaseService = {
         },
       },
       where: {
-        approverId,
+        companyId,
       },
       orderBy: {
         [sortBy]: order,
