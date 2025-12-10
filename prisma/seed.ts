@@ -696,7 +696,7 @@ async function main() {
   let hashedPassword = await argon2.hash(textPassword);
   console.log(`   관리자 비밀번호: ${textPassword}\n`);
 
-  await prisma.users.create({
+  const admin = await prisma.users.create({
     data: {
       companyId: company.id,
       email: 'admin@test.com',
@@ -710,7 +710,7 @@ async function main() {
   hashedPassword = await argon2.hash(textPassword);
   console.log(`   매니저 비밀번호: ${textPassword}\n`);
 
-  await prisma.users.create({
+  const manager = await prisma.users.create({
     data: {
       companyId: company.id,
       email: 'manager@test.com',
@@ -724,7 +724,7 @@ async function main() {
   hashedPassword = await argon2.hash(textPassword);
   console.log(`   일반사용자 비밀번호: ${textPassword}\n`);
 
-  await prisma.users.create({
+  const user = await prisma.users.create({
     data: {
       companyId: company.id,
       email: 'user@test.com',
@@ -733,7 +733,21 @@ async function main() {
       role: 'USER',
     },
   });
-  console.log(`✅ 사용자 3명 생성 완료 (ADMIN, MANAGER, USER)`);
+
+  textPassword = process.env.SEED_USER2_PASSWORD ?? 'testU2';
+  hashedPassword = await argon2.hash(textPassword);
+  console.log(`   일반사용자2 비밀번호: ${textPassword}\n`);
+
+  const user2 = await prisma.users.create({
+    data: {
+      companyId: company.id,
+      email: 'user2@test.com',
+      password: hashedPassword,
+      name: '일반사용자2',
+      role: 'USER',
+    },
+  });
+  console.log(`✅ 사용자 4명 생성 완료 (ADMIN, MANAGER, USER, USER2)\n`);
 
   // 7. 예산 기준 설정
   console.log('💰 예산 기준 설정 중...');
@@ -763,6 +777,288 @@ async function main() {
   );
   console.log(`✅ ${currentYear}년 월별 예산 12개 생성 완료\n`);
 
+  // 9. 상품 목록 조회 (구매 요청에 사용할 상품 가져오기)
+  console.log('📦 상품 목록 조회 중...');
+  const allProducts = await prisma.products.findMany({
+    orderBy: { id: 'asc' },
+  });
+  console.log(`✅ 상품 ${allProducts.length}개 조회 완료\n`);
+
+  // 10. 구매 요청 생성
+  console.log('🛒 구매 요청 생성 중...');
+
+  // 구매 요청 1: 승인됨 (APPROVED) - 일반 사용자가 요청, 매니저가 승인
+  const purchaseRequest1 = await prisma.purchaseRequests.create({
+    data: {
+      companyId: company.id,
+      requesterId: user.id,
+      approverId: manager.id,
+      status: 'APPROVED',
+      totalPrice: 15400,
+      shippingFee: 3000,
+      requestMessage: '회의용 간식 구매 요청드립니다.',
+      createdAt: new Date('2024-12-01T10:00:00Z'),
+      updatedAt: new Date('2024-12-01T14:00:00Z'),
+    },
+  });
+
+  // 구매 항목 1-1: 새우깡 5개
+  await prisma.purchaseItems.create({
+    data: {
+      purchaseRequestId: purchaseRequest1.id,
+      productId: allProducts[0]!.id, // 농심 새우깡
+      quantity: 5,
+      priceSnapshot: allProducts[0]!.price,
+    },
+  });
+
+  // 구매 항목 1-2: 코카콜라 3개
+  await prisma.purchaseItems.create({
+    data: {
+      purchaseRequestId: purchaseRequest1.id,
+      productId: allProducts[17]!.id, // 코카콜라
+      quantity: 3,
+      priceSnapshot: allProducts[17]!.price,
+    },
+  });
+
+  // 구매 요청 2: 대기 중 (PENDING) - 일반 사용자가 요청
+  const purchaseRequest2 = await prisma.purchaseRequests.create({
+    data: {
+      companyId: company.id,
+      requesterId: user.id,
+      status: 'PENDING',
+      totalPrice: 19500,
+      shippingFee: 3000,
+      requestMessage: '개인 간식 구매 요청합니다.',
+      createdAt: new Date('2024-12-05T09:00:00Z'),
+      updatedAt: new Date('2024-12-05T09:00:00Z'),
+    },
+  });
+
+  // 구매 항목 2-1: 초코파이 2개
+  await prisma.purchaseItems.create({
+    data: {
+      purchaseRequestId: purchaseRequest2.id,
+      productId: allProducts[9]!.id, // 오리온 초코파이
+      quantity: 2,
+      priceSnapshot: allProducts[9]!.price,
+    },
+  });
+
+  // 구매 항목 2-2: 삼다수 10개
+  await prisma.purchaseItems.create({
+    data: {
+      purchaseRequestId: purchaseRequest2.id,
+      productId: allProducts[31]!.id, // 삼다수
+      quantity: 10,
+      priceSnapshot: allProducts[31]!.price,
+    },
+  });
+
+  // 구매 요청 3: 거절됨 (REJECTED) - 일반 사용자가 요청, 관리자가 거절
+  const purchaseRequest3 = await prisma.purchaseRequests.create({
+    data: {
+      companyId: company.id,
+      requesterId: user.id,
+      approverId: admin.id,
+      status: 'REJECTED',
+      totalPrice: 45000,
+      shippingFee: 3000,
+      requestMessage: '고급 원두 구매 요청',
+      rejectReason: '예산 초과로 인한 거절',
+      createdAt: new Date('2024-12-03T11:00:00Z'),
+      updatedAt: new Date('2024-12-03T16:00:00Z'),
+    },
+  });
+
+  // 구매 항목 3-1: 일리 원두 2개
+  await prisma.purchaseItems.create({
+    data: {
+      purchaseRequestId: purchaseRequest3.id,
+      productId: allProducts[62]!.id, // 일리 클래시코 원두
+      quantity: 2,
+      priceSnapshot: allProducts[62]!.price,
+    },
+  });
+
+  // 구매 요청 4: 승인됨 (APPROVED) - 매니저가 요청, 관리자가 승인
+  const purchaseRequest4 = await prisma.purchaseRequests.create({
+    data: {
+      companyId: company.id,
+      requesterId: manager.id,
+      approverId: admin.id,
+      status: 'APPROVED',
+      totalPrice: 23500,
+      shippingFee: 3000,
+      requestMessage: '사무용품 재고 보충',
+      createdAt: new Date('2024-12-04T13:00:00Z'),
+      updatedAt: new Date('2024-12-04T15:00:00Z'),
+    },
+  });
+
+  // 구매 항목 4-1: A4용지 2개
+  await prisma.purchaseItems.create({
+    data: {
+      purchaseRequestId: purchaseRequest4.id,
+      productId: allProducts[69]!.id, // A4용지
+      quantity: 2,
+      priceSnapshot: allProducts[69]!.price,
+    },
+  });
+
+  // 구매 항목 4-2: 포스트잇 3개
+  await prisma.purchaseItems.create({
+    data: {
+      purchaseRequestId: purchaseRequest4.id,
+      productId: allProducts[68]!.id, // 3M 포스트잇
+      quantity: 3,
+      priceSnapshot: allProducts[68]!.price,
+    },
+  });
+
+  // 구매 요청 5: 취소됨 (CANCELLED) - 일반 사용자가 요청 후 취소
+  const purchaseRequest5 = await prisma.purchaseRequests.create({
+    data: {
+      companyId: company.id,
+      requesterId: user.id,
+      status: 'CANCELLED',
+      totalPrice: 8000,
+      shippingFee: 3000,
+      requestMessage: '커피 구매 (취소함)',
+      createdAt: new Date('2024-12-02T08:00:00Z'),
+      updatedAt: new Date('2024-12-02T09:00:00Z'),
+    },
+  });
+
+  // 구매 항목 5-1: 카누 미니 1개
+  await prisma.purchaseItems.create({
+    data: {
+      purchaseRequestId: purchaseRequest5.id,
+      productId: allProducts[59]!.id, // 카누 미니 아메리카노
+      quantity: 1,
+      priceSnapshot: allProducts[59]!.price,
+    },
+  });
+
+  // 구매 요청 6: 승인됨 (APPROVED) - 일반사용자2가 요청, 매니저가 승인
+  const purchaseRequest6 = await prisma.purchaseRequests.create({
+    data: {
+      companyId: company.id,
+      requesterId: user2.id,
+      approverId: manager.id,
+      status: 'APPROVED',
+      totalPrice: 18500,
+      shippingFee: 3000,
+      requestMessage: '팀 음료 구매 요청드립니다.',
+      createdAt: new Date('2024-12-06T10:00:00Z'),
+      updatedAt: new Date('2024-12-06T14:30:00Z'),
+    },
+  });
+
+  // 구매 항목 6-1: 펩시콜라 5개
+  await prisma.purchaseItems.create({
+    data: {
+      purchaseRequestId: purchaseRequest6.id,
+      productId: allProducts[18]!.id, // 펩시콜라
+      quantity: 5,
+      priceSnapshot: allProducts[18]!.price,
+    },
+  });
+
+  // 구매 항목 6-2: 포카리스웨트 5개
+  await prisma.purchaseItems.create({
+    data: {
+      purchaseRequestId: purchaseRequest6.id,
+      productId: allProducts[25]!.id, // 포카리스웨트
+      quantity: 5,
+      priceSnapshot: allProducts[25]!.price,
+    },
+  });
+
+  // 구매 요청 7: 대기 중 (PENDING) - 일반사용자2가 요청
+  const purchaseRequest7 = await prisma.purchaseRequests.create({
+    data: {
+      companyId: company.id,
+      requesterId: user2.id,
+      status: 'PENDING',
+      totalPrice: 13000,
+      shippingFee: 3000,
+      requestMessage: '간식 구매 부탁드립니다.',
+      createdAt: new Date('2024-12-07T11:00:00Z'),
+      updatedAt: new Date('2024-12-07T11:00:00Z'),
+    },
+  });
+
+  // 구매 항목 7-1: 허니버터 아몬드 3개
+  await prisma.purchaseItems.create({
+    data: {
+      purchaseRequestId: purchaseRequest7.id,
+      productId: allProducts[16]!.id, // 허니버터 아몬드
+      quantity: 3,
+      priceSnapshot: allProducts[16]!.price,
+    },
+  });
+
+  // 구매 항목 7-2: 비타500 4개
+  await prisma.purchaseItems.create({
+    data: {
+      purchaseRequestId: purchaseRequest7.id,
+      productId: allProducts[28]!.id, // 비타500
+      quantity: 4,
+      priceSnapshot: allProducts[28]!.price,
+    },
+  });
+
+  console.log(`✅ 구매 요청 7개 생성 완료\n`);
+
+  // 11. 장바구니 데이터 생성
+  console.log('🛍️  장바구니 데이터 생성 중...');
+
+  // 일반 사용자의 장바구니
+  await prisma.carts.create({
+    data: {
+      userId: user.id,
+      productId: allProducts[1]!.id, // 해태 홈런볼
+      quantity: 3,
+    },
+  });
+
+  await prisma.carts.create({
+    data: {
+      userId: user.id,
+      productId: allProducts[18]!.id, // 펩시콜라
+      quantity: 5,
+    },
+  });
+
+  await prisma.carts.create({
+    data: {
+      userId: user.id,
+      productId: allProducts[38]!.id, // 신라면 컵
+      quantity: 2,
+    },
+  });
+
+  // 매니저의 장바구니
+  await prisma.carts.create({
+    data: {
+      userId: manager.id,
+      productId: allProducts[67]!.id, // 모나미 볼펜
+      quantity: 10,
+    },
+  });
+
+  await prisma.carts.create({
+    data: {
+      userId: manager.id,
+      productId: allProducts[71]!.id, // 크리넥스 미용티슈
+      quantity: 5,
+    },
+  });
+
+  console.log(`✅ 장바구니 항목 5개 생성 완료\n`);
+
   console.log('🎉 시드 데이터 생성 완료!');
   console.log('==========================================');
   console.log(`📊 생성된 데이터 요약:`);
@@ -770,9 +1066,12 @@ async function main() {
   console.log(`   - 상위 카테고리: ${mainCategories.length}개`);
   console.log(`   - 하위 카테고리: ${subCategories.length}개`);
   console.log(`   - 상품: ${products.length}개`);
-  console.log(`   - 사용자: 3명 (ADMIN, MANAGER, USER)`);
+  console.log(`   - 사용자: 4명 (ADMIN, MANAGER, USER, USER2)`);
   console.log(`   - 예산 기준: 1개`);
   console.log(`   - 월별 예산: 12개`);
+  console.log(`   - 구매 요청: 7개 (APPROVED: 3, PENDING: 2, REJECTED: 1, CANCELLED: 1)`);
+  console.log(`   - 구매 항목: 13개`);
+  console.log(`   - 장바구니: 5개`);
   console.log('==========================================');
 }
 
