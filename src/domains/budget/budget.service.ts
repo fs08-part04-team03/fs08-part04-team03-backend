@@ -34,11 +34,15 @@ export const budgetService = {
 
   // 예산 기준 insert + update
   async upsertCriteria(companyId: string, payload: UpsertCriteriaBody) {
-    return prisma.budgetCriteria.upsert({
+    const existing = await prisma.budgetCriteria.findUnique({ where: { companyId } });
+
+    const criteria = await prisma.budgetCriteria.upsert({
       where: { companyId },
       create: { companyId, amount: payload.amount },
       update: { amount: payload.amount },
     });
+
+    return { criteria, created: !existing };
   },
 
   // 예산 기준 조회
