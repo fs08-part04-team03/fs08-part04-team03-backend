@@ -4,6 +4,10 @@ import swaggerUi from 'swagger-ui-express';
 import type { Application } from 'express';
 import { env } from './env.config';
 
+const servers = [{ url: `http://localhost:${env.PORT}`, description: 'Local development' }];
+if (env.API_HOST) {
+  servers.push({ url: `https://${env.API_HOST}`, description: 'Render production' });
+}
 const options = {
   definition: {
     openapi: '3.0.0',
@@ -12,13 +16,7 @@ const options = {
       version: '1.0.0',
       description: 'Snack 프로젝트를 위한 API 문서입니다.',
     },
-    servers: [
-      { url: `http://localhost:${env.PORT}`, description: 'Local development' },
-      {
-        url: `https://${env.API_HOST}`,
-        description: 'Render production',
-      },
-    ],
+    servers,
     components: {
       securitySchemes: {
         bearerAuth: {
@@ -47,5 +45,5 @@ const swaggerSpec = swaggerJsdoc(options);
 export function swaggerDocs(app: Application) {
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
   console.log(`Swagger UI: http://localhost:${env.PORT}/api-docs`);
-  console.log(`Swagger UI: https://${env.API_HOST}/api-docs`);
+  if (env.API_HOST) console.log(`Swagger UI: https://${env.API_HOST}/api-docs`);
 }
