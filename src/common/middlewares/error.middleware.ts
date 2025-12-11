@@ -8,6 +8,7 @@ import {
 import type { ValidationError } from 'express-validator';
 import { env } from '../../config/env.config';
 import { CustomError, SafeValidationDetail } from '../utils/error.util';
+import { logger } from '../utils/logger.util';
 import { HttpStatus } from '../constants/httpStatus.constants';
 import { ErrorCodes } from '../constants/errorCodes.constants';
 
@@ -146,13 +147,17 @@ export const errorHandler = (err: unknown, _req: Request, res: Response, next: N
     }
   }
 
-  const isDev = env.NODE_ENV === 'development';
-  // development일때만 상세 내역 출력
-  if (isDev) {
-    console.error(err);
-  } else {
-    console.warn(`[${errorResponse.errorCode}] ${errorResponse.message}`);
-  }
+  // loggging
+  // error name, message, stack 기록, body 등 민감한 정보는 제외
+  const safeErr =
+    err instanceof Error ? { name: err.name, message: err.message, stack: err.stack } : err;
+  logger.error('Unhandled error', {
+    err: safeErr,
+    path: _req.path,
+    method: _req.method,
+    statusCode: errorResponse.statusCode,
+    errorCode: errorResponse.errorCode,
+  });
 
   return res.status(errorResponse.statusCode).json({
     success: false,

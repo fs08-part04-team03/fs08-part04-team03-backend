@@ -4,9 +4,11 @@ import helmet from 'helmet';
 import { env } from './config/env.config';
 import { corsMiddleware } from './config/cors.config';
 import { startBudgetScheduler } from './config/cron.config';
+import { swaggerDocs } from './config/swagger.config';
+import { logger } from './common/utils/logger.util';
+import { requestLogger } from './common/middlewares/logger.middleware';
 import { rateLimiter } from './common/middlewares/rateLimiter.middleware';
 import { errorHandler } from './common/middlewares/error.middleware';
-import { swaggerDocs } from './config/swagger.config';
 import { authRouter } from './domains/auth/auth.router';
 import { budgetRouter } from './domains/budget/budget.router';
 
@@ -18,6 +20,7 @@ app.set('trust proxy', 1);
 // 미들웨어
 app.use(corsMiddleware());
 app.use(helmet());
+app.use(requestLogger);
 app.use(rateLimiter());
 app.use(express.json());
 
@@ -46,8 +49,8 @@ startBudgetScheduler();
 
 // 서버 시작
 app.listen(env.PORT, () => {
-  console.log('🚀 서버 시작...');
-  console.log(`📌 환경: ${env.NODE_ENV}`); // 현재 환경 명시적 출력
-  console.log(`📌 포트: ${env.PORT}`);
-  console.log('✅ 서버가 성공적으로 시작되었습니다!');
+  logger.info('🚀 서버 시작...');
+  logger.info(`📌 환경: ${env.NODE_ENV}`); // 현재 환경 명시적 출력
+  logger.info(`📌 포트: ${env.PORT}`);
+  logger.info('✅ 서버가 성공적으로 시작되었습니다!');
 });
