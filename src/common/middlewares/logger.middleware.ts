@@ -6,15 +6,18 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
   const start = process.hrtime.bigint();
 
   res.on('finish', () => {
-    const end = process.hrtime.bigint();
-    const durationMs = Number(end - start) / 1_000_000;
-
+    const durationMs = Number(process.hrtime.bigint() - start) / 1_000_000;
     const status = res.statusCode;
 
-    // 4xx/5xx(에러)는 error middleware가 로그 남기도록 위임
-    if (status >= 400) return;
+    // 로그 레벨 결정
+    let level: 'info' | 'warn' | 'error' = 'info';
+    if (status >= 500) {
+      level = 'error';
+    } else if (status >= 400) {
+      level = 'warn';
+    }
 
-    logger.info(`${req.method} ${req.originalUrl} ${status} ${durationMs.toFixed(2)}ms`, {
+    logger.log(level, `${req.method} ${req.originalUrl} ${status} ${durationMs.toFixed(2)}ms`, {
       ip: req.ip,
       userAgent: req.get('user-agent'),
       contentLength: res.get('content-length'),

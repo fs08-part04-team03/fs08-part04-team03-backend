@@ -69,7 +69,7 @@ function handlePrismaError(err: PrismaClientKnownRequestError, response: ErrorRe
   }
 }
 
-export const errorHandler = (err: unknown, _req: Request, res: Response, next: NextFunction) => {
+export const errorHandler = (err: unknown, req: Request, res: Response, next: NextFunction) => {
   if (res.headersSent) return next(err);
 
   const errorResponse: ErrorResponse = {
@@ -147,14 +147,14 @@ export const errorHandler = (err: unknown, _req: Request, res: Response, next: N
     }
   }
 
-  // loggging
+  // logging
   // error name, message, stack 기록, body 등 민감한 정보는 제외
   const safeErr =
     err instanceof Error ? { name: err.name, message: err.message, stack: err.stack } : err;
   logger.error('Unhandled error', {
     err: safeErr,
-    path: _req.path,
-    method: _req.method,
+    path: req.path,
+    method: req.method,
     statusCode: errorResponse.statusCode,
     errorCode: errorResponse.errorCode,
   });
