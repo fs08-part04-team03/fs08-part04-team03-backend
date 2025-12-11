@@ -1,8 +1,8 @@
 import { Response } from 'express';
-import { CustomError } from '@/common/utils/error.util';
-import { HttpStatus } from '@/common/constants/httpStatus.constants';
-import { ErrorCodes } from '@/common/constants/errorCodes.constants';
-import type { AuthenticatedRequest } from '@/common/types/common.types';
+import { CustomError } from '../../common/utils/error.util';
+import { HttpStatus } from '../../common/constants/httpStatus.constants';
+import { ErrorCodes } from '../../common/constants/errorCodes.constants';
+import type { AuthenticatedRequest } from '../../common/types/common.types';
 import { purchaseService } from './purchase.service';
 import type { GetAllPurchasesQuery } from './purchase.types';
 
@@ -32,6 +32,7 @@ export const purchaseController = {
     // 응답 반환
     res
       .status(HttpStatus.OK)
+      .json()
       .json({ success: true, ...result, message: '전체 구매 내역을 조회했습니다.' });
   },
 };

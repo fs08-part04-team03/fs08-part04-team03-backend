@@ -1,4 +1,4 @@
-import { prisma } from '@/common/database/prisma.client';
+import { prisma } from '../../common/database/prisma.client';
 import type { GetAllPurchasesQuery } from './purchase.types';
 
 export const purchaseService = {
@@ -69,8 +69,8 @@ export const purchaseService = {
     const totalPages = Math.ceil(totalItems / limit);
 
     return {
-      data: purchaseList,
-      meta: {
+      data: {
+        ...purchaseList,
         currentPage: page,
         totalPages,
         totalItems,

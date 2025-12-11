@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { requireMinRole } from '@/common/middlewares/role.middleware';
-import { verifyAccessToken } from '@/common/middlewares/auth.middleware';
-import { validateRequest } from '@/common/middlewares/validator.middleware';
-import { purchaseValidator } from '@/domains/purchase/purchase.validator';
+import { requireMinRole } from '../../common/middlewares/role.middleware';
+import { verifyAccessToken } from '../../common/middlewares/auth.middleware';
+import { validateRequest } from '../../common/middlewares/validator.middleware';
+import { purchaseValidator } from './purchase.validator';
 import { purchaseController } from './purchase.controller';
 
 const router = Router();
