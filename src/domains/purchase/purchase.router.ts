@@ -12,8 +12,8 @@ router.get(
   '/admin/getAllPurchases',
   verifyAccessToken,
   requireMinRole('MANAGER'),
-  validateRequest,
   purchaseValidator.validatePurchaseList,
+  validateRequest,
   purchaseController.getAllPurchases
 );
 
