@@ -13,6 +13,5 @@ export interface PurchaseItemRequest {
 
 export interface PurchaseNowBody {
   shippingFee: number;
-  requestMessage?: string;
   items: PurchaseItemRequest[];
 }

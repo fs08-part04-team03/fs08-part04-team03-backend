@@ -46,14 +46,32 @@ export const purchaseController = {
       );
     }
 
+    // 요청 바디에서 필요한 정보 추출
     const { shippingFee, items } = req.body as PurchaseNowBody;
 
-    // 요청 바디에서 필요한 정보 추출
+    // 요청 바디 유효성 검사
     if (typeof shippingFee !== 'number' || !Array.isArray(items) || items.length === 0) {
       throw new CustomError(
         HttpStatus.BAD_REQUEST,
         ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
         '요청 바디가 올바르지 않습니다.'
+      );
+    }
+
+    // 입력 값 검증
+    if (!items.length) {
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
+        '구매할 상품 항목이 없어 구매를 진행할 수 없습니다.'
+      );
+    }
+
+    if (shippingFee < 0 || items.some((i) => i.quantity <= 0)) {
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
+        '배송비는 0 이상이어야 하며, 모든 상품의 수량은 1 이상이어야 합니다.'
       );
     }
 
