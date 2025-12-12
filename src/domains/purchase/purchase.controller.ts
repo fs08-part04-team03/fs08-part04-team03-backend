@@ -49,8 +49,29 @@ export const purchaseController = {
     // 요청 바디에서 필요한 정보 추출
     const { shippingFee, items } = req.body as PurchaseNowBody;
 
-    // 요청 바디 유효성 검사
-    if (typeof shippingFee !== 'number' || !Array.isArray(items) || items.length === 0) {
+    // 요청 바디 유효성 검사 (exception-safe)
+    const invalidItems =
+      !Array.isArray(items) ||
+      items.length === 0 ||
+      items.some(
+        (i) =>
+          !i ||
+          typeof i !== 'object' ||
+          typeof i.productId !== 'number' ||
+          !Number.isInteger(i.productId) ||
+          i.productId < 1 ||
+          typeof i.quantity !== 'number' ||
+          !Number.isInteger(i.quantity) ||
+          i.quantity < 1
+      );
+
+    if (
+      typeof shippingFee !== 'number' ||
+      !Number.isFinite(shippingFee) ||
+      !Number.isInteger(shippingFee) ||
+      shippingFee < 0 ||
+      invalidItems
+    ) {
       throw new CustomError(
         HttpStatus.BAD_REQUEST,
         ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
