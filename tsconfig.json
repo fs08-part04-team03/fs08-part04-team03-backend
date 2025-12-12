@@ -37,7 +37,7 @@
     /* 기타 옵션 */
     "skipLibCheck": true, // 라이브러리 타입 체크 스킵 (빌드 속도 향상)
     "forceConsistentCasingInFileNames": true, // 파일명 대소문자 일관성 강제
-    "removeComments": true, // 컴파일 시 주석 제거
+    "removeComments": false, // 컴파일 시 주석 유지 (swagger 문서화에 필요)
     "sourceMap": true, // 소스맵 생성 (디버깅용)
     "declaration": true, // .d.ts 파일 생성
     "declarationMap": true, // .d.ts.map 파일 생성

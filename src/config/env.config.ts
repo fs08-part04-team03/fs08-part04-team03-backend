@@ -69,4 +69,6 @@ export const env = {
 
   EXTERNAL_API_KEY: str('EXTERNAL_API_KEY', ''),
   EXTERNAL_API_URL: str('EXTERNAL_API_URL', ''),
+
+  API_HOST: str('API_HOST', ''),
 } as const;
