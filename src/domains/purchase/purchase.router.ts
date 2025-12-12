@@ -17,4 +17,14 @@ router.get(
   purchaseController.getAllPurchases
 );
 
+// 💰 [Purchase] 즉시 구매 API (관리자)
+router.post(
+  '/admin/purchaseNow',
+  verifyAccessToken,
+  requireMinRole('MANAGER'),
+  purchaseValidator.validatePurchaseNow,
+  validateRequest,
+  purchaseController.purchaseNow
+);
+
 export const purchaseRouter = router;

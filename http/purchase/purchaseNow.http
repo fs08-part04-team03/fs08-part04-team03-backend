@@ -1,0 +1,34 @@
+### 로그인 (먼저 이것을 실행하세요!)
+# @name login
+POST http://localhost:4000/api/v1/auth/login
+Content-Type: application/json
+
+{
+    "email": "manager@test.com",
+    "password": "testM"
+}
+
+> {%
+    client.global.set("token", response.body.data.accessToken);
+%}
+
+###
+
+
+###
+# @name purchaseNow
+POST http://localhost:4000/api/v1/purchase/admin/purchaseNow
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "shippingFee": 3000,
+  "items": [
+    {
+      "productId": 586,
+      "quantity": 1
+    }
+  ]
+}
+
+###
