@@ -40,7 +40,7 @@ VSCode에서 "REST Client" 확장을 설치하세요.
 4. 파일 내의 `@token = YOUR_ACCESS_TOKEN_HERE` 부분을 업데이트
 
 ```http
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+@token = <YOUR_ACCESS_TOKEN_HERE>
 ```
 
 ### 3. 요청 실행
@@ -50,7 +50,7 @@ VSCode에서 "REST Client" 확장을 설치하세요.
 
 ## 파일 구조
 
-```
+```text
 http/
 ├── purchase/
 │   ├── purchaseNow.http           # IntelliJ용
