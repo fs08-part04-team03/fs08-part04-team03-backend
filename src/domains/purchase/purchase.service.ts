@@ -210,7 +210,7 @@ export const purchaseService = {
 
     return {
       data: {
-        ...purchaseList,
+        purchaseList,
         currentPage: page,
         totalPages,
         totalItems,
