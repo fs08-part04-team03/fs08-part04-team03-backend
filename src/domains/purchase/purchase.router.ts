@@ -27,4 +27,14 @@ router.post(
   purchaseController.purchaseNow
 );
 
+// 💰 [Purchase] 내 구매 내역 조회 API
+router.get(
+  '/my/getMyPurchases',
+  verifyAccessToken,
+  requireMinRole('USER'),
+  purchaseValidator.validateGetMyPurchase,
+  validateRequest,
+  purchaseController.getMyPurchases
+);
+
 export const purchaseRouter = router;
