@@ -73,7 +73,7 @@ export const purchaseService = {
 
     return {
       data: {
-        ...purchaseList,
+        purchaseList,
         currentPage: page,
         totalPages,
         totalItems,
@@ -149,5 +149,75 @@ export const purchaseService = {
     });
 
     return { data: result };
+  },
+
+  async getMyPurchases(companyId: string, userId: string, query: GetAllPurchasesQuery) {
+    // 기본 값 설정
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+    const sortBy = query.sortBy || 'createdAt';
+    const order = query.order || 'desc';
+    // 건너뛸 항목 수 계산
+    const skip = (page - 1) * limit;
+
+    // 전체 개수 조회
+    const totalItems = await prisma.purchaseRequests.count({
+      where: {
+        companyId,
+        requesterId: userId,
+      },
+    });
+
+    // 데이터 조회
+    const purchaseList = await prisma.purchaseRequests.findMany({
+      select: {
+        id: true,
+        createdAt: true,
+        updatedAt: true,
+        totalPrice: true,
+        status: true,
+        purchaseItems: {
+          select: {
+            quantity: true,
+            priceSnapshot: true,
+            products: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+        approver: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+      where: {
+        companyId,
+        requesterId: userId,
+      },
+      orderBy: {
+        [sortBy]: order,
+      },
+      skip,
+      take: limit,
+    });
+
+    const totalPages = Math.ceil(totalItems / limit);
+
+    return {
+      data: {
+        purchaseList,
+        currentPage: page,
+        totalPages,
+        totalItems,
+        itemsPerPage: limit,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      },
+    };
   },
 };

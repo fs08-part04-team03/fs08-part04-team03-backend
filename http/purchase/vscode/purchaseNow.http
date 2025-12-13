@@ -1,0 +1,37 @@
+### 로그인 (먼저 이것을 실행하세요!)
+# @name login
+POST http://localhost:4000/api/v1/auth/login
+Content-Type: application/json
+
+{
+    "email": "manager@test.com",
+    "password": "testM"
+}
+
+# VSCode 사용 시:
+# 1. 위 요청을 실행한 후 응답에서 accessToken 값을 복사하세요
+# 2. 아래 @token 변수에 토큰을 붙여넣거나
+# 3. http-client.env.json 파일에 token 값을 설정하세요
+
+###
+
+# 토큰을 여기에 설정하거나 http-client.env.json 파일을 사용하세요
+@token = YOUR_ACCESS_TOKEN_HERE
+
+###
+# @name purchaseNow
+POST http://localhost:4000/api/v1/purchase/admin/purchaseNow
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "shippingFee": 3000,
+  "items": [
+    {
+      "productId": 586,
+      "quantity": 1
+    }
+  ]
+}
+
+###
