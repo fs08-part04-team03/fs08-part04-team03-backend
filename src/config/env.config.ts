@@ -62,6 +62,11 @@ export const env = {
   JWT_ACCESS_EXPIRY: str('JWT_ACCESS_EXPIRY', '5m'),
   JWT_REFRESH_EXPIRY: str('JWT_REFRESH_EXPIRY', '1h'),
 
+  COOKIE_DOMAIN: str('COOKIE_DOMAIN', 'localhost'),
+  COOKIE_SECURE: str('COOKIE_SECURE', 'true'),
+  COOKIE_SAME_SITE: str('COOKIE_SAME_SITE', 'lax'),
+  COOKIE_PATH: str('COOKIE_PATH', '/'),
+
   ALLOWED_ORIGINS: csv('ALLOWED_ORIGINS', defaultOrigins),
 
   RATE_LIMIT_WINDOW_MS: int('RATE_LIMIT_WINDOW_MS', 900000),
