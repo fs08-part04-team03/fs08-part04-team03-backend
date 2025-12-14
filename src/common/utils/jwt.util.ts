@@ -82,11 +82,32 @@ export class JwtUtil {
   // refresh token 검증
   static verifyRefreshToken(token: string): RefreshPayload & { exp: number; iat: number } {
     try {
-      return jwt.verify(token, jwtConfig.refreshToken.secret) as RefreshPayload & {
-        exp: number;
-        iat: number;
-      };
+      const decoded = jwt.verify(token, jwtConfig.refreshToken.secret);
+
+      // 페이로드 구조 검증
+      if (
+        typeof decoded === 'object' &&
+        decoded !== null &&
+        'userId' in decoded &&
+        'jti' in decoded &&
+        'exp' in decoded &&
+        'iat' in decoded &&
+        typeof decoded.userId === 'string' &&
+        typeof decoded.jti === 'string' &&
+        typeof decoded.exp === 'number' &&
+        typeof decoded.iat === 'number'
+      ) {
+        return decoded as RefreshPayload & { exp: number; iat: number };
+      }
+      throw new CustomError(
+        HttpStatus.UNAUTHORIZED,
+        ErrorCodes.AUTH_INVALID_TOKEN,
+        '유효하지 않은 토큰 페이로드'
+      );
     } catch (err) {
+      if (err instanceof CustomError) {
+        throw err;
+      }
       if (err instanceof jwt.TokenExpiredError) {
         throw new CustomError(
           HttpStatus.UNAUTHORIZED,
