@@ -84,6 +84,7 @@ model users {
   password     String
   name         String   @db.VarChar(255)
   role         role     @default(USER)
+  refreshToken String?  @db.VarChar(255)  
   profileImage String?  @db.VarChar(255)
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
