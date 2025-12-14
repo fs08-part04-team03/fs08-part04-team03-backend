@@ -86,9 +86,15 @@ export const authService = {
       );
     }
 
-    // 3) refresh 토큰 해시 검증
+    // 4) refresh 토큰 해시 검증
     const ok = await argon2.verify(user.refreshToken, refreshToken);
     if (!ok) {
+      // 재사용/탈취 의심 - 기존 토큰 무효화
+      await prisma.users.updateMany({
+        where: { id: user.id, refreshToken: user.refreshToken },
+        data: { refreshToken: null },
+      });
+
       throw new CustomError(
         HttpStatus.UNAUTHORIZED,
         ErrorCodes.AUTH_UNAUTHORIZED,
@@ -96,7 +102,7 @@ export const authService = {
       );
     }
 
-    // 4) 새 access/refresh 토큰 발급
+    // 5) 새 access/refresh 토큰 발급
     const accessToken = JwtUtil.generateAccessToken(
       JwtUtil.buildAccessPayload({
         companyId: user.companyId,
@@ -111,11 +117,26 @@ export const authService = {
     });
     const newRefreshHash = await argon2.hash(newRefreshToken);
 
-    // 5) refresh 토큰 갱신
-    await prisma.users.update({
-      where: { id: user.id },
+    // 6) refresh 토큰 갱신 (원자적 업데이트로 재사용 방지)
+    const updateResult = await prisma.users.updateMany({
+      // 현재 DB의 해시가 검증한 해시와 동일할 때만 업데이트
+      where: { id: user.id, refreshToken: user.refreshToken },
       data: { refreshToken: newRefreshHash },
     });
+
+    // 업데이트 실패 시 = 다른 요청이 먼저 토큰을 갱신했음 = 재사용 시도
+    if (updateResult.count === 0) {
+      // 보안을 위해 해당 사용자의 모든 refresh token 무효화
+      await prisma.users.update({
+        where: { id: user.id },
+        data: { refreshToken: null },
+      });
+      throw new CustomError(
+        HttpStatus.UNAUTHORIZED,
+        ErrorCodes.AUTH_UNAUTHORIZED,
+        'Refresh token이 이미 사용되었습니다. 보안을 위해 재로그인이 필요합니다.'
+      );
+    }
 
     return {
       user: {
