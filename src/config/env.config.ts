@@ -49,6 +49,15 @@ function csv(name: string, defaultValue?: string[]): string[] {
     .filter(Boolean);
 }
 
+function bool(name: string, defaultValue: boolean): boolean {
+  const raw = process.env[name];
+  if (raw == null || raw === '') return defaultValue;
+  if (raw === 'true') return true;
+  if (raw === 'false') return false;
+  throw new Error(`Invalid boolean env: ${name}=${raw}`);
+}
+
+// 환경 변수 객체
 export const env = {
   NODE_ENV,
 
@@ -63,8 +72,8 @@ export const env = {
   JWT_REFRESH_EXPIRY: str('JWT_REFRESH_EXPIRY', '1h'),
 
   COOKIE_DOMAIN: str('COOKIE_DOMAIN', 'localhost'),
-  COOKIE_SECURE: str('COOKIE_SECURE', 'true'),
-  COOKIE_SAME_SITE: str('COOKIE_SAME_SITE', 'lax'),
+  COOKIE_SECURE: bool('COOKIE_SECURE', false),
+  COOKIE_SAME_SITE: str('COOKIE_SAME_SITE', 'lax') as 'strict' | 'lax' | 'none',
   COOKIE_PATH: str('COOKIE_PATH', '/'),
 
   ALLOWED_ORIGINS: csv('ALLOWED_ORIGINS', defaultOrigins),

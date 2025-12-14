@@ -13,8 +13,8 @@ type LoginRequest = Request<unknown, unknown, { email: string; password: string 
 // refresh token cookie 옵션
 const refreshCookieOptions = (maxAgeMs: number): CookieOptions => ({
   httpOnly: true,
-  secure: env.COOKIE_SECURE === 'true',
-  sameSite: env.COOKIE_SAME_SITE as 'lax' | 'none' | 'strict',
+  secure: env.COOKIE_SECURE,
+  sameSite: env.COOKIE_SAME_SITE,
   domain: env.COOKIE_DOMAIN,
   path: env.COOKIE_PATH,
   maxAge: maxAgeMs,
