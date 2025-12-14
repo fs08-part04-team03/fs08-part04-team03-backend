@@ -6,6 +6,7 @@ import { CustomError } from './error.util';
 import type { AuthTokenPayload } from '../types/common.types';
 
 type AccessPayload = Omit<AuthTokenPayload, 'iat' | 'exp'>;
+type RefreshPayload = { userId: string; jti: string };
 
 export class JwtUtil {
   // access token 페이로드 생성
@@ -51,7 +52,7 @@ export class JwtUtil {
       throw new CustomError(
         HttpStatus.UNAUTHORIZED,
         ErrorCodes.AUTH_INVALID_TOKEN,
-        'Invalid token payload structure'
+        '유효하지 않은 토큰 페이로드'
       );
     } catch (err) {
       if (err instanceof CustomError) {
@@ -61,13 +62,42 @@ export class JwtUtil {
         throw new CustomError(
           HttpStatus.UNAUTHORIZED,
           ErrorCodes.AUTH_TOKEN_EXPIRED,
-          'Access token expired'
+          'Access token 만료'
         );
       }
       throw new CustomError(
         HttpStatus.UNAUTHORIZED,
         ErrorCodes.AUTH_INVALID_TOKEN,
-        'Invalid access token'
+        '유효하지 않은 access token'
+      );
+    }
+  }
+
+  // refresh token 생성
+  static generateRefreshToken(payload: RefreshPayload): string {
+    const { secret, expiresIn } = jwtConfig.refreshToken;
+    return jwt.sign(payload, secret, { expiresIn });
+  }
+
+  // refresh token 검증
+  static verifyRefreshToken(token: string): RefreshPayload & { exp: number; iat: number } {
+    try {
+      return jwt.verify(token, jwtConfig.refreshToken.secret) as RefreshPayload & {
+        exp: number;
+        iat: number;
+      };
+    } catch (err) {
+      if (err instanceof jwt.TokenExpiredError) {
+        throw new CustomError(
+          HttpStatus.UNAUTHORIZED,
+          ErrorCodes.AUTH_TOKEN_EXPIRED,
+          'Refresh token 만료'
+        );
+      }
+      throw new CustomError(
+        HttpStatus.UNAUTHORIZED,
+        ErrorCodes.AUTH_INVALID_TOKEN,
+        '유효하지 않은 refresh token'
       );
     }
   }
