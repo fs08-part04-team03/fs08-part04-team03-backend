@@ -300,11 +300,15 @@ export const purchaseController = {
     }
 
     // requestMessage 유효성 검사
-    if (typeof requestMessage !== 'string' || requestMessage.trim().length === 0) {
+    if (
+      typeof requestMessage !== 'string' ||
+      requestMessage.trim().length === 0 ||
+      requestMessage.length > 255
+    ) {
       throw new CustomError(
         HttpStatus.BAD_REQUEST,
         ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
-        'requestMessage는 비어있지 않은 문자열이어야 합니다.'
+        'requestMessage는 1자 이상 255자 이하의 문자열이어야 합니다.'
       );
     }
 
