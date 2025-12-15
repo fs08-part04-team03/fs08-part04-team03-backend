@@ -29,7 +29,7 @@ app.use(express.json());
 
 // 헬스체크 엔드포인트
 app.get('/health', (_req: Request, res: Response) => {
-  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.status(200).json({ status: 'ok', timestamp: new Date().toLocaleString() });
 });
 
 // 기본 라우트

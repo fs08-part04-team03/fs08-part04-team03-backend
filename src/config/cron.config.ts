@@ -8,20 +8,20 @@ import { budgetService } from '../domains/budget/budget.service';
 let budgetJob: ScheduledTask | undefined;
 
 /**
- * 매월 1일 00:00 UTC에 예산을 자동 생성하도록 예약된 작업을 등록한다.
+ * 매월 1일 00:00 local time에 예산을 자동 생성하도록 예약된 작업을 등록한다.
  *
- * 예약된 실행 시 현재 UTC 기준 연도와 월을 계산하여 `budgetService.seedMonthlyBudgetsFromCriteria`를 호출해 해당 월의 예산을 생성하며, 성공 또는 실패 결과를 콘솔에 기록한다.
+ * 예약된 실행 시 현재 local 기준 연도와 월을 계산하여 `budgetService.seedMonthlyBudgetsFromCriteria`를 호출해 해당 월의 예산을 생성하며, 성공 또는 실패 결과를 콘솔에 기록한다.
  */
 export function startBudgetScheduler() {
   if (budgetJob) return budgetJob;
   budgetJob = cron.schedule(
-    // 매달 1일 00:00 UTC
+    // 매달 1일 00:00 local time
     '0 0 1 * *',
     async () => {
       try {
         const now = new Date();
-        const year = now.getUTCFullYear();
-        const month = now.getUTCMonth() + 1; // 1~12
+        const year = now.getFullYear();
+        const month = now.getMonth() + 1; // 1~12
         await budgetService.seedMonthlyBudgetsFromCriteria(year, month);
         logger.info('[budget] seeded', { year, month });
       } catch (err) {
@@ -30,8 +30,7 @@ export function startBudgetScheduler() {
           err instanceof Error ? { message: err.message, stack: err.stack } : err
         );
       }
-    },
-    { timezone: 'UTC' }
+    }
   );
 
   return budgetJob;
