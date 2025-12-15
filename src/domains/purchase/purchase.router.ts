@@ -67,4 +67,14 @@ router.patch(
   purchaseController.rejectPurchaseRequest
 );
 
+// 💰 [Purchase] 구매 요청 API
+router.post(
+  '/user/requestPurchase',
+  verifyAccessToken,
+  requireMinRole('USER'),
+  purchaseValidator.validateRequestPurchase,
+  validateRequest,
+  purchaseController.requestPurchase
+);
+
 export const purchaseRouter = router;

@@ -9,6 +9,7 @@ import type {
   GetAllPurchasesQuery,
   PurchaseNowBody,
   RejectPurchaseRequestBody,
+  RequestPurchaseBody,
 } from './purchase.types';
 
 export const purchaseController = {
@@ -237,5 +238,88 @@ export const purchaseController = {
     res
       .status(HttpStatus.OK)
       .json({ success: true, ...result, message: '구매 요청을 반려했습니다.' });
+  },
+
+  // 💰 [Purchase] 구매 요청 API
+  requestPurchase: async (req: AuthenticatedRequest, res: Response) => {
+    // 사용자 정보가 없는 경우
+    if (!req.user) {
+      throw new CustomError(
+        HttpStatus.UNAUTHORIZED,
+        ErrorCodes.AUTH_UNAUTHORIZED,
+        '사용자 정보가 없습니다.'
+      );
+    }
+
+    // 요청 바디의 내용이 없는 경우
+    if (!req.body) {
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
+        '요청 바디가 없습니다.'
+      );
+    }
+
+    const { productId, quantity, requestMessage } = req.body as RequestPurchaseBody;
+
+    // 요청 바디 유효성 검사
+    if (!productId || !quantity || !requestMessage) {
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
+        'productId, quantity, requestMessage 필드가 모두 필요합니다.'
+      );
+    }
+
+    // productId 유효성 검사
+    if (
+      typeof productId !== 'number' ||
+      !Number.isFinite(productId) ||
+      !Number.isInteger(productId) ||
+      productId < 1
+    ) {
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
+        'productId는 1 이상의 정수여야 합니다.'
+      );
+    }
+
+    // quantity 유효성 검사
+    if (
+      typeof quantity !== 'number' ||
+      !Number.isFinite(quantity) ||
+      !Number.isInteger(quantity) ||
+      quantity < 1
+    ) {
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
+        'quantity는 1 이상의 정수여야 합니다.'
+      );
+    }
+
+    // requestMessage 유효성 검사
+    if (typeof requestMessage !== 'string' || requestMessage.trim().length === 0) {
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
+        'requestMessage는 비어있지 않은 문자열이어야 합니다.'
+      );
+    }
+
+    // 서비스 호출
+    const result = await purchaseService.requestPurchase(
+      req.user.companyId,
+      req.user.userId,
+      productId,
+      quantity,
+      requestMessage
+    );
+
+    // 응답 반환
+    res
+      .status(HttpStatus.OK)
+      .json({ success: true, ...result, message: '구매 요청이 완료되었습니다.' });
   },
 };
