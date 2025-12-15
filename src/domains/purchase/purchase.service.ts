@@ -1,8 +1,13 @@
+import { purchaseStatus } from '@prisma/client';
 import { prisma } from '../../common/database/prisma.client';
 import { CustomError } from '../../common/utils/error.util';
 import { HttpStatus } from '../../common/constants/httpStatus.constants';
 import { ErrorCodes } from '../../common/constants/errorCodes.constants';
-import type { GetAllPurchasesQuery, PurchaseItemRequest } from './purchase.types';
+import type {
+  GetAllPurchasesQuery,
+  PurchaseItemRequest,
+  RejectPurchaseRequestBody,
+} from './purchase.types';
 
 export const purchaseService = {
   // 💰 [Purchase] 전체 구매 내역 목록 API (관리자)
@@ -151,6 +156,7 @@ export const purchaseService = {
     return { data: result };
   },
 
+  // 💰 [Purchase] 내 구매 내역 조회 API
   async getMyPurchases(companyId: string, userId: string, query: GetAllPurchasesQuery) {
     // 기본 값 설정
     const page = query.page || 1;
@@ -219,5 +225,169 @@ export const purchaseService = {
         hasPreviousPage: page > 1,
       },
     };
+  },
+
+  // 💰 [Purchase] 구매 요청 확인 API (관리자)
+  async managePurchaseRequests(
+    companyId: string,
+    query: GetAllPurchasesQuery & { status?: purchaseStatus }
+  ) {
+    // 기본 값 설정
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+    const { status } = query;
+    // 건너뛸 항목 수 계산
+    const skip = (page - 1) * limit;
+
+    if (status && !['PENDING', 'APPROVED', 'REJECTED'].includes(status)) {
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERAL_NOT_FOUND,
+        '유효하지 않은 상태 값입니다. 허용되는 값: PENDING, APPROVED, REJECTED'
+      );
+    }
+
+    // 전체 개수 조회
+    const totalItems = await prisma.purchaseRequests.count({
+      where: { status, companyId },
+    });
+
+    // 데이터 조회
+    const purchaseRequests = await prisma.purchaseRequests.findMany({
+      where: { status, companyId },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      skip,
+      take: limit,
+      include: {
+        requester: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        approver: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        purchaseItems: {
+          select: {
+            quantity: true,
+            priceSnapshot: true,
+            products: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const totalPages = Math.ceil(totalItems / limit);
+    return {
+      data: {
+        purchaseRequests,
+        currentPage: page,
+        totalPages,
+        totalItems,
+        itemsPerPage: limit,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      },
+    };
+  },
+
+  // 💰 [Purchase] 구매 요청 승인 API (관리자)
+  async approvePurchaseRequest(companyId: string, userId: string, purchaseRequestId: string) {
+    // 구매 요청 존재 여부 및 권한 확인
+    const purchaseRequest = await prisma.purchaseRequests.findFirst({
+      where: {
+        id: purchaseRequestId,
+        companyId,
+      },
+    });
+
+    if (!purchaseRequest) {
+      throw new CustomError(
+        HttpStatus.NOT_FOUND,
+        ErrorCodes.GENERAL_NOT_FOUND,
+        '구매 요청을 찾을 수 없습니다.'
+      );
+    }
+
+    // 이미 처리된 요청인지 확인
+    if (purchaseRequest.status !== 'PENDING') {
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
+        '이미 처리된 구매 요청입니다.'
+      );
+    }
+
+    // 구매 요청 승인 처리
+    const updatedPurchaseRequest = await prisma.purchaseRequests.update({
+      where: {
+        id: purchaseRequestId,
+      },
+      data: {
+        status: 'APPROVED',
+        approverId: userId,
+      },
+    });
+
+    return { data: updatedPurchaseRequest };
+  },
+
+  // 💰 [Purchase] 구매 요청 반려 API (관리자)
+  async rejectPurchaseRequest(
+    companyId: string,
+    userId: string,
+    purchaseRequestId: string,
+    body: RejectPurchaseRequestBody
+  ) {
+    // 구매 요청 존재 여부 및 권한 확인
+    const purchaseRequest = await prisma.purchaseRequests.findFirst({
+      where: {
+        id: purchaseRequestId,
+        companyId,
+      },
+    });
+
+    if (!purchaseRequest) {
+      throw new CustomError(
+        HttpStatus.NOT_FOUND,
+        ErrorCodes.GENERAL_NOT_FOUND,
+        '구매 요청을 찾을 수 없습니다.'
+      );
+    }
+
+    // 이미 처리된 요청인지 확인
+    if (purchaseRequest.status !== 'PENDING') {
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
+        '이미 처리된 구매 요청입니다.'
+      );
+    }
+
+    // 구매 요청 반려 처리
+    const updatedPurchaseRequest = await prisma.purchaseRequests.update({
+      where: {
+        id: purchaseRequestId,
+      },
+      data: {
+        status: 'REJECTED',
+        approverId: userId,
+        rejectReason: body.reason,
+      },
+    });
+
+    return { data: updatedPurchaseRequest };
   },
 };

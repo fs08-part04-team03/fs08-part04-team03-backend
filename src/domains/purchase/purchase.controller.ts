@@ -1,10 +1,15 @@
 import { Response } from 'express';
+import { purchaseStatus } from '@prisma/client';
 import { CustomError } from '../../common/utils/error.util';
 import { HttpStatus } from '../../common/constants/httpStatus.constants';
 import { ErrorCodes } from '../../common/constants/errorCodes.constants';
 import type { AuthenticatedRequest } from '../../common/types/common.types';
 import { purchaseService } from './purchase.service';
-import type { GetAllPurchasesQuery, PurchaseNowBody } from './purchase.types';
+import type {
+  GetAllPurchasesQuery,
+  PurchaseNowBody,
+  RejectPurchaseRequestBody,
+} from './purchase.types';
 
 export const purchaseController = {
   // 💰 [Purchase] 전체 구매 내역 목록 API (관리자)
@@ -136,5 +141,101 @@ export const purchaseController = {
     res
       .status(HttpStatus.OK)
       .json({ success: true, ...result, message: '내 구매 내역을 조회했습니다.' });
+  },
+
+  // 💰 [Purchase] 구매 요청 조회 API (관리자)
+  managePurchaseRequests: async (req: AuthenticatedRequest, res: Response) => {
+    // 사용자 정보가 없는 경우
+    if (!req.user) {
+      throw new CustomError(
+        HttpStatus.UNAUTHORIZED,
+        ErrorCodes.AUTH_UNAUTHORIZED,
+        '사용자 정보가 없습니다.'
+      );
+    }
+
+    // 쿼리 파라미터 처리
+    const query = {
+      status: req.query.status as purchaseStatus | undefined,
+      page: req.query.page ? Number(req.query.page) : undefined,
+      limit: req.query.limit ? Number(req.query.limit) : undefined,
+    };
+
+    // 서비스 호출
+    const result = await purchaseService.managePurchaseRequests(req.user.companyId, query);
+
+    // 응답 반환
+    res
+      .status(HttpStatus.OK)
+      .json({ success: true, ...result, message: '구매 요청 내역을 조회했습니다.' });
+  },
+
+  // 💰 [Purchase] 구매 요청 승인 API (관리자)
+  approvePurchaseRequest: async (req: AuthenticatedRequest, res: Response) => {
+    // 사용자 정보가 없는 경우
+    if (!req.user) {
+      throw new CustomError(
+        HttpStatus.UNAUTHORIZED,
+        ErrorCodes.AUTH_UNAUTHORIZED,
+        '사용자 정보가 없습니다.'
+      );
+    }
+
+    const purchaseRequestId = req.params.id;
+    if (!purchaseRequestId) {
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
+        '구매 요청 ID가 필요합니다.'
+      );
+    }
+
+    // 서비스 호출
+    const result = await purchaseService.approvePurchaseRequest(
+      req.user.companyId,
+      req.user.userId,
+      purchaseRequestId
+    );
+
+    // 응답 반환
+    res
+      .status(HttpStatus.OK)
+      .json({ success: true, ...result, message: '구매 요청을 승인했습니다.' });
+  },
+
+  // 💰 [Purchase] 구매 요청 반려 API (관리자)
+  rejectPurchaseRequest: async (req: AuthenticatedRequest, res: Response) => {
+    // 사용자 정보가 없는 경우
+    if (!req.user) {
+      throw new CustomError(
+        HttpStatus.UNAUTHORIZED,
+        ErrorCodes.AUTH_UNAUTHORIZED,
+        '사용자 정보가 없습니다.'
+      );
+    }
+
+    const purchaseRequestId = req.params.id;
+    if (!purchaseRequestId) {
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
+        '구매 요청 ID가 필요합니다.'
+      );
+    }
+
+    const body = req.body as RejectPurchaseRequestBody;
+
+    // 서비스 호출
+    const result = await purchaseService.rejectPurchaseRequest(
+      req.user.companyId,
+      req.user.userId,
+      purchaseRequestId,
+      body
+    );
+
+    // 응답 반환
+    res
+      .status(HttpStatus.OK)
+      .json({ success: true, ...result, message: '구매 요청을 반려했습니다.' });
   },
 };

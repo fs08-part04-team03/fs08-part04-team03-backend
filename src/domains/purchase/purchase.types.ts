@@ -15,3 +15,8 @@ export interface PurchaseNowBody {
   shippingFee: number;
   items: PurchaseItemRequest[];
 }
+
+// 💰 [Purchase] 구매 요청 반려 API (관리자)
+export interface RejectPurchaseRequestBody {
+  reason: string;
+}

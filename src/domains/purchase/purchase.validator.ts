@@ -36,8 +36,32 @@ const validateGetMyPurchase = [
   query('order').optional().isIn(['asc', 'desc']),
 ];
 
+const validateManagePurchaseRequests = [
+  query('status').optional().isIn(['PENDING', 'APPROVED', 'REJECTED']),
+  query('page').optional().isInt({ min: 1 }).toInt(),
+  query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
+];
+
+// 💰 [Purchase] 구매 요청 승인 API (관리자)
+const validateApprovePurchaseRequest = [
+  body('message').optional().isString().withMessage('메시지는 문자열이어야 합니다.'),
+];
+
+// 💰 [Purchase] 구매 요청 반려 API (관리자)
+const validateRejectPurchaseRequest = [
+  body('reason')
+    .notEmpty()
+    .withMessage('반려 사유는 필수입니다.')
+    .bail()
+    .isString()
+    .withMessage('반려 사유는 문자열이어야 합니다.'),
+];
+
 export const purchaseValidator = {
   validatePurchaseList,
   validatePurchaseNow,
   validateGetMyPurchase,
+  validateManagePurchaseRequests,
+  validateApprovePurchaseRequest,
+  validateRejectPurchaseRequest,
 };
