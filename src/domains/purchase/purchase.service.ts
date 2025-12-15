@@ -243,8 +243,7 @@ export const purchaseService = {
       throw new CustomError(
         HttpStatus.BAD_REQUEST,
         ErrorCodes.GENERAL_BAD_REQUEST,
-        '유효하지 않은 상태 값입니다. 허용되는 값: ',
-        Object.values(purchaseStatus).join(', ')
+        `유효하지 않은 상태 값입니다. 허용되는 값: ${Object.values(purchaseStatus).join(', ')}`
       );
     }
 
