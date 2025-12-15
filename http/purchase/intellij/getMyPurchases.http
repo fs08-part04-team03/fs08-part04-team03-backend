@@ -21,29 +21,29 @@ Authorization: Bearer {{token}}
 ###
 
 ### 내 구매 조회 - 기본 (첫 페이지, 10개 항목, 최신순)
-GET http://localhost:4000/api/v1/purchase/my/getMyPurchases
+GET http://localhost:4000/api/v1/purchase/user/getMyPurchases
 Authorization: Bearer {{token}}
 
 ###
 
 ### 내 구매 조회 - 페이지네이션 (2페이지, 페이지당 5개)
-GET http://localhost:4000/api/v1/purchase/my/getMyPurchases?page=2&limit=5
+GET http://localhost:4000/api/v1/purchase/user/getMyPurchases?page=2&limit=5
 Authorization: Bearer {{token}}
 
 ###
 
 ### 내 구매 조회 - 가격 오름차순 정렬
-GET http://localhost:4000/api/v1/purchase/my/getMyPurchases?sortBy=totalPrice&order=asc
+GET http://localhost:4000/api/v1/purchase/user/getMyPurchases?sortBy=totalPrice&order=asc
 Authorization: Bearer {{token}}
 
 ###
 
 ### 내 구매 조회 - 가격 내림차순 정렬 + 페이지네이션
-GET http://localhost:4000/api/v1/purchase/my/getMyPurchases?page=1&limit=3&sortBy=totalPrice&order=desc
+GET http://localhost:4000/api/v1/purchase/user/getMyPurchases?page=1&limit=3&sortBy=totalPrice&order=desc
 Authorization: Bearer {{token}}
 
 ###
 
 ### 내 구매 조회 - 요청일 오름차순 정렬
-GET http://localhost:4000/api/v1/purchase/my/getMyPurchases?sortBy=createdAt&order=asc
+GET http://localhost:4000/api/v1/purchase/user/getMyPurchases?sortBy=createdAt&order=asc
 Authorization: Bearer {{token}}

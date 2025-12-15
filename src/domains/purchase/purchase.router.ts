@@ -29,12 +29,42 @@ router.post(
 
 // 💰 [Purchase] 내 구매 내역 조회 API
 router.get(
-  '/my/getMyPurchases',
+  '/user/getMyPurchases',
   verifyAccessToken,
   requireMinRole('USER'),
   purchaseValidator.validateGetMyPurchase,
   validateRequest,
   purchaseController.getMyPurchases
+);
+
+// 💰 [Purchase] 구매 요청 관리/조회 API (관리자)
+router.get(
+  '/admin/managePurchaseRequests',
+  verifyAccessToken,
+  requireMinRole('MANAGER'),
+  purchaseValidator.validateManagePurchaseRequests,
+  validateRequest,
+  purchaseController.managePurchaseRequests
+);
+
+// 💰 [Purchase] 구매 요청 승인 API (관리자)
+router.patch(
+  '/admin/approvePurchaseRequest/:id',
+  verifyAccessToken,
+  requireMinRole('MANAGER'),
+  purchaseValidator.validateApprovePurchaseRequest,
+  validateRequest,
+  purchaseController.approvePurchaseRequest
+);
+
+// 💰 [Purchase] 구매 요청 반려 API (관리자)
+router.patch(
+  '/admin/rejectPurchaseRequest/:id',
+  verifyAccessToken,
+  requireMinRole('MANAGER'),
+  purchaseValidator.validateRejectPurchaseRequest,
+  validateRequest,
+  purchaseController.rejectPurchaseRequest
 );
 
 export const purchaseRouter = router;

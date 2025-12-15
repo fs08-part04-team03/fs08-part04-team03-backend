@@ -1,0 +1,40 @@
+### 로그인 (먼저 이것을 실행하세요!)
+# @name login
+POST http://localhost:4000/api/v1/auth/login
+Content-Type: application/json
+
+{
+    "email": "manager@test.com",
+    "password": "testM"
+}
+
+> {%
+    client.global.set("token", response.body.data.accessToken);
+%}
+
+###
+
+
+###
+# @name approvePurchaseRequest - 메시지 없이 승인
+PATCH http://localhost:4000/api/v1/purchase/admin/approvePurchaseRequest/019b1fa4-2a99-76b2-901b-ce0850ceae45
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+}
+
+###
+
+
+###
+# @name approvePurchaseRequest - 메시지와 함께 승인
+PATCH http://localhost:4000/api/v1/purchase/admin/approvePurchaseRequest/019b1fa4-2a99-76b2-901b-ce0850ceae45
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "message": "구매 요청이 승인되었습니다. 빠른 시일 내에 발주 진행하겠습니다."
+}
+
+###
