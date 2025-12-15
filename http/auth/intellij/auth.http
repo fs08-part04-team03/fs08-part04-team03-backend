@@ -16,7 +16,9 @@ Content-Type: application/json
   const setCookies = response.headers["set-cookie"] || [];
   const cookieHeader = Array.isArray(setCookies)
     ? setCookies.find(c => c.startsWith("refreshToken="))
-    : setCookies;
+    : (typeof setCookies === "string" && setCookies.includes("refreshToken=")
+        ? setCookies
+        : undefined);
 
   if (!cookieHeader) {
     throw new Error("refreshToken 쿠키가 발급되지 않았습니다.");
