@@ -43,7 +43,7 @@ Authorization: Bearer {{token}}
 
 ###
 # @name rejectPurchaseRequest - 구매 요청 반려 (정보 부족)
-PATCH http://localhost:4000/api/v1/purchase/admin/rejectPurchaseRequest/3
+PATCH http://localhost:4000/api/v1/purchase/admin/rejectPurchaseRequest/019b1fa4-2a99-76b2-901b-ce0850ceae45
 Content-Type: application/json
 Authorization: Bearer {{token}}
 
