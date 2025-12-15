@@ -235,6 +235,8 @@ export const purchaseService = {
     // 기본 값 설정
     const page = query.page || 1;
     const limit = query.limit || 10;
+    const sortBy = query.sortBy || 'createdAt';
+    const order = query.order || 'desc';
     const { status } = query;
     // 건너뛸 항목 수 계산
     const skip = (page - 1) * limit;
@@ -256,7 +258,7 @@ export const purchaseService = {
     const purchaseRequests = await prisma.purchaseRequests.findMany({
       where: { status, companyId },
       orderBy: {
-        createdAt: 'desc',
+        [sortBy]: order,
       },
       skip,
       take: limit,
