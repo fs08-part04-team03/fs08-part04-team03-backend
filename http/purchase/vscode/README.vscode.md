@@ -53,15 +53,41 @@ VSCode에서 "REST Client" 확장을 설치하세요.
 ```text
 http/
 ├── purchase/
-│   ├── purchaseNow.http           # IntelliJ용
-│   ├── purchaseNow.vscode.http    # VSCode용
-│   ├── getAllPurchases.http       # IntelliJ용
-│   ├── getAllPurchases.vscode.http # VSCode용
-│   ├── getMyPurchases.http        # IntelliJ용
-│   └── getMyPurchases.vscode.http # VSCode용
-└── README.vscode.md
-http-client.env.json               # VSCode 환경 변수 설정
+│   ├── vscode/
+│   │   ├── purchaseNow.http              # 즉시 구매 API (관리자)
+│   │   ├── getAllPurchases.http          # 전체 구매 내역 조회 API (관리자)
+│   │   ├── getMyPurchases.http           # 내 구매 내역 조회 API
+│   │   ├── managePurchaseRequests.http   # 구매 요청 관리 API (관리자)
+│   │   ├── approvePurchaseRequest.http   # 구매 요청 승인 API (관리자)
+│   │   ├── rejectPurchaseRequest.http    # 구매 요청 반려 API (관리자)
+│   │   ├── requestPurchase.http          # 구매 요청 API
+│   │   ├── getPurchaseDashboard.http     # 구매 관리 대시보드 API (관리자) 🆕
+│   │   └── README.vscode.md              # 이 파일
+│   └── intellij/
+│       ├── (동일한 파일들 - IntelliJ용)
+│       └── getPurchaseDashboard.http     # 🆕
+└── http-client.env.json                  # VSCode 환경 변수 설정
 ```
+
+## API 목록
+
+### 관리자 전용 API (MANAGER 권한 필요)
+
+- `purchaseNow.http` - 즉시 구매 (승인 없이 바로 구매)
+- `getAllPurchases.http` - 전체 구매 내역 조회
+- `managePurchaseRequests.http` - 구매 요청 조회/관리
+- `approvePurchaseRequest.http` - 구매 요청 승인
+- `rejectPurchaseRequest.http` - 구매 요청 반려
+- `getPurchaseDashboard.http` - 구매 관리 대시보드 🆕
+  - 이번달/지난달 지출액
+  - 올해/작년 총 지출액
+  - 이번달 예산 및 남은 예산
+  - 승인된 구매 내역 리스트 (페이지네이션)
+
+### 일반 사용자 API (USER 권한)
+
+- `getMyPurchases.http` - 내 구매 내역 조회
+- `requestPurchase.http` - 구매 요청 (승인 대기)
 
 ## 주의사항
 
