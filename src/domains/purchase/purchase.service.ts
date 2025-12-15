@@ -242,7 +242,7 @@ export const purchaseService = {
     if (status && !['PENDING', 'APPROVED', 'REJECTED'].includes(status)) {
       throw new CustomError(
         HttpStatus.BAD_REQUEST,
-        ErrorCodes.GENERAL_NOT_FOUND,
+        ErrorCodes.GENERAL_BAD_REQUEST,
         '유효하지 않은 상태 값입니다. 허용되는 값: PENDING, APPROVED, REJECTED'
       );
     }
@@ -390,4 +390,6 @@ export const purchaseService = {
 
     return { data: updatedPurchaseRequest };
   },
+
+  // 💰 [Purchase] 구매 요청 API
 };
