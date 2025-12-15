@@ -1,0 +1,63 @@
+@baseUrl = http://localhost:4000/api/v1
+@adminToken = REPLACE_WITH_ADMIN_JWT
+@managerToken = REPLACE_WITH_MANAGER_JWT
+@userToken = REPLACE_WITH_USER_JWT
+
+### 회사 세부 정보 조회 (USER/MANAGER/ADMIN 모두 허용)
+GET {{baseUrl}}/company
+Authorization: Bearer {{userToken}}
+
+### 회사 세부 정보 조회 (MANAGER)
+GET {{baseUrl}}/company
+Authorization: Bearer {{managerToken}}
+
+### 회사 세부 정보 조회 (ADMIN)
+GET {{baseUrl}}/company
+Authorization: Bearer {{adminToken}}
+
+### 회사 소속 유저 조회 - USER 금지(403 예상)
+GET {{baseUrl}}/company/users?page=1&limit=10
+Authorization: Bearer {{userToken}}
+
+### 회사 소속 유저 조회 - MANAGER 금지(403 예상)
+GET {{baseUrl}}/company/users?page=1&limit=10
+Authorization: Bearer {{managerToken}}
+
+### 회사 소속 유저 조회 - ADMIN 성공(전체 조회)
+GET {{baseUrl}}/company/users
+Authorization: Bearer {{adminToken}}
+
+### 회사 소속 유저 조회 - ADMIN 성공(페이지네이션 포함)
+GET {{baseUrl}}/company/users?page=1&limit=10&role=MANAGER&isActive=true
+Authorization: Bearer {{adminToken}}
+
+### 회사 소속 유저 조회 - ADMIN 성공(role=USER 필터)
+GET {{baseUrl}}/company/users?role=USER
+Authorization: Bearer {{adminToken}}
+
+### 회사명 변경 - USER 금지(403 예상)
+PATCH {{baseUrl}}/company/name
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "name": "New Name From User"
+}
+
+### 회사명 변경 - MANAGER 금지(403 예상)
+PATCH {{baseUrl}}/company/name
+Authorization: Bearer {{managerToken}}
+Content-Type: application/json
+
+{
+  "name": "New Name From Manager"
+}
+
+### 회사명 변경 - ADMIN 성공
+PATCH {{baseUrl}}/company/name
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "New Company Name"
+}

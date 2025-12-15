@@ -12,6 +12,7 @@ import { rateLimiter } from './common/middlewares/rateLimiter.middleware';
 import { errorHandler } from './common/middlewares/error.middleware';
 import { authRouter } from './domains/auth/auth.router';
 import { budgetRouter } from './domains/budget/budget.router';
+import { companyRouter } from './domains/company/company.router';
 
 const app: Application = express();
 
@@ -39,15 +40,16 @@ app.get('/', (_req: Request, res: Response) => {
 // 도메인 라우트
 app.use(`/api/${env.API_VERSION}/auth`, authRouter);
 app.use(`/api/${env.API_VERSION}/budget`, budgetRouter);
-
-// 에러 처리 미들웨어
-app.use(errorHandler);
+app.use(`/api/${env.API_VERSION}/company`, companyRouter);
 
 // Swagger 문서 설정
 swaggerDocs(app);
 
 // 예산 스케줄러 시작
 startBudgetScheduler();
+
+// 에러 처리 미들웨어
+app.use(errorHandler);
 
 // 서버 시작
 app.listen(env.PORT, () => {

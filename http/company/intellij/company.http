@@ -1,0 +1,117 @@
+@baseUrl = http://localhost:4000/api/v1
+
+@userEmail = user@test.com
+@userPassword = userPw
+
+@managerEmail = manager@test.com
+@managerPassword = managerPw
+
+@adminEmail = admin@test.com
+@adminPassword = adminPw
+
+
+### 1) USER 로그인 -> userToken 저장
+# @name login_user
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{userEmail}}",
+  "password": "{{userPassword}}"
+}
+
+> {%
+  client.global.set("userToken", response.body.data.accessToken);
+%}
+
+
+### 2) MANAGER 로그인 -> managerToken 저장
+# @name login_manager
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{managerEmail}}",
+  "password": "{{managerPassword}}"
+}
+
+> {%
+  client.global.set("managerToken", response.body.data.accessToken);
+%}
+
+
+### 3) ADMIN 로그인 -> adminToken 저장
+# @name login_admin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+> {%
+  client.global.set("adminToken", response.body.data.accessToken);
+%}
+
+
+### 회사 세부 정보 조회 (USER/MANAGER/ADMIN 모두 허용) - USER
+GET {{baseUrl}}/company
+Authorization: Bearer {{userToken}}
+
+### 회사 세부 정보 조회 (USER/MANAGER/ADMIN 모두 허용) - MANAGER
+GET {{baseUrl}}/company
+Authorization: Bearer {{managerToken}}
+
+### 회사 세부 정보 조회 (USER/MANAGER/ADMIN 모두 허용) - ADMIN
+GET {{baseUrl}}/company
+Authorization: Bearer {{adminToken}}
+
+
+### 회사 소속 유저 조회 - USER 금지(403 예상)
+GET {{baseUrl}}/company/users?page=1&limit=10
+Authorization: Bearer {{userToken}}
+
+### 회사 소속 유저 조회 - MANAGER 금지(403 예상)
+GET {{baseUrl}}/company/users?page=1&limit=10
+Authorization: Bearer {{managerToken}}
+
+### 회사 소속 유저 조회 - ADMIN 성공(전체 조회)
+GET {{baseUrl}}/company/users
+Authorization: Bearer {{adminToken}}
+
+### 회사 소속 유저 조회 - ADMIN 성공(페이지네이션 포함)
+GET {{baseUrl}}/company/users?page=1&limit=10&role=MANAGER&isActive=true
+Authorization: Bearer {{adminToken}}
+
+### 회사 소속 유저 조회 - ADMIN 성공(role=USER)
+GET {{baseUrl}}/company/users?role=USER
+Authorization: Bearer {{adminToken}}
+
+
+### 회사명 변경 - USER 금지(403 예상)
+PATCH {{baseUrl}}/company/name
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "name": "New Name From User"
+}
+
+### 회사명 변경 - MANAGER 금지(403 예상)
+PATCH {{baseUrl}}/company/name
+Authorization: Bearer {{managerToken}}
+Content-Type: application/json
+
+{
+  "name": "New Name From Manager"
+}
+
+### 회사명 변경 - ADMIN 성공
+PATCH {{baseUrl}}/company/name
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "New Company Name"
+}
