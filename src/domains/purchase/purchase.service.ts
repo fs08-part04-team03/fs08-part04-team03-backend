@@ -306,7 +306,7 @@ export const purchaseService = {
 
   // 💰 [Purchase] 구매 요청 승인 API (관리자)
   async approvePurchaseRequest(companyId: string, userId: string, purchaseRequestId: string) {
-    // 구매 요청 존재 여부 및 권한 확인
+    // 구매 요청 존재 여부 확인 (회사 범위 포함)
     const purchaseRequest = await prisma.purchaseRequests.findFirst({
       where: {
         id: purchaseRequestId,
@@ -322,7 +322,6 @@ export const purchaseService = {
       );
     }
 
-    // 이미 처리된 요청인지 확인
     if (purchaseRequest.status !== 'PENDING') {
       throw new CustomError(
         HttpStatus.BAD_REQUEST,
@@ -331,14 +330,32 @@ export const purchaseService = {
       );
     }
 
-    // 구매 요청 승인 처리
-    const updatedPurchaseRequest = await prisma.purchaseRequests.update({
+    // status = PENDING 조건까지 포함해서 원자적으로 승인 처리
+    const updateResult = await prisma.purchaseRequests.updateMany({
       where: {
         id: purchaseRequestId,
+        companyId,
+        status: 'PENDING',
       },
       data: {
         status: 'APPROVED',
         approverId: userId,
+      },
+    });
+
+    if (updateResult.count === 0) {
+      // 다른 트랜잭션에서 먼저 처리된 경우
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
+        '이미 처리된 구매 요청입니다.'
+      );
+    }
+
+    const updatedPurchaseRequest = await prisma.purchaseRequests.findFirst({
+      where: {
+        id: purchaseRequestId,
+        companyId,
       },
     });
 
@@ -352,7 +369,7 @@ export const purchaseService = {
     purchaseRequestId: string,
     body: RejectPurchaseRequestBody
   ) {
-    // 구매 요청 존재 여부 및 권한 확인
+    // 구매 요청 존재 여부 확인 (회사 범위 포함)
     const purchaseRequest = await prisma.purchaseRequests.findFirst({
       where: {
         id: purchaseRequestId,
@@ -368,7 +385,6 @@ export const purchaseService = {
       );
     }
 
-    // 이미 처리된 요청인지 확인
     if (purchaseRequest.status !== 'PENDING') {
       throw new CustomError(
         HttpStatus.BAD_REQUEST,
@@ -377,15 +393,33 @@ export const purchaseService = {
       );
     }
 
-    // 구매 요청 반려 처리
-    const updatedPurchaseRequest = await prisma.purchaseRequests.update({
+    // status = PENDING 조건까지 포함해서 원자적으로 반려 처리
+    const updateResult = await prisma.purchaseRequests.updateMany({
       where: {
         id: purchaseRequestId,
+        companyId,
+        status: 'PENDING',
       },
       data: {
         status: 'REJECTED',
         approverId: userId,
         rejectReason: body.reason,
+      },
+    });
+
+    if (updateResult.count === 0) {
+      // 다른 트랜잭션에서 먼저 처리된 경우
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
+        '이미 처리된 구매 요청입니다.'
+      );
+    }
+
+    const updatedPurchaseRequest = await prisma.purchaseRequests.findFirst({
+      where: {
+        id: purchaseRequestId,
+        companyId,
       },
     });
 
