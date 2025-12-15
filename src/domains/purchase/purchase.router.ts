@@ -77,4 +77,14 @@ router.post(
   purchaseController.requestPurchase
 );
 
+// 💰 [Purchase] 구매 관리 대시보드 API
+router.get(
+  '/admin/purchaseDashboard',
+  verifyAccessToken,
+  requireMinRole('MANAGER'),
+  purchaseValidator.validatePurchaseDashboard,
+  validateRequest,
+  purchaseController.getPurchaseDashboard
+);
+
 export const purchaseRouter = router;

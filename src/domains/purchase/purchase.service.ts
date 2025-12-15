@@ -514,4 +514,206 @@ export const purchaseService = {
 
     return { data: result };
   },
+
+  // 💰 [Purchase] 구매 관리 대시보드 API
+  // 조직 전체 지출액/예산 조회
+  // 데이터: 이번달 지출액, 지난달 지출액, 남은 예산, 올해 총 지출액, 지난해 지출액
+  // 전체 구매 내역 리스트
+  async getPurchaseDashboard(companyId: string, query: GetAllPurchasesQuery) {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1; // 0-indexed
+
+    // 이번달 시작일과 종료일
+    const thisMonthStart = new Date(currentYear, currentMonth - 1, 1);
+    const thisMonthEnd = new Date(currentYear, currentMonth, 0, 23, 59, 59, 999);
+
+    // 지난달 시작일과 종료일
+    const lastMonthStart = new Date(currentYear, currentMonth - 2, 1);
+    const lastMonthEnd = new Date(currentYear, currentMonth - 1, 0, 23, 59, 59, 999);
+
+    // 올해 시작일과 종료일
+    const thisYearStart = new Date(currentYear, 0, 1);
+    const thisYearEnd = new Date(currentYear, 11, 31, 23, 59, 59, 999);
+
+    // 작년 시작일과 종료일
+    const lastYearStart = new Date(currentYear - 1, 0, 1);
+    const lastYearEnd = new Date(currentYear - 1, 11, 31, 23, 59, 59, 999);
+
+    // 1. 이번달 지출액 (APPROVED 상태만, totalPrice + shippingFee)
+    const thisMonthExpenses = await prisma.purchaseRequests.aggregate({
+      where: {
+        companyId,
+        status: 'APPROVED',
+        updatedAt: {
+          gte: thisMonthStart,
+          lte: thisMonthEnd,
+        },
+      },
+      _sum: {
+        totalPrice: true,
+        shippingFee: true,
+      },
+    });
+
+    // 2. 지난달 지출액 (APPROVED 상태만, totalPrice + shippingFee)
+    const lastMonthExpenses = await prisma.purchaseRequests.aggregate({
+      where: {
+        companyId,
+        status: 'APPROVED',
+        updatedAt: {
+          gte: lastMonthStart,
+          lte: lastMonthEnd,
+        },
+      },
+      _sum: {
+        totalPrice: true,
+        shippingFee: true,
+      },
+    });
+
+    // 3. 올해 총 지출액 (APPROVED 상태만, totalPrice + shippingFee)
+    const thisYearExpenses = await prisma.purchaseRequests.aggregate({
+      where: {
+        companyId,
+        status: 'APPROVED',
+        updatedAt: {
+          gte: thisYearStart,
+          lte: thisYearEnd,
+        },
+      },
+      _sum: {
+        totalPrice: true,
+        shippingFee: true,
+      },
+    });
+
+    // 4. 작년 총 지출액 (APPROVED 상태만, totalPrice + shippingFee)
+    const lastYearExpenses = await prisma.purchaseRequests.aggregate({
+      where: {
+        companyId,
+        status: 'APPROVED',
+        updatedAt: {
+          gte: lastYearStart,
+          lte: lastYearEnd,
+        },
+      },
+      _sum: {
+        totalPrice: true,
+        shippingFee: true,
+      },
+    });
+
+    // 5. 이번달 예산 조회
+    const thisMonthBudget = await prisma.budgets.findUnique({
+      where: {
+        companyId_year_month: {
+          companyId,
+          year: currentYear,
+          month: currentMonth,
+        },
+      },
+    });
+
+    // 6. Prisma aggregate 결과에서 _sum 추출
+    // eslint-disable-next-line no-underscore-dangle
+    const thisMonthSum = thisMonthExpenses._sum;
+    // eslint-disable-next-line no-underscore-dangle
+    const lastMonthSum = lastMonthExpenses._sum;
+    // eslint-disable-next-line no-underscore-dangle
+    const thisYearSum = thisYearExpenses._sum;
+    // eslint-disable-next-line no-underscore-dangle
+    const lastYearSum = lastYearExpenses._sum;
+
+    // 7. 남은 예산 계산 (totalPrice + shippingFee를 예산에서 차감)
+    const thisMonthTotalExpenses = (thisMonthSum.totalPrice || 0) + (thisMonthSum.shippingFee || 0);
+    const remainingBudget = thisMonthBudget
+      ? thisMonthBudget.amount - thisMonthTotalExpenses
+      : null;
+
+    // 8. 전체 구매 내역 리스트 (페이지네이션)
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+    const sortBy = query.sortBy || 'createdAt';
+    const order = query.order || 'desc';
+    const skip = (page - 1) * limit;
+
+    const totalItems = await prisma.purchaseRequests.count({
+      where: {
+        companyId,
+        status: 'APPROVED',
+      },
+    });
+
+    const purchaseList = await prisma.purchaseRequests.findMany({
+      select: {
+        id: true,
+        createdAt: true,
+        updatedAt: true,
+        totalPrice: true,
+        shippingFee: true,
+        status: true,
+        purchaseItems: {
+          select: {
+            quantity: true,
+            priceSnapshot: true,
+            products: {
+              select: {
+                name: true,
+                image: true,
+              },
+            },
+          },
+        },
+        requester: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        approver: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+      where: {
+        companyId,
+        status: 'APPROVED',
+      },
+      orderBy: {
+        [sortBy]: order,
+      },
+      skip,
+      take: limit,
+    });
+    const totalPages = Math.ceil(totalItems / limit);
+
+    return {
+      data: {
+        expenses: {
+          thisMonth: (thisMonthSum.totalPrice || 0) + (thisMonthSum.shippingFee || 0),
+          lastMonth: (lastMonthSum.totalPrice || 0) + (lastMonthSum.shippingFee || 0),
+          thisYear: (thisYearSum.totalPrice || 0) + (thisYearSum.shippingFee || 0),
+          lastYear: (lastYearSum.totalPrice || 0) + (lastYearSum.shippingFee || 0),
+        },
+        budget: {
+          thisMonthBudget: thisMonthBudget?.amount || null,
+          remainingBudget,
+        },
+        purchaseList,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalItems,
+          itemsPerPage: limit,
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1,
+        },
+      },
+    };
+  },
 };
