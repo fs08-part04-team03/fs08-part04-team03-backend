@@ -1,0 +1,85 @@
+@base = http://localhost:4000
+@version = v1
+
+### 1) 로그인 (200, refreshToken 쿠키 발급 확인)
+# @name login
+POST {{base}}/api/{{version}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "your-email@example.com",
+  "password": "your-password"
+}
+
+> {%
+  // Set-Cookie 헤더에 refreshToken이 있는지 검사
+  const setCookies = response.headers["set-cookie"] || [];
+  const cookieHeader = Array.isArray(setCookies)
+    ? setCookies.find(c => c.startsWith("refreshToken="))
+    : (typeof setCookies === "string" && setCookies.includes("refreshToken=")
+        ? setCookies
+        : undefined);
+
+  if (!cookieHeader) {
+    throw new Error("refreshToken 쿠키가 발급되지 않았습니다.");
+  }
+
+  // accessToken 저장(선택)
+  const accessToken = response.body?.data?.accessToken;
+  if (accessToken) client.global.set("accessToken", accessToken);
+%}
+
+### 2) refresh 토큰 동작 확인 (쿠키 자동 전송, 200 기대)
+# @name refresh_ok
+POST {{base}}/api/{{version}}/auth/refresh
+
+> {%
+  if (response.status !== 200) {
+    throw new Error("refresh 실패");
+  }
+  const accessToken = response.body?.data?.accessToken;
+  if (accessToken) client.global.set("accessToken", accessToken);
+%}
+
+### 3) me 조회 (200 기대)
+# @name me_ok
+GET {{base}}/api/{{version}}/auth/me
+Authorization: Bearer {{accessToken}}
+
+> {%
+  if (response.status !== 200) {
+    throw new Error("me 조회 실패");
+  }
+%}
+
+### 4) 로그아웃 (200 기대, 쿠키 제거)
+# @name logout
+POST {{base}}/api/{{version}}/auth/logout
+
+> {%
+  if (response.status !== 200) {
+    throw new Error("logout 실패");
+  }
+  client.global.set("accessToken", "");
+%}
+
+### 5) refresh 토큰 동작 확인 (실패 기대: 401)
+# @name refresh_after_logout_fail
+POST {{base}}/api/{{version}}/auth/refresh
+
+> {%
+  if (response.status !== 401) {
+    throw new Error("로그아웃 후 refresh가 실패(401)해야 합니다");
+  }
+%}
+
+### 6) me 조회 (실패 기대: 401)
+# @name me_after_logout_fail
+GET {{base}}/api/{{version}}/auth/me
+Authorization: Bearer {{accessToken}}
+
+> {%
+  if (response.status !== 401) {
+    throw new Error("로그아웃 후 me가 실패(401)해야 합니다");
+  }
+%}

@@ -1,40 +1,69 @@
-import { Request, Response } from 'express';
+import { Request, Response, type CookieOptions } from 'express';
 import { authService } from './auth.service';
-import { CustomError } from '../../common/utils/error.util';
+import type { AuthenticatedRequest } from '../../common/types/common.types';
 import { HttpStatus } from '../../common/constants/httpStatus.constants';
 import { ErrorCodes } from '../../common/constants/errorCodes.constants';
-import type { AuthenticatedRequest } from '../../common/types/common.types';
+import { ResponseUtil } from '../../common/utils/response.util';
+import { CustomError } from '../../common/utils/error.util';
+import { JwtUtil } from '../../common/utils/jwt.util';
+import { env } from '../../config/env.config';
 
 type LoginRequest = Request<unknown, unknown, { email: string; password: string }, unknown>;
+
+// refresh token cookie 옵션
+const refreshCookieOptions = (maxAgeMs: number): CookieOptions => ({
+  httpOnly: true,
+  secure: env.COOKIE_SECURE,
+  sameSite: env.COOKIE_SAME_SITE,
+  domain: env.COOKIE_DOMAIN,
+  path: env.COOKIE_PATH,
+  maxAge: maxAgeMs,
+});
 
 export const authController = {
   // 로그인
   login: async (req: LoginRequest, res: Response) => {
     const { email, password } = req.body;
+    const { accessToken, refreshToken, user } = await authService.login({ email, password });
 
-    // 인자가 제대로 넘어왔는지 확인
-    if (!email || !password) {
-      throw new CustomError(
-        HttpStatus.BAD_REQUEST,
-        ErrorCodes.VAL_MISSING_FIELD,
-        '이메일 및 비밀번호가 존재하지 않습니다.'
-      );
-    }
+    const { exp } = JwtUtil.verifyRefreshToken(refreshToken);
+    const maxAge = Math.max(0, exp * 1000 - Date.now());
 
-    const result = await authService.login({ email, password });
-    res.status(HttpStatus.OK).json({ success: true, data: result });
+    res.cookie('refreshToken', refreshToken, refreshCookieOptions(maxAge));
+    res.status(HttpStatus.OK).json(ResponseUtil.success({ user, accessToken }, '로그인 성공'));
   },
 
-  // 자기 정보 조회 (JWT를 이용해 인증된 사용자 정보 반환)
+  // 내 정보 조회
   me: (req: AuthenticatedRequest, res: Response) => {
-    if (!req.user) {
+    res.status(HttpStatus.OK).json(ResponseUtil.success(req.user, '내 정보 조회 성공'));
+  },
+
+  // access token 재발급
+  refresh: async (req: Request, res: Response) => {
+    const token = (req.cookies as Record<string, string | undefined> | undefined)?.refreshToken;
+    if (!token) {
       throw new CustomError(
         HttpStatus.UNAUTHORIZED,
         ErrorCodes.AUTH_UNAUTHORIZED,
-        '인증되지 않은 사용자입니다.'
+        'refresh token이 존재하지 않습니다.'
       );
     }
 
-    res.status(HttpStatus.OK).json({ success: true, data: req.user });
+    const { accessToken, refreshToken, user } = await authService.refresh(token);
+    const { exp } = JwtUtil.verifyRefreshToken(refreshToken);
+    const maxAge = Math.max(0, exp * 1000 - Date.now());
+
+    res.cookie('refreshToken', refreshToken, refreshCookieOptions(maxAge));
+    res.status(HttpStatus.OK).json(ResponseUtil.success({ user, accessToken }, '토큰 재발급 성공'));
+  },
+
+  // 로그아웃
+  logout: async (req: Request, res: Response) => {
+    const token = (req.cookies as Record<string, string | undefined> | undefined)?.refreshToken;
+    if (token) {
+      await authService.logoutByToken(token);
+    }
+    res.clearCookie('refreshToken', refreshCookieOptions(0));
+    res.status(HttpStatus.OK).json(ResponseUtil.success(null, '로그아웃 성공'));
   },
 };

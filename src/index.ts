@@ -1,6 +1,7 @@
 import 'express-async-errors';
 import express, { type Application, type Request, type Response } from 'express';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import { env } from './config/env.config';
 import { corsMiddleware } from './config/cors.config';
 import { startBudgetScheduler } from './config/cron.config';
@@ -21,6 +22,7 @@ app.set('trust proxy', 1);
 app.use(corsMiddleware());
 app.use(helmet());
 app.use(requestLogger);
+app.use(cookieParser());
 app.use(rateLimiter());
 app.use(express.json());
 
