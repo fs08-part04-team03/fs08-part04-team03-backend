@@ -57,6 +57,30 @@ const validateRejectPurchaseRequest = [
     .withMessage('반려 사유는 문자열이어야 합니다.'),
 ];
 
+// 💰 [Purchase] 구매 요청 API
+const validateRequestPurchase = [
+  body('productId')
+    .notEmpty()
+    .withMessage('상품 ID는 필수입니다.')
+    .bail()
+    .isInt({ min: 1 })
+    .withMessage('상품 ID는 1 이상의 정수여야 합니다.')
+    .toInt(),
+  body('quantity')
+    .notEmpty()
+    .withMessage('수량은 필수입니다.')
+    .bail()
+    .isInt({ min: 1 })
+    .withMessage('수량은 1 이상의 정수여야 합니다.')
+    .toInt(),
+  body('requestMessage')
+    .notEmpty()
+    .withMessage('구매 사유는 필수입니다.')
+    .bail()
+    .isString()
+    .withMessage('구매 사유는 문자열이어야 합니다.'),
+];
+
 export const purchaseValidator = {
   validatePurchaseList,
   validatePurchaseNow,
@@ -64,4 +88,5 @@ export const purchaseValidator = {
   validateManagePurchaseRequests,
   validateApprovePurchaseRequest,
   validateRejectPurchaseRequest,
+  validateRequestPurchase,
 };
