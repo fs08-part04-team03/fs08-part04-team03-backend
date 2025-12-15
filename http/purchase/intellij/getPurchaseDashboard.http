@@ -1,0 +1,93 @@
+### 로그인 (먼저 이것을 실행하세요!)
+# @name login
+POST http://localhost:4000/api/v1/auth/login
+Content-Type: application/json
+
+{
+    "email": "manager@test.com",
+    "password": "testM"
+}
+
+> {%
+    client.global.set("token", response.body.data.accessToken);
+%}
+
+###
+
+### 내 정보 조회
+GET http://localhost:4000/api/v1/auth/me
+Authorization: Bearer {{token}}
+
+###
+
+### 💰 [Purchase] 구매 관리 대시보드 API - 기본 (첫 페이지, 10개 항목, 최신순)
+# 이번달/지난달/올해/작년 지출액, 이번달 예산 및 남은 예산, 승인된 구매 내역 리스트
+# Response:
+# - expenses: { thisMonth, lastMonth, thisYear, lastYear }
+# - budget: { thisMonthBudget, remainingBudget }
+# - purchaseList: 승인된 구매 내역 배열
+# - pagination: 페이지네이션 정보
+GET http://localhost:4000/api/v1/purchase/admin/purchaseDashboard
+Authorization: Bearer {{token}}
+
+###
+
+### 💰 [Purchase] 구매 관리 대시보드 API - 페이지네이션 (2페이지, 페이지당 5개)
+GET http://localhost:4000/api/v1/purchase/admin/purchaseDashboard?page=2&limit=5
+Authorization: Bearer {{token}}
+
+###
+
+### 💰 [Purchase] 구매 관리 대시보드 API - 페이지네이션 (3페이지, 페이지당 20개)
+GET http://localhost:4000/api/v1/purchase/admin/purchaseDashboard?page=3&limit=20
+Authorization: Bearer {{token}}
+
+###
+
+### 💰 [Purchase] 구매 관리 대시보드 API - 생성일 기준 최신순 정렬
+GET http://localhost:4000/api/v1/purchase/admin/purchaseDashboard?sortBy=createdAt&order=desc
+Authorization: Bearer {{token}}
+
+###
+
+### 💰 [Purchase] 구매 관리 대시보드 API - 생성일 기준 오래된순 정렬
+GET http://localhost:4000/api/v1/purchase/admin/purchaseDashboard?sortBy=createdAt&order=asc
+Authorization: Bearer {{token}}
+
+###
+
+### 💰 [Purchase] 구매 관리 대시보드 API - 승인일 기준 최신순 정렬
+GET http://localhost:4000/api/v1/purchase/admin/purchaseDashboard?sortBy=updatedAt&order=desc
+Authorization: Bearer {{token}}
+
+###
+
+### 💰 [Purchase] 구매 관리 대시보드 API - 승인일 기준 오래된순 정렬
+GET http://localhost:4000/api/v1/purchase/admin/purchaseDashboard?sortBy=updatedAt&order=asc
+Authorization: Bearer {{token}}
+
+###
+
+### 💰 [Purchase] 구매 관리 대시보드 API - 가격 기준 내림차순 정렬 (비싼 순)
+GET http://localhost:4000/api/v1/purchase/admin/purchaseDashboard?sortBy=totalPrice&order=desc
+Authorization: Bearer {{token}}
+
+###
+
+### 💰 [Purchase] 구매 관리 대시보드 API - 가격 기준 오름차순 정렬 (저렴한 순)
+GET http://localhost:4000/api/v1/purchase/admin/purchaseDashboard?sortBy=totalPrice&order=asc
+Authorization: Bearer {{token}}
+
+###
+
+### 💰 [Purchase] 구매 관리 대시보드 API - 전체 옵션 조합 (1페이지, 10개, 생성일 최신순)
+GET http://localhost:4000/api/v1/purchase/admin/purchaseDashboard?page=1&limit=10&sortBy=createdAt&order=desc
+Authorization: Bearer {{token}}
+
+###
+
+### 💰 [Purchase] 구매 관리 대시보드 API - 전체 옵션 조합 (2페이지, 15개, 가격 내림차순)
+GET http://localhost:4000/api/v1/purchase/admin/purchaseDashboard?page=2&limit=15&sortBy=totalPrice&order=desc
+Authorization: Bearer {{token}}
+
+###
