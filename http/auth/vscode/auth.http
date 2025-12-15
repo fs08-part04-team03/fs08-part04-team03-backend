@@ -1,0 +1,33 @@
+@base = http://localhost:4000
+@version = v1
+
+### 1) 로그인 (200, Set-Cookie로 refreshToken 발급)
+# @name login
+POST {{base}}/api/{{version}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "your-email@example.com",
+  "password": "your-password"
+}
+
+### 2) refresh 토큰 동작 확인 (쿠키 자동 전송, 200 기대)
+# @name refresh_ok
+POST {{base}}/api/{{version}}/auth/refresh
+
+### 3) me 조회 (200 기대) - refresh 응답의 accessToken 사용
+# @name me_ok
+GET {{base}}/api/{{version}}/auth/me
+Authorization: Bearer {{refresh_ok.response.body.$.data.accessToken}}
+
+### 4) 로그아웃 (200 기대, 서버가 Set-Cookie로 쿠키 만료/삭제 처리)
+# @name logout
+POST {{base}}/api/{{version}}/auth/logout
+
+### 5) refresh 토큰 동작 확인 (실패 기대: 401)
+# @name refresh_after_logout_fail
+POST {{base}}/api/{{version}}/auth/refresh
+
+### 6) me 조회 (실패 기대: 401) - Authorization 없이 호출
+# @name me_after_logout_fail
+GET {{base}}/api/{{version}}/auth/me
