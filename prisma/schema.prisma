@@ -1,3 +1,53 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// ============================================================================
+// 📌 테이블 (Models) & 관계 (Relations)
+//
+//    - companies: 회사 정보
+//      → users, products, budgetCriteria, budgets, purchaseRequests, invitations
+//
+//    - users: 사용자 정보
+//      ← companies (소속 회사)
+//      → carts, purchaseRequests (요청자/승인자)
+//
+//    - categories: 상품 카테고리 (계층 구조)
+//      ↔ categories (Self-relation: 상위/하위 카테고리)
+//      → products
+//
+//    - products: 상품 정보
+//      ← companies, categories
+//      → carts, purchaseItems
+//
+//    - carts: 장바구니
+//      ← users, products
+//
+//    - budgetCriteria: 회사별 예산 기준
+//      ← companies (1:1)
+//
+//    - budgets: 월별 예산
+//      ← companies
+//
+//    - purchaseRequests: 구매 요청
+//      ← companies, users (요청자), users (승인자)
+//      → purchaseItems
+//
+//    - purchaseItems: 구매 요청 상세 항목
+//      ← purchaseRequests, products
+//
+//    - invitations: 이메일 초대
+//      ← companies
+//
+//    - History: 변경 이력 (독립 테이블)
+//
+// 📌 열거형 (Enums)
+//    - role: 사용자 역할 (USER, MANAGER, ADMIN)
+//    - purchaseStatus: 구매 상태 (PENDING, APPROVED, REJECTED, CANCELLED)
+//    - operationType: 이력 작업 유형 (INSERT, UPDATE, DELETE)
+//
+// 📌 관계 표기법: → 1:N (부모), ← N:1 (자식), ↔ Self-relation
+// ============================================================================
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,6 +57,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// 회사 테이블
 model companies {
   id               String             @id @default(uuid(7)) @db.Uuid
   name             String             @db.VarChar(255)
@@ -23,18 +74,21 @@ model companies {
   @@map("companies")
 }
 
+// 사용자 테이블
 model users {
-  id                 String             @id @default(uuid(7)) @db.Uuid
-  companyId          String             @db.Uuid
-  email              String             @unique
-  password           String
-  name               String             @db.VarChar(255)
-  role               role               @default(USER)
-  profileImage       String?            @db.VarChar(255)
-  isActive           Boolean            @default(true)
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-  refreshToken       String?            @db.VarChar(255)
+  id           String   @id @default(uuid(7)) @db.Uuid
+  companyId    String   @db.Uuid
+  email        String   @unique
+  password     String
+  name         String   @db.VarChar(255)
+  role         role     @default(USER)
+  profileImage String?  @db.VarChar(255)
+  isActive     Boolean  @default(true)
+  refreshToken String?  @db.VarChar(255)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
   carts              carts[]
   approvedPurchases  purchaseRequests[] @relation("Approver")
   requestedPurchases purchaseRequests[] @relation("Requester")
@@ -44,124 +98,152 @@ model users {
   @@map("users")
 }
 
+// 카테고리
 model categoies {
-  id               Int         @id @default(autoincrement())
-  name             String      @db.VarChar(255)
+  id               Int    @id @default(autoincrement())
+  name             String @db.VarChar(255)
   parentCategoryId Int?
+
+  // Self-relation for hierarchical categories
   parentCategories categoies?  @relation("CategoryHierarchy", fields: [parentCategoryId], references: [id])
   childCategories  categoies[] @relation("CategoryHierarchy")
-  products         products[]
+
+  // Relations
+  products products[]
 
   @@map("categories")
 }
 
+// 상품
 model products {
-  id            Int             @id @default(autoincrement())
-  companyId     String          @db.Uuid
-  categoryId    Int
-  name          String          @db.VarChar(255)
-  price         Int
-  image         String?         @db.VarChar(255)
-  link          String          @db.VarChar(255)
-  isActive      Boolean         @default(true)
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-  carts         carts[]
-  categoies     categoies       @relation(fields: [categoryId], references: [id])
+  id         Int      @id @default(autoincrement())
+  companyId  String   @db.Uuid
+  categoryId Int
+  name       String   @db.VarChar(255)
+  price      Int
+  image      String?  @db.VarChar(255)
+  link       String   @db.VarChar(255)
+  isActive   Boolean  @default(true) // 논리적 삭제
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
   companies     companies       @relation(fields: [companyId], references: [id])
+  categoies     categoies       @relation(fields: [categoryId], references: [id])
+  carts         carts[]
   purchaseItems purchaseItems[]
 
   @@map("products")
 }
 
+// 장바구니
 model carts {
   id        String   @id @default(uuid(7)) @db.Uuid
   userId    String   @db.Uuid
   productId Int
   quantity  Int
   updatedAt DateTime @updatedAt
-  products  products @relation(fields: [productId], references: [id])
-  users     users    @relation(fields: [userId], references: [id])
+
+  // Relations
+  users    users    @relation(fields: [userId], references: [id])
+  products products @relation(fields: [productId], references: [id])
 
   @@map("carts")
 }
 
+// 예산기준
 model budgetCriteria {
-  id        String    @id @default(uuid(7)) @db.Uuid
-  companyId String    @unique @db.Uuid
+  id        String @id @default(uuid(7)) @db.Uuid
+  companyId String @unique @db.Uuid
   amount    Int?
+
+  // Relations
   companies companies @relation(fields: [companyId], references: [id])
 
   @@map("budget_criteria")
 }
 
+// 월별 예산
 model budgets {
-  id        String    @id @default(uuid(7)) @db.Uuid
-  companyId String    @db.Uuid
+  id        String   @id @default(uuid(7)) @db.Uuid
+  companyId String   @db.Uuid
   year      Int
   month     Int
   amount    Int
-  updatedAt DateTime  @updatedAt
+  updatedAt DateTime @updatedAt
+
+  // Relations
   companies companies @relation(fields: [companyId], references: [id])
 
   @@unique([companyId, year, month])
   @@map("budgets")
 }
 
+// 구매요청
 model purchaseRequests {
-  id             String          @id @default(uuid(7)) @db.Uuid
-  companyId      String          @db.Uuid
-  requesterId    String          @db.Uuid
-  approverId     String?         @db.Uuid
-  status         purchaseStatus  @default(PENDING)
+  id             String         @id @default(uuid(7)) @db.Uuid
+  companyId      String         @db.Uuid
+  requesterId    String         @db.Uuid
+  approverId     String?        @db.Uuid
+  status         purchaseStatus @default(PENDING)
   totalPrice     Int
-  shippingFee    Int             @default(3000)
-  requestMessage String?         @db.VarChar(255)
-  rejectReason   String?         @db.VarChar(255)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  purchaseItems  purchaseItems[]
-  approver       users?          @relation("Approver", fields: [approverId], references: [id])
-  companies      companies       @relation(fields: [companyId], references: [id])
-  requester      users           @relation("Requester", fields: [requesterId], references: [id])
+  shippingFee    Int            @default(3000)
+  requestMessage String?        @db.VarChar(255)
+  rejectReason   String?        @db.VarChar(255)
+  reason         String?        @db.VarChar(255)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  // Relations
+  purchaseItems purchaseItems[]
+  approver      users?          @relation("Approver", fields: [approverId], references: [id])
+  companies     companies       @relation(fields: [companyId], references: [id])
+  requester     users           @relation("Requester", fields: [requesterId], references: [id])
 
   @@map("purchase_requests")
 }
 
+// 구매내역
 model purchaseItems {
-  id                String           @id @default(uuid(7)) @db.Uuid
-  purchaseRequestId String           @db.Uuid
+  id                String @id @default(uuid(7)) @db.Uuid
+  purchaseRequestId String @db.Uuid
   productId         Int
   quantity          Int
-  priceSnapshot     Int
-  products          products         @relation(fields: [productId], references: [id])
-  purchaseRequests  purchaseRequests @relation(fields: [purchaseRequestId], references: [id])
+  priceSnapshot     Int // 요청당시가격
+
+  // Relations
+  purchaseRequests purchaseRequests @relation(fields: [purchaseRequestId], references: [id])
+  products         products         @relation(fields: [productId], references: [id])
 
   @@map("purchase_items")
 }
 
+// 초대(이메일)
 model invitations {
-  id        String    @id @default(uuid(7)) @db.Uuid
-  companyId String    @db.Uuid
-  name      String    @db.VarChar(255)
-  email     String    @unique @db.VarChar(255)
-  token     String    @unique @db.VarChar(255)
-  isUsed    Boolean   @default(false)
-  expiresAt DateTime
-  isValid   Boolean   @default(true)
-  createdAt DateTime  @default(now())
+  id        String   @id @default(uuid(7)) @db.Uuid
+  companyId String   @db.Uuid
+  name      String   @db.VarChar(255)
+  email     String   @unique @db.VarChar(255)
+  token     String   @unique @db.VarChar(255)
   role      role
+  isUsed    Boolean  @default(false) // 초대장사용여부
+  expiresAt DateTime
+  isValid   Boolean  @default(true) // 초대장유효여부
+  createdAt DateTime @default(now())
+
+  // Relations
   companies companies @relation(fields: [companyId], references: [id])
 
   @@map("invitations")
 }
 
+// 변경이력
 model History {
   id            String        @id @default(uuid(7)) @db.Uuid
   tableName     String        @db.VarChar(255)
   tableId       String        @db.Uuid
   operationType operationType
-  data          Json
+  data          Json // 각 테이블마다 상이
   createdAt     DateTime      @default(now())
 
   @@map("history")
