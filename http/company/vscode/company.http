@@ -31,7 +31,7 @@ Authorization: Bearer {{adminToken}}
 GET {{baseUrl}}/company/users?page=1&limit=10&role=MANAGER&isActive=true
 Authorization: Bearer {{adminToken}}
 
-### 회사 소속 유저 조회 - ADMIN 성공(페이지네이션 포함)
+### 회사 소속 유저 조회 - ADMIN 성공(role=USER 필터)
 GET {{baseUrl}}/company/users?role=USER
 Authorization: Bearer {{adminToken}}
 

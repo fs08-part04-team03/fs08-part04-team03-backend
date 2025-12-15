@@ -131,4 +131,6 @@
  *         description: 권한 없음 (USER/MANAGER)
  *       '401':
  *         description: 인증 실패
+ *       '400':
+ *         description: 유효성 검증 실패 (이름이 1-255자 범위를 벗어남)
  */

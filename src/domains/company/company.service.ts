@@ -1,3 +1,4 @@
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { prisma } from '../../common/database/prisma.client';
 import { CustomError } from '../../common/utils/error.util';
 import { HttpStatus } from '../../common/constants/httpStatus.constants';
@@ -12,7 +13,7 @@ export const companyService = {
       throw new CustomError(
         HttpStatus.NOT_FOUND,
         ErrorCodes.GENERAL_NOT_FOUND,
-        'Company not found'
+        '회사를 찾을 수 없습니다.'
       );
     }
     return company;
@@ -52,21 +53,20 @@ export const companyService = {
 
   // 회사명 변경
   async updateCompanyName(companyId: string, payload: UpdateCompanyNameBody) {
-    // 회사 존재 여부 확인
-    const company = await prisma.companies.findUnique({ where: { id: companyId } });
-    if (!company) {
-      throw new CustomError(
-        HttpStatus.NOT_FOUND,
-        ErrorCodes.GENERAL_NOT_FOUND,
-        'Company not found'
-      );
+    try {
+      return await prisma.companies.update({
+        where: { id: companyId },
+        data: { name: payload.name },
+      });
+    } catch (error: unknown) {
+      if (error instanceof PrismaClientKnownRequestError && error.code === 'P2025') {
+        throw new CustomError(
+          HttpStatus.NOT_FOUND,
+          ErrorCodes.GENERAL_NOT_FOUND,
+          '회사를 찾을 수 없습니다.'
+        );
+      }
+      throw error;
     }
-
-    const updated = await prisma.companies.update({
-      where: { id: companyId },
-      data: { name: payload.name },
-    });
-
-    return updated;
   },
 };
