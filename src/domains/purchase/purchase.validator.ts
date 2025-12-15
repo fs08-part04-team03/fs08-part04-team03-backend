@@ -28,7 +28,16 @@ const validatePurchaseNow = [
     .toInt(),
 ];
 
+// 💰 [Purchase] 내 구매 내역 조회 API
+const validateGetMyPurchase = [
+  query('page').optional().isInt({ min: 1 }).toInt(),
+  query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
+  query('sortBy').optional().isIn(['createdAt', 'updatedAt', 'totalPrice']),
+  query('order').optional().isIn(['asc', 'desc']),
+];
+
 export const purchaseValidator = {
   validatePurchaseList,
   validatePurchaseNow,
+  validateGetMyPurchase,
 };
