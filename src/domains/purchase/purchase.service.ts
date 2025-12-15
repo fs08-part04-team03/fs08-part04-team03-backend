@@ -239,11 +239,12 @@ export const purchaseService = {
     // 건너뛸 항목 수 계산
     const skip = (page - 1) * limit;
 
-    if (status && !['PENDING', 'APPROVED', 'REJECTED'].includes(status)) {
+    if (status && !Object.values(purchaseStatus).includes(status)) {
       throw new CustomError(
         HttpStatus.BAD_REQUEST,
         ErrorCodes.GENERAL_BAD_REQUEST,
-        '유효하지 않은 상태 값입니다. 허용되는 값: PENDING, APPROVED, REJECTED'
+        '유효하지 않은 상태 값입니다. 허용되는 값: ',
+        Object.values(purchaseStatus).join(', ')
       );
     }
 
