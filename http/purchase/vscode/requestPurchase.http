@@ -27,7 +27,7 @@ Authorization: Bearer {{token}}
 {
   "productId": 586,
   "quantity": 2,
-  "justification": "업무용으로 필요한 물품입니다."
+  "requestMessage": "업무용으로 필요한 물품입니다."
 }
 
 ###
