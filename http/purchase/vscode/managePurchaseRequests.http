@@ -1,0 +1,69 @@
+### 로그인 (먼저 이것을 실행하세요!)
+# @name login
+POST http://localhost:4000/api/v1/auth/login
+Content-Type: application/json
+
+{
+    "email": "manager@test.com",
+    "password": "testM"
+}
+
+# VSCode 사용 시:
+# 1. 위 요청을 실행한 후 응답에서 accessToken 값을 복사하세요
+# 2. 아래 @token 변수에 토큰을 붙여넣거나
+# 3. http-client.env.json 파일에 token 값을 설정하세요
+
+###
+
+# 토큰을 여기에 설정하거나 http-client.env.json 파일을 사용하세요
+@token = YOUR_ACCESS_TOKEN_HERE
+
+###
+
+
+###
+# @name managePurchaseRequests - 구매 요청 조회 (전체)
+GET http://localhost:4000/api/v1/purchase/admin/managePurchaseRequests
+Authorization: Bearer {{token}}
+
+###
+
+
+###
+# @name managePurchaseRequests - 구매 요청 조회 (PENDING만)
+GET http://localhost:4000/api/v1/purchase/admin/managePurchaseRequests?status=PENDING
+Authorization: Bearer {{token}}
+
+###
+
+
+###
+# @name managePurchaseRequests - 구매 요청 조회 (APPROVED만)
+GET http://localhost:4000/api/v1/purchase/admin/managePurchaseRequests?status=APPROVED
+Authorization: Bearer {{token}}
+
+###
+
+
+###
+# @name managePurchaseRequests - 구매 요청 조회 (REJECTED만)
+GET http://localhost:4000/api/v1/purchase/admin/managePurchaseRequests?status=REJECTED
+Authorization: Bearer {{token}}
+
+###
+
+
+###
+# @name managePurchaseRequests - 구매 요청 조회 (페이징)
+GET http://localhost:4000/api/v1/purchase/admin/managePurchaseRequests?page=1&limit=10
+Authorization: Bearer {{token}}
+
+###
+
+
+###
+# @name managePurchaseRequests - 구매 요청 조회 (PENDING + 페이징)
+GET http://localhost:4000/api/v1/purchase/admin/managePurchaseRequests?status=PENDING&page=1&limit=10
+Authorization: Bearer {{token}}
+
+###
