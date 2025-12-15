@@ -316,7 +316,7 @@ export const purchaseService = {
     if (!purchaseRequest) {
       throw new CustomError(
         HttpStatus.NOT_FOUND,
-        ErrorCodes.GENERAL_NOT_FOUND,
+        ErrorCodes.PURCHASE_NOT_FOUND,
         '구매 요청을 찾을 수 없습니다.'
       );
     }
@@ -379,7 +379,7 @@ export const purchaseService = {
     if (!purchaseRequest) {
       throw new CustomError(
         HttpStatus.NOT_FOUND,
-        ErrorCodes.GENERAL_NOT_FOUND,
+        ErrorCodes.PURCHASE_NOT_FOUND,
         '구매 요청을 찾을 수 없습니다.'
       );
     }
