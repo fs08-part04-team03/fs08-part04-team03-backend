@@ -29,7 +29,7 @@ router.post(
 
 // 💰 [Purchase] 내 구매 내역 조회 API
 router.get(
-  '/my/getMyPurchases',
+  '/user/getMyPurchases',
   verifyAccessToken,
   requireMinRole('USER'),
   purchaseValidator.validateGetMyPurchase,
