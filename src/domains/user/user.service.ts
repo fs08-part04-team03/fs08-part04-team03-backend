@@ -97,29 +97,30 @@ export const userService = {
   // 비밀번호/회사명 변경 (관리자)
   async adminPatchProfile(actorUserId: string, companyId: string, payload: AdminProfilePatchBody) {
     const actor = await ensureActiveUserInCompany(companyId, actorUserId);
-
-    if (payload.companyName) {
-      const company = await prisma.companies.findUnique({ where: { id: companyId } });
-      if (!company) {
-        throw new CustomError(
-          HttpStatus.NOT_FOUND,
-          ErrorCodes.GENERAL_NOT_FOUND,
-          '회사를 찾을 수 없습니다.'
-        );
+    await prisma.$transaction(async (tx) => {
+      if (payload.companyName) {
+        const company = await tx.companies.findUnique({ where: { id: companyId } });
+        if (!company) {
+          throw new CustomError(
+            HttpStatus.NOT_FOUND,
+            ErrorCodes.GENERAL_NOT_FOUND,
+            '회사를 찾을 수 없습니다.'
+          );
+        }
+        await tx.companies.update({
+          where: { id: companyId },
+          data: { name: payload.companyName },
+        });
       }
-      await prisma.companies.update({
-        where: { id: companyId },
-        data: { name: payload.companyName },
-      });
-    }
 
-    if (payload.newPassword) {
-      const hash = await argon2.hash(payload.newPassword);
-      await prisma.users.update({
-        where: { id: actor.id },
-        data: { password: hash, refreshToken: null },
-      });
-    }
+      if (payload.newPassword) {
+        const hash = await argon2.hash(payload.newPassword);
+        await prisma.users.update({
+          where: { id: actor.id },
+          data: { password: hash, refreshToken: null },
+        });
+      }
+    });
   },
 
   // 권한 변경 (관리자)
