@@ -250,7 +250,7 @@
  *         schema: { type: string, enum: ["USER", "MANAGER", "ADMIN"] }
  *       - in: query
  *         name: isActive
- *         schema: { type: boolean }
+ *         schema: { type: boolean , default: true }
  *       - in: query
  *         name: page
  *         schema: { type: integer, minimum: 1, example: 1 }

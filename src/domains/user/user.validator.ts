@@ -77,7 +77,7 @@ export const userValidator = {
   getUsers: [
     query('q').optional().isString().trim().isLength({ min: 1, max: 255 }),
     query('role').optional().isIn(['USER', 'MANAGER', 'ADMIN']),
-    query('isActive').optional().isBoolean().toBoolean(),
+    query('isActive').default(true).isBoolean().toBoolean(),
     query('page').optional().isInt({ min: 1 }).toInt(),
     query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
     validateRequest,
