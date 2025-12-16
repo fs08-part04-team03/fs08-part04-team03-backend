@@ -1,0 +1,114 @@
+@base = http://localhost:4000
+@version = v1
+@targetUserId = 00000000-0000-0000-0000-000000000000
+
+### Admin 로그인 (관리자용 토큰 발급)
+# @name admin_login
+POST {{base}}/api/{{version}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@test.com",
+  "password": "admin-password"
+}
+
+> {%
+  client.global.set("adminToken", response.body.data.accessToken);
+%}
+
+### 일반 사용자 로그인 (내 프로필/비번 변경용 토큰)
+# @name user_login
+POST {{base}}/api/{{version}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@test.com",
+  "password": "user-password"
+}
+
+> {%
+  client.global.set("userToken", response.body.data.accessToken);
+%}
+
+### 내 프로필 조회 (USER 이상)
+GET {{base}}/api/{{version}}/user/me
+Authorization: Bearer {{userToken}}
+
+### 내 비밀번호 변경 (USER, MANAGER)
+PATCH {{base}}/api/{{version}}/user/me/profile
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "newPassword": "Newpass!1",
+  "newPasswordConfirm": "Newpass!1"
+}
+
+### 관리자 프로필 수정 (회사명/비번 둘 중 하나 이상, ADMIN)
+PATCH {{base}}/api/{{version}}/user/admin/profile
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "companyName": "New Company Name",
+  "newPassword": "AdminPass!2",
+  "newPasswordConfirm": "AdminPass!2"
+}
+
+### 사용자 권한 변경 (ADMIN)
+PATCH {{base}}/api/{{version}}/user/admin/{{targetUserId}}/role
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "role": "MANAGER"
+}
+
+### 사용자 활성/비활성 토글 (ADMIN)
+PATCH {{base}}/api/{{version}}/user/admin/{{targetUserId}}/status
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "isActive": true
+}
+
+##############################
+# 사용자 목록 조회/검색 (ADMIN) - 다각화
+##############################
+
+### (L1) 기본 목록
+GET {{base}}/api/{{version}}/user
+Authorization: Bearer {{adminToken}}
+
+### (L2) 키워드(q)만
+GET {{base}}/api/{{version}}/user?q=일반
+Authorization: Bearer {{adminToken}}
+
+### (L3) role만
+GET {{base}}/api/{{version}}/user?role=MANAGER
+Authorization: Bearer {{adminToken}}
+
+### (L4) isActive만 (활성)
+GET {{base}}/api/{{version}}/user?isActive=true
+Authorization: Bearer {{adminToken}}
+
+### (L5) isActive만 (비활성)
+GET {{base}}/api/{{version}}/user?isActive=false
+Authorization: Bearer {{adminToken}}
+
+### (L6) q + role + isActive (복합)
+GET {{base}}/api/{{version}}/user?q=일반&role=MANAGER&isActive=true
+Authorization: Bearer {{adminToken}}
+
+### (L8) q 특수문자 포함 (이메일 도메인 등)
+GET {{base}}/api/{{version}}/user?q=user%40test.com
+Authorization: Bearer {{adminToken}}
+
+### (L9) page/limit 경계값 테스트 (큰 limit)
+GET {{base}}/api/{{version}}/user?page=1&limit=100
+Authorization: Bearer {{adminToken}}
+
+### (L10) 높은 page 테스트
+GET {{base}}/api/{{version}}/user?page=50&limit=10
+Authorization: Bearer {{adminToken}}
