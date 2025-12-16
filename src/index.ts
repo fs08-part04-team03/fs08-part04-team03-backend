@@ -13,6 +13,7 @@ import { errorHandler } from './common/middlewares/error.middleware';
 import { authRouter } from './domains/auth/auth.router';
 import { budgetRouter } from './domains/budget/budget.router';
 import { companyRouter } from './domains/company/company.router';
+import { userRouter } from './domains/user/user.router';
 
 const app: Application = express();
 
@@ -41,6 +42,7 @@ app.get('/', (_req: Request, res: Response) => {
 app.use(`/api/${env.API_VERSION}/auth`, authRouter);
 app.use(`/api/${env.API_VERSION}/budget`, budgetRouter);
 app.use(`/api/${env.API_VERSION}/company`, companyRouter);
+app.use(`/api/${env.API_VERSION}/user`, userRouter);
 
 // Swagger 문서 설정
 swaggerDocs(app);
