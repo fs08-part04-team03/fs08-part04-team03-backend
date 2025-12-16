@@ -4,7 +4,7 @@ import { prisma } from '../../common/database/prisma.client';
 import { CustomError } from '../../common/utils/error.util';
 import { HttpStatus } from '../../common/constants/httpStatus.constants';
 import { ErrorCodes } from '../../common/constants/errorCodes.constants';
-import type { AdminProfilePatchBody, UserListQuery } from './user.types';
+import type { AdminProfilePatchBody, UserListQuery, Role } from './user.types';
 
 // 공개 가능한 필드만 선택
 const userSafeSelect = {
@@ -97,6 +97,13 @@ export const userService = {
   // 비밀번호/회사명 변경 (관리자)
   async adminPatchProfile(actorUserId: string, companyId: string, payload: AdminProfilePatchBody) {
     const actor = await ensureActiveUserInCompany(companyId, actorUserId);
+
+    // 트랜잭션 외부에서 비밀번호 해싱
+    let hashedPassword: string | undefined;
+    if (payload.newPassword) {
+      hashedPassword = await argon2.hash(payload.newPassword);
+    }
+
     await prisma.$transaction(async (tx) => {
       if (payload.companyName) {
         const company = await tx.companies.findUnique({ where: { id: companyId } });
@@ -113,23 +120,17 @@ export const userService = {
         });
       }
 
-      if (payload.newPassword) {
-        const hash = await argon2.hash(payload.newPassword);
+      if (hashedPassword) {
         await prisma.users.update({
           where: { id: actor.id },
-          data: { password: hash, refreshToken: null },
+          data: { password: hashedPassword, refreshToken: null },
         });
       }
     });
   },
 
   // 권한 변경 (관리자)
-  async updateRole(
-    actorCompanyId: string,
-    targetUserId: string,
-    role: 'USER' | 'MANAGER' | 'ADMIN',
-    actorUserId: string
-  ) {
+  async updateRole(actorCompanyId: string, targetUserId: string, role: Role, actorUserId: string) {
     await ensureActiveUserInCompany(actorCompanyId, actorUserId);
     const user = await getUserInCompany(actorCompanyId, targetUserId);
 
