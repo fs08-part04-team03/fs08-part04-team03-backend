@@ -35,7 +35,7 @@ const logFormat = format.printf((info: TransformableInfo) => {
 
 const logger: Logger = createLogger({
   level: isProd ? 'info' : 'debug',
-  format: format.combine(format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }), logFormat),
+  format: format.combine(format.timestamp({ format: () => new Date().toISOString() }), logFormat),
   transports: [
     // 일반 logging
     new DailyRotateFile({
@@ -45,6 +45,7 @@ const logger: Logger = createLogger({
       maxFiles: '30d',
       zippedArchive: true,
       auditFile: auditFile('combined'),
+      utc: true,
     }),
     // error logging
     new DailyRotateFile({
@@ -55,6 +56,7 @@ const logger: Logger = createLogger({
       maxFiles: '30d',
       zippedArchive: true,
       auditFile: auditFile('error'),
+      utc: true,
     }),
   ],
   // 예외 처리 logging
@@ -66,6 +68,7 @@ const logger: Logger = createLogger({
       maxFiles: '30d',
       zippedArchive: true,
       auditFile: auditFile('exception'),
+      utc: true,
     }),
   ],
   // 처리되지 않은 Promise rejection logging
@@ -77,6 +80,7 @@ const logger: Logger = createLogger({
       maxFiles: '30d',
       zippedArchive: true,
       auditFile: auditFile('rejection'),
+      utc: true,
     }),
   ],
 });
