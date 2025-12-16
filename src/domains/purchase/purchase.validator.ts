@@ -1,4 +1,4 @@
-import { query, body } from 'express-validator';
+import { query, body, param } from 'express-validator';
 
 // 💰 [Purchase] 전체 구매 내역 목록 API (관리자)
 const validatePurchaseList = [
@@ -34,6 +34,11 @@ const validateGetMyPurchase = [
   query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
   query('sortBy').optional().isIn(['createdAt', 'updatedAt', 'totalPrice']),
   query('order').optional().isIn(['asc', 'desc']),
+];
+
+// 💰 [Purchase] 내 구매 상세 조회 API
+const validateGetMyPurchaseDetail = [
+  param('id').notEmpty().withMessage('구매 요청 ID는 필수입니다.'),
 ];
 
 const validateManagePurchaseRequests = [
@@ -93,6 +98,7 @@ export const purchaseValidator = {
   validatePurchaseList,
   validatePurchaseNow,
   validateGetMyPurchase,
+  validateGetMyPurchaseDetail,
   validateManagePurchaseRequests,
   validateApprovePurchaseRequest,
   validateRejectPurchaseRequest,
