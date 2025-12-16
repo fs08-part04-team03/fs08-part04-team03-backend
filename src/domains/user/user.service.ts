@@ -191,15 +191,7 @@ export const userService = {
       prisma.users.count({ where }),
       prisma.users.findMany({
         where,
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          role: true,
-          isActive: true,
-          companyId: true,
-          createdAt: true,
-        },
+        select: userSafeSelect,
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
