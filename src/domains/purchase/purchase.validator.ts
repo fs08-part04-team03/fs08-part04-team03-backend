@@ -38,7 +38,12 @@ const validateGetMyPurchase = [
 
 // 💰 [Purchase] 내 구매 상세 조회 API
 const validateGetMyPurchaseDetail = [
-  param('id').notEmpty().withMessage('구매 요청 ID는 필수입니다.'),
+  param('id')
+    .notEmpty()
+    .withMessage('구매 요청 ID는 필수입니다.')
+    .bail()
+    .isUUID()
+    .withMessage('구매 요청 ID는 유효한 UUID 형식이어야 합니다.'),
 ];
 
 const validateManagePurchaseRequests = [
