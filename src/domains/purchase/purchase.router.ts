@@ -87,6 +87,14 @@ router.post(
   purchaseController.requestPurchase
 );
 
+// 💰 [Purchase] 지출 통계 조회 API
+router.get(
+  '/admin/expenseStatistics',
+  verifyAccessToken,
+  requireMinRole('MANAGER'),
+  purchaseController.getExpenseStatistics
+);
+
 // 💰 [Purchase] 구매 관리 대시보드 API
 router.get(
   '/admin/purchaseDashboard',
