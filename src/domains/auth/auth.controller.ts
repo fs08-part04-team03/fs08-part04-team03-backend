@@ -1,6 +1,5 @@
 import { Request, Response, type CookieOptions } from 'express';
 import { authService } from './auth.service';
-import type { AuthenticatedRequest } from '../../common/types/common.types';
 import { HttpStatus } from '../../common/constants/httpStatus.constants';
 import { ErrorCodes } from '../../common/constants/errorCodes.constants';
 import { ResponseUtil } from '../../common/utils/response.util';
@@ -33,12 +32,7 @@ export const authController = {
     res.status(HttpStatus.OK).json(ResponseUtil.success({ user, accessToken }, '로그인 성공'));
   },
 
-  // 내 정보 조회
-  me: (req: AuthenticatedRequest, res: Response) => {
-    res.status(HttpStatus.OK).json(ResponseUtil.success(req.user, '내 정보 조회 성공'));
-  },
-
-  // access token 재발급
+  // refresh (token 재발급)
   refresh: async (req: Request, res: Response) => {
     const token = (req.cookies as Record<string, string | undefined> | undefined)?.refreshToken;
     if (!token) {
