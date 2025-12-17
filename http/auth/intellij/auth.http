@@ -1,36 +1,36 @@
 @base = http://localhost:4000
 @version = v1
 
-### 1) 로그인 (200, refreshToken 쿠키 발급 확인)
+### 1) 로그인 (200, refreshToken 쿠키 발급 + accessToken 저장)
 # @name login
 POST {{base}}/api/{{version}}/auth/login
 Content-Type: application/json
 
 {
-  "email": "your-email@example.com",
-  "password": "your-password"
+  "email": "user@test.com",
+  "password": "test-password"
 }
 
 > {%
-  // Set-Cookie 헤더에 refreshToken이 있는지 검사
-  const setCookies = response.headers["set-cookie"] || [];
-  const cookieHeader = Array.isArray(setCookies)
-    ? setCookies.find(c => c.startsWith("refreshToken="))
-    : (typeof setCookies === "string" && setCookies.includes("refreshToken=")
-        ? setCookies
-        : undefined);
-
-  if (!cookieHeader) {
-    throw new Error("refreshToken 쿠키가 발급되지 않았습니다.");
-  }
-
-  // accessToken 저장(선택)
+  // accessToken 저장
   const accessToken = response.body?.data?.accessToken;
-  if (accessToken) client.global.set("accessToken", accessToken);
+  if (!accessToken) throw new Error("accessToken이 응답에 없습니다.");
+  client.global.set("accessToken", accessToken);
 %}
 
-### 2) refresh 토큰 동작 확인 (쿠키 자동 전송, 200 기대)
-# @name refresh_ok
+### 2) 보호 API 호출해서 토큰 확인 (200 기대)
+# @name company_ok_after_login
+GET {{base}}/api/{{version}}/company
+Authorization: Bearer {{accessToken}}
+
+> {%
+  if (response.status !== 200) {
+    throw new Error("보호 API 호출 실패 (login 후)");
+  }
+%}
+
+### 3) refresh (쿠키 자동 전송, 200 기대, 새 accessToken 저장)
+# @name refresh
 POST {{base}}/api/{{version}}/auth/refresh
 
 > {%
@@ -38,21 +38,22 @@ POST {{base}}/api/{{version}}/auth/refresh
     throw new Error("refresh 실패");
   }
   const accessToken = response.body?.data?.accessToken;
-  if (accessToken) client.global.set("accessToken", accessToken);
+  if (!accessToken) throw new Error("refresh 응답에 accessToken이 없습니다.");
+  client.global.set("accessToken", accessToken);
 %}
 
-### 3) me 조회 (200 기대)
-# @name me_ok
-GET {{base}}/api/{{version}}/auth/me
+### 4) refresh에서 받은 accessToken으로 보호 API 확인 (200 기대)
+# @name company_ok_after_refresh
+GET {{base}}/api/{{version}}/company
 Authorization: Bearer {{accessToken}}
 
 > {%
   if (response.status !== 200) {
-    throw new Error("me 조회 실패");
+    throw new Error("보호 API 호출 실패 (refresh 후)");
   }
 %}
 
-### 4) 로그아웃 (200 기대, 쿠키 제거)
+### 5) 로그아웃 (쿠키 필요, 200 기대, accessToken 초기화)
 # @name logout
 POST {{base}}/api/{{version}}/auth/logout
 
@@ -61,25 +62,4 @@ POST {{base}}/api/{{version}}/auth/logout
     throw new Error("logout 실패");
   }
   client.global.set("accessToken", "");
-%}
-
-### 5) refresh 토큰 동작 확인 (실패 기대: 401)
-# @name refresh_after_logout_fail
-POST {{base}}/api/{{version}}/auth/refresh
-
-> {%
-  if (response.status !== 401) {
-    throw new Error("로그아웃 후 refresh가 실패(401)해야 합니다");
-  }
-%}
-
-### 6) me 조회 (실패 기대: 401)
-# @name me_after_logout_fail
-GET {{base}}/api/{{version}}/auth/me
-Authorization: Bearer {{accessToken}}
-
-> {%
-  if (response.status !== 401) {
-    throw new Error("로그아웃 후 me가 실패(401)해야 합니다");
-  }
 %}

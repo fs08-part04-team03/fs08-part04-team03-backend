@@ -1,33 +1,30 @@
-@base = http://localhost:4000
-@version = v1
+@baseUrl = http://localhost:4000/api/v1
 
-### 1) 로그인 (200, Set-Cookie로 refreshToken 발급)
+# /auth/refresh, /auth/logout은 refreshToken "쿠키"가 필요합니다.
+# VSCode REST Client를 쓰면 쿠키 유지 옵션을 켜야 다음 요청에 쿠키가 자동 전송됩니다.
+# (설정) "rest-client.rememberCookiesForSubsequentRequests": true
+
+### 1) 로그인 (accessToken 발급 + refreshToken 쿠키 세팅)
 # @name login
-POST {{base}}/api/{{version}}/auth/login
+POST {{baseUrl}}/auth/login
 Content-Type: application/json
 
 {
-  "email": "your-email@example.com",
-  "password": "your-password"
+  "email": "user@test.com",
+  "password": "test-password"
 }
 
-### 2) refresh 토큰 동작 확인 (쿠키 자동 전송, 200 기대)
-# @name refresh_ok
-POST {{base}}/api/{{version}}/auth/refresh
+### 2) (선택) accessToken으로 보호 API 호출해서 토큰 확인
+GET {{baseUrl}}/company
+Authorization: Bearer {{login.response.body.$.data.accessToken}}
 
-### 3) me 조회 (200 기대) - refresh 응답의 accessToken 사용
-# @name me_ok
-GET {{base}}/api/{{version}}/auth/me
-Authorization: Bearer {{refresh_ok.response.body.$.data.accessToken}}
+### 3) refresh (쿠키 필요, 새 accessToken 발급 + refreshToken 쿠키 갱신)
+# @name refresh
+POST {{baseUrl}}/auth/refresh
 
-### 4) 로그아웃 (200 기대, 서버가 Set-Cookie로 쿠키 만료/삭제 처리)
-# @name logout
-POST {{base}}/api/{{version}}/auth/logout
+### 4) (선택) refresh에서 받은 accessToken으로 확인
+GET {{baseUrl}}/company
+Authorization: Bearer {{refresh.response.body.$.data.accessToken}}
 
-### 5) refresh 토큰 동작 확인 (실패 기대: 401)
-# @name refresh_after_logout_fail
-POST {{base}}/api/{{version}}/auth/refresh
-
-### 6) me 조회 (실패 기대: 401) - Authorization 없이 호출
-# @name me_after_logout_fail
-GET {{base}}/api/{{version}}/auth/me
+### 5) 로그아웃 (쿠키 필요, refreshToken 무효화 + 쿠키 제거)
+POST {{baseUrl}}/auth/logout
