@@ -227,6 +227,70 @@ export const purchaseService = {
     };
   },
 
+  // 💰 [Purchase] 내 구매 상세 조회 API
+  async getMyPurchaseDetail(companyId: string, userId: string, purchaseRequestId: string) {
+    // 구매 요청 상세 조회 (본인의 구매 요청만)
+    const purchaseDetail = await prisma.purchaseRequests.findFirst({
+      where: {
+        id: purchaseRequestId,
+        companyId,
+        requesterId: userId, // 본인의 구매 요청만 조회 가능
+      },
+      select: {
+        id: true,
+        createdAt: true, // 요청일
+        updatedAt: true, // 승인/반려일
+        totalPrice: true, // 가격
+        shippingFee: true, // 배송비
+        status: true, // 상태
+        requestMessage: true, // 요청 비고
+        rejectReason: true, // 반려 사유
+        purchaseItems: {
+          // 상품 정보
+          select: {
+            id: true,
+            quantity: true,
+            priceSnapshot: true,
+            products: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+                link: true,
+              },
+            },
+          },
+        },
+        requester: {
+          // 요청인 정보
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        approver: {
+          // 승인자/반려자 정보
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    if (!purchaseDetail) {
+      throw new CustomError(
+        HttpStatus.NOT_FOUND,
+        ErrorCodes.PURCHASE_NOT_FOUND,
+        '구매 요청을 찾을 수 없습니다.'
+      );
+    }
+
+    return { data: purchaseDetail };
+  },
+
   // 💰 [Purchase] 구매 요청 확인 API (관리자)
   async managePurchaseRequests(
     companyId: string,
