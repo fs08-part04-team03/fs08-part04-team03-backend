@@ -12,18 +12,6 @@ Content-Type: application/json
 }
 
 > {%
-  // Set-Cookie 헤더에 refreshToken이 있는지 검사
-  const setCookies = response.headers["set-cookie"] || [];
-  const cookieHeader = Array.isArray(setCookies)
-    ? setCookies.find(c => c.startsWith("refreshToken="))
-    : (typeof setCookies === "string" && setCookies.includes("refreshToken=")
-        ? setCookies
-        : undefined);
-
-  if (!cookieHeader) {
-    throw new Error("refreshToken 쿠키가 발급되지 않았습니다.");
-  }
-
   // accessToken 저장
   const accessToken = response.body?.data?.accessToken;
   if (!accessToken) throw new Error("accessToken이 응답에 없습니다.");
