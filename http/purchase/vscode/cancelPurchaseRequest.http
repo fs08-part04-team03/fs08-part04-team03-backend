@@ -15,6 +15,8 @@ Content-Type: application/json
 }
 
 ### 2) 구매 요청 취소 (PENDING 상태일 때만 가능)
+### 참고: VSCode REST Client는 파일 간 변수 참조를 지원하지 않습니다.
+### requestPurchase.http 실행 후 응답에서 ID를 복사하여 아래 2-1) 섹션을 사용하세요.
 # @name cancelPurchaseRequest
 PATCH {{base}}/api/{{version}}/purchase/user/cancelPurchaseRequest/{{createPurchaseRequest.response.body.data.id}}
 Authorization: Bearer {{login.response.body.data.accessToken}}

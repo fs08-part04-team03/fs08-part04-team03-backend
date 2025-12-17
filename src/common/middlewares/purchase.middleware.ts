@@ -24,7 +24,7 @@ export async function checkBudget(req: BudgetCheckRequest, _res: Response, next:
     return next(
       new CustomError(
         HttpStatus.BAD_REQUEST,
-        ErrorCodes.PURCHASE_NOT_FOUND,
+        ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
         '구매할 상품이 없습니다.'
       )
     );
@@ -81,7 +81,7 @@ export async function checkBudget(req: BudgetCheckRequest, _res: Response, next:
       throw new CustomError(
         HttpStatus.NOT_FOUND,
         ErrorCodes.GENERAL_NOT_FOUND,
-        `Product with id ${item.productId} not found`
+        `상품 ID ${item.productId}를 찾을 수 없습니다.`
       );
     }
 

@@ -76,7 +76,7 @@ const validateRequestPurchase = [
     .bail()
     .isInt({ min: 0 })
     .withMessage('배송비는 0 이상의 정수여야 합니다.')
-    .toInt(),
+    .toInt(10),
   body('items')
     .notEmpty()
     .withMessage('구매 항목은 필수입니다.')
@@ -102,7 +102,11 @@ const validateRequestPurchase = [
     .withMessage('구매 사유는 필수입니다.')
     .bail()
     .isString()
-    .withMessage('구매 사유는 문자열이어야 합니다.'),
+    .withMessage('구매 사유는 문자열이어야 합니다.')
+    .bail()
+    .isLength({ min: 1, max: 255 })
+    .withMessage('구매 사유는 1자 이상 255자 이하여야 합니다.')
+    .trim(),
 ];
 
 // 💰 [Purchase] 구매 요청 취소 API
