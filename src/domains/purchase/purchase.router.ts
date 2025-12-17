@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { checkBudget } from '../../common/middlewares/purchase.middleware';
 import { requireMinRole } from '../../common/middlewares/role.middleware';
 import { verifyAccessToken } from '../../common/middlewares/auth.middleware';
 import { validateRequest } from '../../common/middlewares/validator.middleware';
@@ -24,6 +25,7 @@ router.post(
   requireMinRole('MANAGER'),
   purchaseValidator.validatePurchaseNow,
   validateRequest,
+  checkBudget,
   purchaseController.purchaseNow
 );
 
@@ -84,6 +86,7 @@ router.post(
   requireMinRole('USER'),
   purchaseValidator.validateRequestPurchase,
   validateRequest,
+  checkBudget,
   purchaseController.requestPurchase
 );
 

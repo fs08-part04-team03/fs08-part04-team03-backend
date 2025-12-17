@@ -22,8 +22,13 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "productId": 75,
-  "quantity": 3,
+  "shippingFee": 3000,
+  "items": [
+    {
+      "productId": 221,
+      "quantity": 3
+    }
+  ],
   "requestMessage": "업무용으로 필요한 물품입니다."
 }
 

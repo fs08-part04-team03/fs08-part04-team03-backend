@@ -25,7 +25,7 @@ Authorization: Bearer {{token}}
   "shippingFee": 3000,
   "items": [
     {
-      "productId": 586,
+      "productId": 220,
       "quantity": 1
     }
   ]

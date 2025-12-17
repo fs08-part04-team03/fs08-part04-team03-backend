@@ -294,42 +294,49 @@ export const purchaseController = {
       );
     }
 
-    const { productId, quantity, requestMessage } = req.body as RequestPurchaseBody;
+    const { shippingFee, items, requestMessage } = req.body as RequestPurchaseBody;
 
-    // 요청 바디 유효성 검사
-    if (!productId || !quantity || !requestMessage) {
+    // 요청 바디 유효성 검사 - items 배열 검증
+    if (!Array.isArray(items) || items.length === 0) {
       throw new CustomError(
         HttpStatus.BAD_REQUEST,
         ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
-        'productId, quantity, requestMessage 필드가 모두 필요합니다.'
+        'items는 최소 1개 이상의 배열이어야 합니다.'
       );
     }
 
-    // productId 유효성 검사
+    // items 배열의 각 항목 유효성 검사
+    const invalidItems = items.some(
+      (item) =>
+        !item ||
+        typeof item !== 'object' ||
+        typeof item.productId !== 'number' ||
+        !Number.isInteger(item.productId) ||
+        item.productId < 1 ||
+        typeof item.quantity !== 'number' ||
+        !Number.isInteger(item.quantity) ||
+        item.quantity < 1
+    );
+
+    if (invalidItems) {
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
+        '모든 항목의 productId와 quantity는 1 이상의 정수여야 합니다.'
+      );
+    }
+
+    // shippingFee 유효성 검사
     if (
-      typeof productId !== 'number' ||
-      !Number.isFinite(productId) ||
-      !Number.isInteger(productId) ||
-      productId < 1
+      typeof shippingFee !== 'number' ||
+      !Number.isFinite(shippingFee) ||
+      !Number.isInteger(shippingFee) ||
+      shippingFee < 0
     ) {
       throw new CustomError(
         HttpStatus.BAD_REQUEST,
         ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
-        'productId는 1 이상의 정수여야 합니다.'
-      );
-    }
-
-    // quantity 유효성 검사
-    if (
-      typeof quantity !== 'number' ||
-      !Number.isFinite(quantity) ||
-      !Number.isInteger(quantity) ||
-      quantity < 1
-    ) {
-      throw new CustomError(
-        HttpStatus.BAD_REQUEST,
-        ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
-        'quantity는 1 이상의 정수여야 합니다.'
+        'shippingFee는 0 이상의 정수여야 합니다.'
       );
     }
 
@@ -346,12 +353,12 @@ export const purchaseController = {
       );
     }
 
-    // 서비스 호출
+    // 서비스 호출 - items 배열 전체를 전달
     const result = await purchaseService.requestPurchase(
       req.user.companyId,
       req.user.userId,
-      productId,
-      quantity,
+      shippingFee,
+      items,
       requestMessage
     );
 
