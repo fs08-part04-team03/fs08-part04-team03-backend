@@ -588,6 +588,46 @@ export const purchaseService = {
     return { data: result };
   },
 
+  // 💰 [Purchase] 구매 요청 취소 API
+  async cancelPurchaseRequest(companyId: string, userId: string, purchaseRequestId: string) {
+    // 구매 요청 존재 여부 확인 (회사 및 사용자 범위 포함)
+    const purchaseRequest = await prisma.purchaseRequests.findFirst({
+      where: {
+        id: purchaseRequestId,
+        companyId,
+        requesterId: userId,
+      },
+    });
+
+    if (!purchaseRequest) {
+      throw new CustomError(
+        HttpStatus.NOT_FOUND,
+        ErrorCodes.PURCHASE_NOT_FOUND,
+        '구매 요청을 찾을 수 없습니다.'
+      );
+    }
+
+    if (purchaseRequest.status !== 'PENDING') {
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
+        '대기 중인 구매 요청만 취소할 수 있습니다.'
+      );
+    }
+
+    // 구매 요청 상태를 CANCELLED로 변경
+    const cancelledRequest = await prisma.purchaseRequests.update({
+      where: {
+        id: purchaseRequestId,
+      },
+      data: {
+        status: 'CANCELLED',
+      },
+    });
+
+    return { data: cancelledRequest };
+  },
+
   // 💰 [Purchase] 지출 통계 조회 API
   async getExpenseStatistics(companyId: string) {
     const now = new Date();
