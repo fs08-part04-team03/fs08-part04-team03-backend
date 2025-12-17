@@ -10,15 +10,23 @@ export type AuthTokenPayload = {
   exp: number;
 };
 
-export type PurchaseRequestBody = {
-  shippingFee: number;
-  totalPrice: number;
+export type PurchaseItemRequest = {
   productId: number;
   quantity: number;
 };
 
+export type PurchaseRequestBody = {
+  shippingFee: number;
+  totalPrice: number;
+  items: PurchaseItemRequest[];
+};
+
 export type AuthenticatedRequest = Request & { user?: AuthTokenPayload };
-export type BudgetCheckRequest = Request &
-  AuthenticatedRequest & {
-    body: PurchaseRequestBody;
-  };
+
+export interface BudgetCheckRequest {
+  user?: AuthTokenPayload;
+  body: PurchaseRequestBody;
+  params: any;
+  query: any;
+  headers: any;
+}
