@@ -90,6 +90,16 @@ router.post(
   purchaseController.requestPurchase
 );
 
+// 💰 [Purchase] 긴급 구매 요청 API
+router.post(
+  '/user/urgentRequestPurchase',
+  verifyAccessToken,
+  requireMinRole('USER'),
+  purchaseValidator.validateRequestPurchase,
+  validateRequest,
+  purchaseController.requestPurchase
+);
+
 // 💰 [Purchase] 지출 통계 조회 API
 router.get(
   '/admin/expenseStatistics',
