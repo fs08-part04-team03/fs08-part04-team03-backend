@@ -100,6 +100,16 @@ router.post(
   purchaseController.requestPurchase
 );
 
+// 💰 [Purchase] 구매 요청 취소 API
+router.patch(
+  '/user/cancelPurchaseRequest/:id',
+  verifyAccessToken,
+  requireMinRole('USER'),
+  purchaseValidator.validateCancelPurchaseRequest,
+  validateRequest,
+  purchaseController.cancelPurchaseRequest
+);
+
 // 💰 [Purchase] 지출 통계 조회 API
 router.get(
   '/admin/expenseStatistics',

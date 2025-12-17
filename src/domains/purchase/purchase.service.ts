@@ -588,6 +588,83 @@ export const purchaseService = {
     return { data: result };
   },
 
+  // 💰 [Purchase] 구매 요청 취소 API
+  async cancelPurchaseRequest(companyId: string, userId: string, purchaseRequestId: string) {
+    // 1. 구매 요청 존재 여부 확인 (회사 및 사용자 범위 포함)
+    // - companyId: 같은 회사의 구매 요청인지 확인
+    // - requesterId: 본인이 요청한 구매만 취소 가능
+    const purchaseRequest = await prisma.purchaseRequests.findFirst({
+      where: {
+        id: purchaseRequestId,
+        companyId,
+        requesterId: userId, // 본인 확인 (다른 사용자 요청은 404)
+      },
+    });
+
+    // 2. 구매 요청이 없으면 404 에러 반환
+    // (존재하지 않거나, 다른 사용자의 요청인 경우)
+    if (!purchaseRequest) {
+      throw new CustomError(
+        HttpStatus.NOT_FOUND,
+        ErrorCodes.PURCHASE_NOT_FOUND,
+        '구매 요청을 찾을 수 없습니다.'
+      );
+    }
+
+    // 3. PENDING 상태가 아니면 취소 불가 (사전 검증)
+    // - APPROVED: 이미 승인됨 (취소 불가)
+    // - REJECTED: 이미 반려됨 (취소 불가)
+    // - CANCELLED: 이미 취소됨 (중복 취소 방지)
+    if (purchaseRequest.status !== 'PENDING') {
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
+        '대기 중인 구매 요청만 취소할 수 있습니다.'
+      );
+    }
+
+    // 4. status = PENDING 조건까지 포함해서 원자적으로 취소 처리
+    // updateMany를 사용하는 이유:
+    // - 동시성 제어: 여러 요청이 동시에 처리되어도 안전
+    // - 조건부 업데이트: status='PENDING' 조건으로 다른 트랜잭션에서 먼저 처리된 경우 감지
+    // - count가 0이면 → 다른 트랜잭션에서 이미 상태 변경됨
+    // DELETE가 아닌 UPDATE를 사용하는 이유:
+    // - Foreign key constraint 위반 방지 (purchaseItems가 참조 중)
+    // - 취소 이력 보존 (감사 추적 가능)
+    // - updatedAt 자동 업데이트 (취소 시점 기록)
+    const updateResult = await prisma.purchaseRequests.updateMany({
+      where: {
+        id: purchaseRequestId,
+        companyId,
+        requesterId: userId,
+        status: 'PENDING', // 원자적 조건: PENDING 상태일 때만 업데이트
+      },
+      data: {
+        status: 'CANCELLED',
+      },
+    });
+
+    // 5. 업데이트된 레코드가 없으면 동시성 문제 발생
+    // 다른 트랜잭션에서 먼저 처리하여 PENDING 상태가 아니게 된 경우
+    if (updateResult.count === 0) {
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
+        '이미 처리된 구매 요청입니다.'
+      );
+    }
+
+    // 6. 취소된 구매 요청 정보 조회 및 반환
+    const cancelledRequest = await prisma.purchaseRequests.findFirst({
+      where: {
+        id: purchaseRequestId,
+        companyId,
+      },
+    });
+
+    return { data: cancelledRequest };
+  },
+
   // 💰 [Purchase] 지출 통계 조회 API
   async getExpenseStatistics(companyId: string) {
     const now = new Date();

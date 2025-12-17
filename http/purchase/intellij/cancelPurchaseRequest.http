@@ -1,0 +1,64 @@
+### 사전 조건: requestPurchase.http 파일을 먼저 실행하여 PENDING 상태의 구매 요청을 생성해야 합니다.
+
+@base = http://localhost:4000
+@version = v1
+
+### 1) 로그인 (먼저 실행)
+# @name login
+POST {{base}}/api/{{version}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@test.com",
+  "password": "testU"
+}
+
+> {%
+  // accessToken 저장
+  const accessToken = response.body?.data?.accessToken;
+  if (!accessToken) throw new Error("accessToken이 응답에 없습니다.");
+  client.global.set("accessToken", accessToken);
+  console.log("✅ accessToken saved");
+%}
+
+### 2) 구매 요청 취소 (PENDING 상태일 때만 가능)
+# @name cancelPurchaseRequest
+PATCH {{base}}/api/{{version}}/purchase/user/cancelPurchaseRequest/{{purchaseRequestId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("구매 요청 취소 성공", function() {
+    client.assert(response.status === 200, "응답 코드가 200이어야 합니다.");
+    client.assert(response.body.success === true, "success가 true여야 합니다.");
+    client.assert(response.body.message === "구매 요청을 취소했습니다.", "메시지가 일치해야 합니다.");
+  });
+%}
+
+### 2-1) 구매 요청 취소 (직접 ID 입력)
+# purchaseRequestId를 직접 입력하여 테스트
+PATCH {{base}}/api/{{version}}/purchase/user/cancelPurchaseRequest/{{purchaseRequestId}}
+Authorization: Bearer {{accessToken}}
+
+### 3) 취소된 요청 상세 조회 (취소 확인)
+GET {{base}}/api/{{version}}/purchase/user/getMyPurchaseDetail/{{purchaseRequestId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("취소 상태 확인", function() {
+    client.assert(response.status === 200, "응답 코드가 200이어야 합니다.");
+    client.assert(response.body.data.status === "CANCELLED", "상태가 CANCELLED여야 합니다.");
+  });
+%}
+
+### 4) 이미 취소된 요청 다시 취소 시도 (실패 예상)
+PATCH {{base}}/api/{{version}}/purchase/user/cancelPurchaseRequest/{{purchaseRequestId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("이미 취소된 요청 재취소 실패", function() {
+    client.assert(response.status === 400, "응답 코드가 400이어야 합니다.");
+  });
+%}
+
+###
+

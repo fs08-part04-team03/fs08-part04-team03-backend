@@ -46,6 +46,7 @@ const validateGetMyPurchaseDetail = [
     .withMessage('구매 요청 ID는 유효한 UUID 형식이어야 합니다.'),
 ];
 
+// 💰 [Purchase] 구매 요청 관리/조회 API (관리자)
 const validateManagePurchaseRequests = [
   query('status').optional().isIn(['PENDING', 'APPROVED', 'REJECTED']),
   query('page').optional().isInt({ min: 1 }).toInt(),
@@ -104,6 +105,16 @@ const validateRequestPurchase = [
     .withMessage('구매 사유는 문자열이어야 합니다.'),
 ];
 
+// 💰 [Purchase] 구매 요청 취소 API
+const validateCancelPurchaseRequest = [
+  param('id')
+    .notEmpty()
+    .withMessage('구매 요청 ID는 필수입니다.')
+    .bail()
+    .isUUID()
+    .withMessage('구매 요청 ID는 유효한 UUID 형식이어야 합니다.'),
+];
+
 // 💰 [Purchase] 구매 관리 대시보드 API
 const validatePurchaseDashboard = [
   query('page').optional().isInt({ min: 1 }).toInt(),
@@ -121,5 +132,6 @@ export const purchaseValidator = {
   validateApprovePurchaseRequest,
   validateRejectPurchaseRequest,
   validateRequestPurchase,
+  validateCancelPurchaseRequest,
   validatePurchaseDashboard,
 };
