@@ -69,14 +69,27 @@ const validateRejectPurchaseRequest = [
 
 // 💰 [Purchase] 구매 요청 API
 const validateRequestPurchase = [
-  body('productId')
+  body('shippingFee')
+    .notEmpty()
+    .withMessage('배송비는 필수입니다.')
+    .bail()
+    .isInt({ min: 0 })
+    .withMessage('배송비는 0 이상의 정수여야 합니다.')
+    .toInt(),
+  body('items')
+    .notEmpty()
+    .withMessage('구매 항목은 필수입니다.')
+    .bail()
+    .isArray({ min: 1 })
+    .withMessage('구매 항목은 최소 1개 이상이어야 합니다.'),
+  body('items.*.productId')
     .notEmpty()
     .withMessage('상품 ID는 필수입니다.')
     .bail()
     .isInt({ min: 1 })
     .withMessage('상품 ID는 1 이상의 정수여야 합니다.')
     .toInt(),
-  body('quantity')
+  body('items.*.quantity')
     .notEmpty()
     .withMessage('수량은 필수입니다.')
     .bail()

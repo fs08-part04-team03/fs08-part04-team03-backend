@@ -496,53 +496,61 @@ export const purchaseService = {
   async requestPurchase(
     companyId: string,
     userId: string,
-    productId: number,
-    quantity: number,
-    requestMessage?: string,
-    shippingFee: number = 3000
+    shippingFee: number,
+    items: Array<{ productId: number; quantity: number }>,
+    requestMessage?: string
   ) {
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Cart 테이블에서 요청한 상품들이 있는지 확인
-      const cartItem = await prisma.carts.findFirst({
+      // 1. Cart 테이블에서 요청한 모든 상품이 있는지 확인
+      const cartItems = await tx.carts.findMany({
         where: {
           userId,
-          productId,
+          productId: { in: items.map((item) => item.productId) },
         },
         include: {
           products: true,
         },
       });
 
-      // 2. 처리에 필요한 값들이 있는지 확인
-      // 장바구니에 상품이 없는 경우
-      if (!cartItem) {
+      // 2. 요청한 모든 상품이 장바구니에 있는지 확인
+      if (cartItems.length !== items.length) {
+        const foundProductIds = cartItems.map((c) => c.productId);
+        const missingProductIds = items
+          .filter((item) => !foundProductIds.includes(item.productId))
+          .map((item) => item.productId);
         throw new CustomError(
           HttpStatus.BAD_REQUEST,
           ErrorCodes.PURCHASE_CART_ITEM_NOT_FOUND,
-          `상품 ID ${productId}가 장바구니에 존재하지 않습니다.`
+          `상품 ID [${missingProductIds.join(', ')}]가 장바구니에 존재하지 않습니다.`
         );
       }
 
-      // 수량 일치 확인
-      if (cartItem.quantity !== quantity) {
-        throw new CustomError(
-          HttpStatus.BAD_REQUEST,
-          ErrorCodes.PURCHASE_CART_ITEM_MISMATCH,
-          `상품 ID ${productId}의 수량이 장바구니와 일치하지 않습니다. (장바구니: ${cartItem.quantity}, 요청: ${quantity})`
-        );
-      }
+      // 3. 각 상품의 수량 및 유효성 확인
+      const totalPrice = items.reduce((sum, item) => {
+        const cartItem = cartItems.find((c) => c.productId === item.productId);
+        if (!cartItem) return sum;
 
-      // 상품이 활성화되어 있고, 같은 회사의 상품인지 확인
-      if (!cartItem.products.isActive || cartItem.products.companyId !== companyId) {
-        throw new CustomError(
-          HttpStatus.BAD_REQUEST,
-          ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
-          `상품 ID ${productId}는 구매할 수 없는 상품입니다.`
-        );
-      }
+        // 수량 일치 확인
+        if (cartItem.quantity !== item.quantity) {
+          throw new CustomError(
+            HttpStatus.BAD_REQUEST,
+            ErrorCodes.PURCHASE_CART_ITEM_MISMATCH,
+            `상품 ID ${item.productId}의 수량이 장바구니와 일치하지 않습니다. (장바구니: ${cartItem.quantity}, 요청: ${item.quantity})`
+          );
+        }
 
-      // 3. 총 가격 계산
-      const totalPrice = cartItem.products.price * cartItem.quantity;
+        // 상품이 활성화되어 있고, 같은 회사의 상품인지 확인
+        if (!cartItem.products.isActive || cartItem.products.companyId !== companyId) {
+          throw new CustomError(
+            HttpStatus.BAD_REQUEST,
+            ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
+            `상품 ID ${item.productId}는 구매할 수 없는 상품입니다.`
+          );
+        }
+
+        // 총 가격 누적
+        return sum + cartItem.products.price * cartItem.quantity;
+      }, 0);
 
       // 4. 구매 요청 생성
       const newPurchaseRequest = await tx.purchaseRequests.create({
@@ -556,21 +564,21 @@ export const purchaseService = {
         },
       });
 
-      // 5. 구매 항목 생성
-      await tx.purchaseItems.create({
-        data: {
+      // 5. 구매 항목들 생성
+      await tx.purchaseItems.createMany({
+        data: cartItems.map((cartItem) => ({
           purchaseRequestId: newPurchaseRequest.id,
           productId: cartItem.productId,
           quantity: cartItem.quantity,
           priceSnapshot: cartItem.products.price,
-        },
+        })),
       });
 
       // 6. Cart에서 해당 아이템들 삭제
       await tx.carts.deleteMany({
         where: {
           userId,
-          productId,
+          productId: { in: items.map((item) => item.productId) },
         },
       });
 
