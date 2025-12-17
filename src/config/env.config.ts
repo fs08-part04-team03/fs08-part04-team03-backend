@@ -85,4 +85,6 @@ export const env = {
   EXTERNAL_API_URL: str('EXTERNAL_API_URL', ''),
 
   API_HOST: str('API_HOST', ''),
+
+  INVITATION_EXPIRES_HOURS: int('INVITATION_EXPIRES_HOURS', 48),
 } as const;
