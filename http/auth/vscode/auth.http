@@ -11,7 +11,7 @@ Content-Type: application/json
 
 {
   "email": "user@test.com",
-  "password": "testU"
+  "password": "test-password"
 }
 
 ### 2) (선택) accessToken으로 보호 API 호출해서 토큰 확인
