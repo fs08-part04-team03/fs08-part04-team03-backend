@@ -19,6 +19,17 @@ import type { BudgetCheckRequest } from '../types/common.types';
  * @param next - Express NextFunction
  */
 export async function checkBudget(req: BudgetCheckRequest, _res: Response, next: NextFunction) {
+  // item 배열 유효성 검사
+  if (!req.body.items || req.body.items.length === 0) {
+    return next(
+      new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.PURCHASE_NOT_FOUND,
+        '구매할 상품이 없습니다.'
+      )
+    );
+  }
+
   // 1. 유저 인증 확인
   // 요청자가 로그인되어 있고 회사에 소속되어 있는지 확인
   if (!req.user?.companyId) {
@@ -60,7 +71,7 @@ export async function checkBudget(req: BudgetCheckRequest, _res: Response, next:
   // 요청된 모든 상품의 가격을 병렬로 조회하여 계산
   const productPromises = req.body.items.map(async (item) => {
     // 4-1. 각 상품의 현재 가격 조회
-    const product = await prisma.products.findFirst({
+    const product = await prisma.products.findUnique({
       where: { id: item.productId },
       select: { price: true },
     });
@@ -92,7 +103,6 @@ export async function checkBudget(req: BudgetCheckRequest, _res: Response, next:
 
   // 6. 최종 구매 금액 계산 (상품 총액 + 배송비)
   const purchasePrice: number = req.body.shippingFee + totalPrice;
-  console.log('Purchase Price:', purchasePrice);
 
   // 7. 사용 가능한 예산 계산 (총 예산 - 구매 금액)
   const availableBudget = totalBudget - purchasePrice;

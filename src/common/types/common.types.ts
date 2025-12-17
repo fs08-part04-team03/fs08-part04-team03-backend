@@ -17,7 +17,6 @@ export type PurchaseItemRequest = {
 
 export type PurchaseRequestBody = {
   shippingFee: number;
-  totalPrice: number;
   items: PurchaseItemRequest[];
 };
 
