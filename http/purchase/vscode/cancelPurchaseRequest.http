@@ -1,4 +1,5 @@
 ### VSCode REST Client - 구매 요청 취소 API 테스트
+### 사전 조건: requestPurchase.http 파일을 먼저 실행하여 PENDING 상태의 구매 요청을 생성해야 합니다.
 
 @base = http://localhost:4000
 @version = v1

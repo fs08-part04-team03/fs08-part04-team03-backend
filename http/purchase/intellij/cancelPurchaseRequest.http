@@ -1,3 +1,5 @@
+### 사전 조건: requestPurchase.http 파일을 먼저 실행하여 PENDING 상태의 구매 요청을 생성해야 합니다.
+
 @base = http://localhost:4000
 @version = v1
 
@@ -21,7 +23,7 @@ Content-Type: application/json
 
 ### 2) 구매 요청 취소 (PENDING 상태일 때만 가능)
 # @name cancelPurchaseRequest
-PATCH {{base}}/api/{{version}}/purchase/user/cancelPurchaseRequest/019b2afc-fb2e-7523-aa26-430eea87b11c
+PATCH {{base}}/api/{{version}}/purchase/user/cancelPurchaseRequest/{{purchaseRequestId}}
 Authorization: Bearer {{accessToken}}
 
 > {%
@@ -34,11 +36,11 @@ Authorization: Bearer {{accessToken}}
 
 ### 2-1) 구매 요청 취소 (직접 ID 입력)
 # purchaseRequestId를 직접 입력하여 테스트
-PATCH {{base}}/api/{{version}}/purchase/user/cancelPurchaseRequest/019b2afc-fb2e-7523-aa26-430eea87b11c
+PATCH {{base}}/api/{{version}}/purchase/user/cancelPurchaseRequest/{{purchaseRequestId}}
 Authorization: Bearer {{accessToken}}
 
 ### 3) 취소된 요청 상세 조회 (취소 확인)
-GET {{base}}/api/{{version}}/purchase/user/getMyPurchaseDetail/019b2afc-fb2e-7523-aa26-430eea87b11c
+GET {{base}}/api/{{version}}/purchase/user/getMyPurchaseDetail/{{purchaseRequestId}}
 Authorization: Bearer {{accessToken}}
 
 > {%
