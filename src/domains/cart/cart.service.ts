@@ -2,6 +2,7 @@ import { prisma } from '../../common/database/prisma.client';
 import { CustomError } from '../../common/utils/error.util';
 import { HttpStatus } from '../../common/constants/httpStatus.constants';
 import { ErrorCodes } from '../../common/constants/errorCodes.constants';
+import { ResponseUtil } from '../../common/utils/response.util';
 
 export const cartService = {
   // 🛒 [Cart] 장바구니에 상품 추가 API
@@ -110,8 +111,7 @@ export const cartService = {
       });
     }
 
-    // 6. 응답 데이터 구성
-    return {
+    const data = {
       id: cartItem.id,
       quantity: cartItem.quantity,
       updatedAt: cartItem.updatedAt,
@@ -126,6 +126,13 @@ export const cartService = {
       subtotal: cartItem.products.price * cartItem.quantity,
       isNew: !existingCartItem, // 새로 추가된 항목인지 여부
     };
+
+    // 6. 응답 데이터 구성 - isNew에 따라 메시지 동적 변경
+    const message = data.isNew
+      ? '장바구니에 상품이 추가되었습니다.'
+      : '장바구니 상품의 수량이 증가했습니다.';
+
+    return ResponseUtil.success(data, message);
   },
 
   // 🛒 [Cart] 내 장바구니 조회 API
@@ -200,20 +207,22 @@ export const cartService = {
       0
     );
 
+    // ResponseUtil.successWithPagination 사용
+    // 첫 번째 인자는 배열이어야 하므로 itemsWithSubtotal만 전달
+    const response = ResponseUtil.successWithPagination(
+      itemsWithSubtotal,
+      { page, limit, total: totalItems },
+      '내 장바구니 조회에 성공했습니다.'
+    );
+
+    // summary 정보를 응답에 추가
     return {
-      items: itemsWithSubtotal,
+      ...response,
       summary: {
-        totalItems, // 전체 아이템 개수
-        currentPageItemCount: itemsWithSubtotal.length, // 현재 페이지 아이템 개수
-        currentPageTotalPrice, // 현재 페이지의 총 금액
-        totalPrice, // 전체 장바구니 총 금액
-      },
-      pagination: {
-        currentPage: page,
-        totalPages: Math.ceil(totalItems / limit),
-        itemsPerPage: limit,
-        hasNextPage: page < Math.ceil(totalItems / limit),
-        hasPreviousPage: page > 1,
+        totalItems,
+        currentPageItemCount: itemsWithSubtotal.length,
+        currentPageTotalPrice,
+        totalPrice,
       },
     };
   },
@@ -264,7 +273,7 @@ export const cartService = {
     });
 
     // 3. 응답 데이터 구성
-    return {
+    const data = {
       id: updatedCartItem.id,
       quantity: updatedCartItem.quantity,
       updatedAt: updatedCartItem.updatedAt,
@@ -278,6 +287,8 @@ export const cartService = {
       },
       subtotal: updatedCartItem.products.price * updatedCartItem.quantity,
     };
+
+    return ResponseUtil.success(data, '장바구니 상품 수량이 수정되었습니다.');
   },
 
   // 🛒 [Cart] 장바구니 삭제 API
@@ -300,6 +311,51 @@ export const cartService = {
       where: { id: cartItemId },
     });
 
-    return { id: cartItemId };
+    return ResponseUtil.success({ id: cartItemId }, '장바구니에서 상품이 삭제되었습니다.');
+  },
+
+  // 🛒 [Cart] 장바구니 다중 삭제 API
+  deleteMultipleFromCart: async (userId: string, cartItemIds: string[]) => {
+    // 1. 빈 배열 체크
+    if (!cartItemIds || cartItemIds.length === 0) {
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
+        '삭제할 장바구니 항목을 선택해주세요.'
+      );
+    }
+
+    // 2. 장바구니 항목들 존재 여부 및 소유권 확인
+    const cartItems = await prisma.carts.findMany({
+      where: {
+        id: { in: cartItemIds },
+        userId,
+      },
+    });
+
+    // 3. 요청된 ID와 실제 찾은 항목 수 비교
+    if (cartItems.length !== cartItemIds.length) {
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERAL_NOT_FOUND,
+        '일부 장바구니 항목을 찾을 수 없거나 권한이 없습니다.'
+      );
+    }
+
+    // 4. 트랜잭션으로 일괄 삭제
+    const deletedCount = await prisma.carts.deleteMany({
+      where: {
+        id: { in: cartItemIds },
+        userId,
+      },
+    });
+
+    return ResponseUtil.success(
+      {
+        deletedCount: deletedCount.count,
+        deletedIds: cartItemIds,
+      },
+      `${deletedCount.count}개의 상품이 장바구니에서 삭제되었습니다.`
+    );
   },
 };

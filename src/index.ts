@@ -15,6 +15,7 @@ import { budgetRouter } from './domains/budget/budget.router';
 import { companyRouter } from './domains/company/company.router';
 import { userRouter } from './domains/user/user.router';
 import { cartRouter } from './domains/cart/cart.router';
+import { purchaseRouter } from './domains/purchase/purchase.router';
 
 const app: Application = express();
 
@@ -44,6 +45,7 @@ app.use(`/api/${env.API_VERSION}/auth`, authRouter);
 app.use(`/api/${env.API_VERSION}/budget`, budgetRouter);
 app.use(`/api/${env.API_VERSION}/company`, companyRouter);
 app.use(`/api/${env.API_VERSION}/user`, userRouter);
+app.use(`/api/${env.API_VERSION}/purchase`, purchaseRouter);
 app.use(`/api/${env.API_VERSION}/cart`, cartRouter);
 
 // Swagger 문서 설정

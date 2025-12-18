@@ -47,4 +47,14 @@ router.delete(
   cartController.deleteFromCart
 );
 
+// 🛒 [Cart] 장바구니 다중 삭제 API
+router.delete(
+  '/deleteMultiple',
+  verifyAccessToken,
+  requireMinRole('USER'),
+  cartValidator.validateDeleteMultipleFromCart,
+  validateRequest,
+  cartController.deleteMultipleFromCart
+);
+
 export const cartRouter = router;

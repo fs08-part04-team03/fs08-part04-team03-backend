@@ -46,9 +46,25 @@ const validateDeleteFromCart = [
     .withMessage('장바구니 항목 ID는 문자열이어야 합니다.'),
 ];
 
+// 🛒 [Cart] 장바구니 다중 삭제 API
+const validateDeleteMultipleFromCart = [
+  body('cartItemIds')
+    .notEmpty()
+    .withMessage('장바구니 항목 ID 배열은 필수입니다.')
+    .isArray({ min: 1 })
+    .withMessage('최소 1개 이상의 항목을 선택해주세요.')
+    .custom((value: unknown[]) => {
+      if (!value.every((id) => typeof id === 'string')) {
+        throw new Error('모든 항목 ID는 문자열이어야 합니다.');
+      }
+      return true;
+    }),
+];
+
 export const cartValidator = {
   validateAddToCart,
   validateGetMyCart,
   validateUpdateQuantity,
   validateDeleteFromCart,
+  validateDeleteMultipleFromCart,
 };

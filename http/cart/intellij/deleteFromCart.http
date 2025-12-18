@@ -1,4 +1,5 @@
 ### 로그인 (먼저 이것을 실행하세요!)
+
 POST http://localhost:4000/api/v1/auth/login
 Content-Type: application/json
 
@@ -21,22 +22,39 @@ GET http://localhost:4000/api/v1/cart/getMycart
 Authorization: Bearer {{accessToken}}
 
 > {%
-  // 첫 번째 장바구니 항목의 ID를 저장
-  const items = response.body?.result?.items;
-  if (items && items.length > 0) {
-    client.global.set("cartItemId", items[0].id);
+  // 첫 번째 장바구니 항목의 ID를 저장 (단일 삭제용)
+  const data = response.body?.data;
+  if (data && data.length > 0) {
+    client.global.set("cartItemId", data[0].id);
+  }
+
+  // 여러 항목의 ID를 저장 (다중 삭제용)
+  if (data && data.length >= 2) {
+    const ids = data.slice(0, 2).map(item => item.id);
+    client.global.set("cartItemIds", JSON.stringify(ids));
   }
 %}
 
 ###
 
-### 장바구니에서 상품 삭제
+### 장바구니에서 상품 삭제 (단일)
 DELETE http://localhost:4000/api/v1/cart/deleteFromCart
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
 {
   "cartItemId": "{{cartItemId}}"
+}
+
+###
+
+### 장바구니에서 상품 삭제 (다중)
+DELETE http://localhost:4000/api/v1/cart/deleteMultiple
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "cartItemIds": ["019b2a80-65bb-7c40-bb90-eb53ddb3269b", "019b2a80-65bc-7590-99c8-f40e99a984bb"]
 }
 
 ###
