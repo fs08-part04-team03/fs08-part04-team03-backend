@@ -1,6 +1,7 @@
-/* eslint-disable */
 import { Router } from 'express';
 import { body } from 'express-validator';
+import type { Request, Response } from 'express';
+import { verifyAccessToken } from '../../common/middlewares/auth.middleware';
 import { validateRequest } from '../../common/middlewares/validator.middleware';
 import { ResponseUtil } from '../../common/utils/response.util';
 import { CustomError } from '../../common/utils/error.util';
@@ -12,22 +13,11 @@ const router = Router();
 
 // 입력받은 url에서 token 파싱
 function extractTokenFromInviteUrl(inviteUrl: string): string {
-  let parsed: URL;
+  const parsed: URL = new URL(inviteUrl);
 
-  // 절대 URL이 아닌 경우도 허용하기 위해 base 제공 (TODO: 추후 프론트 주소로 변경)
-  try {
-    parsed = new URL(inviteUrl);
-  } catch {
-    parsed = new URL(inviteUrl, 'http://localhost');
-  }
-
-  // 1) query param 우선
+  // query param token 추출
   const fromQuery = parsed.searchParams.get('token');
   if (fromQuery) return fromQuery;
-
-  // 2) hash(#token=...) 지원
-  const hash = parsed.hash ?? '';
-  if (hash.startsWith('#token=')) return hash.slice('#token='.length);
 
   throw new CustomError(
     HttpStatus.BAD_REQUEST,
@@ -40,7 +30,7 @@ function extractTokenFromInviteUrl(inviteUrl: string): string {
 router.post(
   '/verifyUrl',
   [body('inviteUrl').isString().trim().isLength({ min: 1, max: 2048 }), validateRequest],
-  async (req: any, res: any) => {
+  async (req: Request, res: Response) => {
     const { inviteUrl } = req.body as { inviteUrl: string };
 
     const rawToken = extractTokenFromInviteUrl(inviteUrl);
@@ -59,6 +49,51 @@ router.post(
         '초대 URL이 유효합니다.'
       )
     );
+  }
+);
+
+// 초대 링크 생성 (TODO: 개발용/추후 삭제 예정) //
+type AuthedRequest = Request & {
+  user: { role: 'USER' | 'MANAGER' | 'ADMIN' };
+};
+router.post(
+  '/create',
+  verifyAccessToken,
+  [
+    body('companyId').isUUID(),
+    body('email').isEmail().normalizeEmail(),
+    body('name').isString().trim().isLength({ min: 1, max: 255 }),
+    body('role').isIn(['USER', 'MANAGER', 'ADMIN']),
+    validateRequest,
+  ],
+  async (req: Request, res: Response) => {
+    // 2) 여기서만 캐스팅
+    const authReq = req as AuthedRequest;
+
+    const { companyId, email, name, role } = req.body as {
+      companyId: string;
+      email: string;
+      name: string;
+      role: 'USER' | 'MANAGER' | 'ADMIN';
+    };
+
+    const { token: rawToken, invitation } = await invitationAuthService.createInvitation({
+      companyId,
+      email,
+      name,
+      role,
+      requestedByRole: authReq.user.role,
+    });
+
+    const webAppBaseUrl = 'http://localhost:4000';
+    const url = new URL('/invite', webAppBaseUrl);
+    url.searchParams.set('token', rawToken);
+
+    res
+      .status(HttpStatus.CREATED)
+      .json(
+        ResponseUtil.success({ invitation, inviteUrl: url.toString() }, '초대가 생성되었습니다.')
+      );
   }
 );
 

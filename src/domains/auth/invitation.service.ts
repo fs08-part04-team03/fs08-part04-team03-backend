@@ -13,6 +13,7 @@ type CreateInvitationInput = {
   email: string;
   name: string;
   role: Role;
+  requestedByRole: Role;
 };
 
 // 토큰 검증이 성공했을 때, 프론트에 내려줄 공개 정보
@@ -78,6 +79,10 @@ export const invitationAuthService = {
    * - invitation: 초대 메타(응답에 같이 내려주면 관리자 UI에 유용)
    */
   async createInvitation(input: CreateInvitationInput) {
+    if (input.requestedByRole !== 'ADMIN') {
+      throw new CustomError(HttpStatus.FORBIDDEN, ErrorCodes.AUTH_FORBIDDEN, '관리자만 초대 가능');
+    }
+
     // 1) email 정규화
     const email = input.email.trim().toLowerCase();
 

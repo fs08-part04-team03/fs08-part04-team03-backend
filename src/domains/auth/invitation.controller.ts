@@ -24,11 +24,11 @@ export const invitationController = {
   // email 발송 시스템에서 호출할 수 있도록 inviteUrl 반환
   create: async (req: AuthenticatedRequest, res: Response) => {
     // 관리자만 접근 가능
-    if (!req.user) {
+    if (!req.user || req.user.role !== 'ADMIN') {
       throw new CustomError(
         HttpStatus.UNAUTHORIZED,
         ErrorCodes.AUTH_UNAUTHORIZED,
-        '인증된 사용자만 접근할 수 있습니다.'
+        '최고 관리자만 접근할 수 있습니다.'
       );
     }
 
@@ -39,6 +39,7 @@ export const invitationController = {
       email,
       name,
       role,
+      requestedByRole: req.user.role,
     });
 
     // 초대 링크 생성
