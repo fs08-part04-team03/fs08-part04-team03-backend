@@ -1,7 +1,33 @@
-### Invite URL 검증
 @baseUrl = http://localhost:4000/api/v1
 @inviteUrl = http://localhost:4000/signup?token=00000000-0000-0000-0000-000000000000
 
+### 로그인
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@test.com",
+  "password": "test-password"
+}
+
+> {%
+  client.global.set("accessToken", response.body.data.accessToken);
+%}
+
+### 초대 URL 생성
+# @name createInvitation
+POST {{baseUrl}}/auth/invitation/create
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "companyId": "0000000-0000-0000-0000-00000000",
+  "email": "johndoe@example.com",
+  "name": "John Doe",
+  "role": "USER"
+}
+
+### 초대 URL 검증
 POST {{baseUrl}}/auth/invitation/verifyUrl
 Content-Type: application/json
 

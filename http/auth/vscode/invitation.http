@@ -1,7 +1,31 @@
 @baseUrl = http://localhost:4000/api/v1
 @inviteUrl = http://localhost:4000/signup?token=00000000-0000-0000-0000-000000000000
 
+### 로그인
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@test.com",
+  "password": "test-password"
+}
+
+### 초대 URL 생성
+# @name createInvitation
+POST {{baseUrl}}/auth/invitation/create
+Authorization: Bearer {{login.response.body.data.accessToken}}
+Content-Type: application/json
+
+{
+  "companyId": "0000000-0000-0000-0000-00000000",
+  "email": "johndoe@example.com",
+  "name": "John Doe",
+  "role": "USER"
+}
+
 ### 초대 URL 검증
+# @name verifyInviteUrl
 POST {{baseUrl}}/auth/invitation/verifyUrl
 Content-Type: application/json
 
@@ -10,6 +34,7 @@ Content-Type: application/json
 }
 
 ### 잘못된 토큰 예시 (401 기대)
+# @name verifyInviteUrlInvalid
 POST {{baseUrl}}/auth/invitation/verifyUrl
 Content-Type: application/json
 
