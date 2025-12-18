@@ -1,0 +1,58 @@
+### 로그인 (먼저 이것을 실행하세요!)
+POST http://localhost:4000/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@test.com",
+  "password": "testU"
+}
+
+> {%
+  // accessToken 저장
+  client.global.set("accessToken", response.body?.data?.accessToken);
+%}
+
+###
+
+### 장바구니 조회 - 수정할 항목의 ID 확인
+GET http://localhost:4000/api/v1/cart/getMycart
+Authorization: Bearer {{accessToken}}
+
+> {%
+  // 첫 번째 장바구니 항목의 ID를 저장
+  const items = response.body?.result?.items;
+  if (items && items.length > 0) {
+    client.global.set("cartItemId", items[0].id);
+  }
+%}
+
+###
+
+### 장바구니 수량 수정 - 수량 변경
+PATCH http://localhost:4000/api/v1/cart/updateQuantity
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "cartItemId": "{{cartItemId}}",
+  "quantity": 5
+}
+
+###
+
+### 장바구니 수량 수정 - 수량 1로 변경
+PATCH http://localhost:4000/api/v1/cart/updateQuantity
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "cartItemId": "{{cartItemId}}",
+  "quantity": 1
+}
+
+###
+
+### 장바구니 조회 - 수정 결과 확인
+GET http://localhost:4000/api/v1/cart/getMycart
+Authorization: Bearer {{accessToken}}
+

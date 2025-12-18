@@ -1,0 +1,114 @@
+### 로그인 (먼저 이것을 실행하세요!)
+
+# @name login
+POST http://localhost:4000/api/v1/auth/login
+Content-Type: application/json
+
+{
+    "email": "user@test.com",
+    "password": "testU"
+}
+
+# VSCode 사용 시:
+# 1. 위 요청을 실행한 후 응답에서 accessToken 값을 복사하세요
+# 2. 아래 @token 변수에 토큰을 붙여넣거나
+# 3. http-client.env.json 파일에 token 값을 설정하세요
+
+###
+
+# 토큰을 여기에 설정하거나 http-client.env.json 파일을 사용하세요
+@token = YOUR_ACCESS_TOKEN_HERE
+
+###
+
+### 내 정보 조회
+GET http://localhost:4000/api/v1/auth/me
+Authorization: Bearer {{token}}
+
+###
+
+### 장바구니에 상품 추가 - 새 상품
+POST http://localhost:4000/api/v1/cart/addToCart
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "productId": 1,
+  "quantity": 2
+}
+
+###
+
+### 장바구니에 상품 추가 - 중복 상품 (수량 증가)
+# 이미 장바구니에 있는 상품을 다시 추가하면 수량이 증가합니다
+POST http://localhost:4000/api/v1/cart/addToCart
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "productId": 1,
+  "quantity": 3
+}
+
+###
+
+### 장바구니에 여러 상품 추가
+POST http://localhost:4000/api/v1/cart/addToCart
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "productId": 2,
+  "quantity": 1
+}
+
+###
+
+### 장바구니 조회 - 추가된 상품 확인
+GET http://localhost:4000/api/v1/cart/getMycart
+Authorization: Bearer {{token}}
+
+###
+
+### 응답 예시 (상품 추가 성공):
+# {
+#   "message": "장바구니에 상품이 추가되었습니다.",
+#   "result": {
+#     "id": "cart-item-id",
+#     "quantity": 2,
+#     "updatedAt": "2025-12-18T...",
+#     "product": {
+#       "id": 1,
+#       "name": "상품명",
+#       "price": 10000,
+#       "image": "https://...",
+#       "link": "https://...",
+#       "isActive": true
+#     },
+#     "subtotal": 20000,
+#     "isNew": true
+#   }
+# }
+
+###
+
+### 응답 예시 (중복 상품 수량 증가):
+# {
+#   "message": "장바구니 상품의 수량이 증가했습니다.",
+#   "result": {
+#     "id": "cart-item-id",
+#     "quantity": 5,
+#     "updatedAt": "2025-12-18T...",
+#     "product": {
+#       "id": 1,
+#       "name": "상품명",
+#       "price": 10000,
+#       "image": "https://...",
+#       "link": "https://...",
+#       "isActive": true
+#     },
+#     "subtotal": 50000,
+#     "isNew": false
+#   }
+# }
+

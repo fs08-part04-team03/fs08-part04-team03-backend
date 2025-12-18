@@ -1,0 +1,113 @@
+### 로그인 (먼저 이것을 실행하세요!)
+# @name login
+POST http://localhost:4000/api/v1/auth/login
+Content-Type: application/json
+
+{
+    "email": "user@test.com",
+    "password": "testU"
+}
+
+# VSCode 사용 시:
+# 1. 위 요청을 실행한 후 응답에서 accessToken 값을 복사하세요
+# 2. 아래 @token 변수에 토큰을 붙여넣거나
+# 3. http-client.env.json 파일에 token 값을 설정하세요
+
+###
+
+# 토큰을 여기에 설정하거나 http-client.env.json 파일을 사용하세요
+@token = YOUR_ACCESS_TOKEN_HERE
+
+###
+
+### 내 정보 조회
+GET http://localhost:4000/api/v1/auth/me
+Authorization: Bearer {{token}}
+
+###
+
+### 1단계: 장바구니 조회 - 삭제할 항목의 ID 확인
+GET http://localhost:4000/api/v1/cart/getMycart
+Authorization: Bearer {{token}}
+
+# 응답에서 items[0].id 값을 복사하여 아래 @cartItemId 변수에 설정하세요
+# 예: @cartItemId = abc12345
+
+###
+
+# 장바구니 항목 ID를 여기에 설정하세요
+@cartItemId = YOUR_CART_ITEM_ID_HERE
+
+###
+
+### 2단계: 장바구니에서 상품 삭제
+DELETE http://localhost:4000/api/v1/cart/deleteFromCart
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "cartItemId": "{{cartItemId}}"
+}
+
+###
+
+### 3단계: 장바구니 조회 - 삭제 결과 확인
+GET http://localhost:4000/api/v1/cart/getMycart
+Authorization: Bearer {{token}}
+
+###
+
+### 응답 예시:
+# {
+#   "message": "장바구니에서 상품이 삭제되었습니다:",
+#   "returnData": {
+#     "id": "cart-item-id",
+#     "productId": 1,
+#     "quantity": 2,
+#     "updatedAt": "2025-12-18T..."
+#   }
+# }
+
+###
+
+### 에러 예시 - 존재하지 않는 장바구니 항목:
+# {
+#   "error": {
+#     "code": "GENERAL_NOT_FOUND",
+#     "message": "장바구니 항목을 찾을 수 없습니다."
+#   }
+# }
+
+###
+
+### 에러 예시 - 다른 사용자의 장바구니 항목:
+# {
+#   "error": {
+#     "code": "GENERAL_INVALID_REQUEST_BODY",
+#     "message": "해당 장바구니 항목에 대한 권한이 없습니다."
+#   }
+# }
+
+###
+
+### 여러 항목 삭제 예시:
+# 첫 번째 항목 삭제
+DELETE http://localhost:4000/api/v1/cart/deleteFromCart
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "cartItemId": "item-id-1"
+}
+
+###
+
+# 두 번째 항목 삭제
+DELETE http://localhost:4000/api/v1/cart/deleteFromCart
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "cartItemId": "item-id-2"
+}
+

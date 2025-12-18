@@ -1,0 +1,123 @@
+### 로그인 (먼저 이것을 실행하세요!)
+# @name login
+POST http://localhost:4000/api/v1/auth/login
+Content-Type: application/json
+
+{
+    "email": "user@test.com",
+    "password": "testU"
+}
+
+# VSCode 사용 시:
+# 1. 위 요청을 실행한 후 응답에서 accessToken 값을 복사하세요
+# 2. 아래 @token 변수에 토큰을 붙여넣거나
+# 3. http-client.env.json 파일에 token 값을 설정하세요
+
+###
+
+# 토큰을 여기에 설정하거나 http-client.env.json 파일을 사용하세요
+@token = YOUR_ACCESS_TOKEN_HERE
+
+###
+
+### 내 정보 조회
+GET http://localhost:4000/api/v1/auth/me
+Authorization: Bearer {{token}}
+
+###
+
+### 1단계: 장바구니 조회 - 수정할 항목의 ID 확인
+GET http://localhost:4000/api/v1/cart/getMycart
+Authorization: Bearer {{token}}
+
+# 응답에서 items[0].id 값을 복사하여 아래 @cartItemId 변수에 설정하세요
+# 예: @cartItemId = abc12345
+
+###
+
+# 장바구니 항목 ID를 여기에 설정하세요
+@cartItemId = YOUR_CART_ITEM_ID_HERE
+
+###
+
+### 2단계: 장바구니 수량 수정 - 수량 5로 변경
+PATCH http://localhost:4000/api/v1/cart/updateQuantity
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "cartItemId": "{{cartItemId}}",
+  "quantity": 5
+}
+
+###
+
+### 장바구니 수량 수정 - 수량 10으로 변경
+PATCH http://localhost:4000/api/v1/cart/updateQuantity
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "cartItemId": "{{cartItemId}}",
+  "quantity": 10
+}
+
+###
+
+### 장바구니 수량 수정 - 수량 1로 변경
+PATCH http://localhost:4000/api/v1/cart/updateQuantity
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "cartItemId": "{{cartItemId}}",
+  "quantity": 1
+}
+
+###
+
+### 3단계: 장바구니 조회 - 수정 결과 확인
+GET http://localhost:4000/api/v1/cart/getMycart
+Authorization: Bearer {{token}}
+
+###
+
+### 응답 예시:
+# {
+#   "message": "장바구니 상품 수량이 수정되었습니다.",
+#   "result": {
+#     "id": "cart-item-id",
+#     "quantity": 5,
+#     "updatedAt": "2025-12-18T...",
+#     "product": {
+#       "id": 1,
+#       "name": "상품명",
+#       "price": 10000,
+#       "image": "https://...",
+#       "link": "https://...",
+#       "isActive": true
+#     },
+#     "subtotal": 50000
+#   }
+# }
+
+###
+
+### 에러 예시 - 존재하지 않는 장바구니 항목:
+# {
+#   "error": {
+#     "code": "GENERAL_NOT_FOUND",
+#     "message": "장바구니 항목을 찾을 수 없습니다."
+#   }
+# }
+
+###
+
+### 에러 예시 - 다른 사용자의 장바구니 항목:
+# {
+#   "error": {
+#     "code": "GENERAL_INVALID_REQUEST_BODY",
+#     "message": "해당 장바구니 항목에 대한 권한이 없습니다."
+#   }
+# }
+
