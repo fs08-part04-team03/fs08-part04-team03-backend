@@ -7,7 +7,22 @@ import { CustomError } from '../../common/utils/error.util';
 import { JwtUtil } from '../../common/utils/jwt.util';
 import { env } from '../../config/env.config';
 
-type LoginRequest = Request<unknown, unknown, { email: string; password: string }, unknown>;
+type SignupRequest = Request<
+  unknown,
+  unknown,
+  { name: string; email: string; password: string; passwordConfirm: string; inviteToken: string },
+  unknown
+>;
+
+type LoginRequest = Request<
+  unknown,
+  unknown,
+  {
+    email: string;
+    password: string;
+  },
+  unknown
+>;
 
 // refresh token cookie 옵션
 const refreshCookieOptions = (maxAgeMs: number): CookieOptions => ({
@@ -20,6 +35,25 @@ const refreshCookieOptions = (maxAgeMs: number): CookieOptions => ({
 });
 
 export const authController = {
+  // 회원가입
+  signup: async (req: SignupRequest, res: Response) => {
+    const { name, email, password, inviteToken } = req.body;
+    const { accessToken, refreshToken, user } = await authService.signup({
+      name,
+      email,
+      password,
+      inviteToken,
+    });
+
+    const { exp } = JwtUtil.verifyRefreshToken(refreshToken);
+    const maxAge = Math.max(0, exp * 1000 - Date.now());
+
+    res.cookie('refreshToken', refreshToken, refreshCookieOptions(maxAge));
+    res
+      .status(HttpStatus.CREATED)
+      .json(ResponseUtil.success({ user, accessToken }, '회원가입 완료'));
+  },
+
   // 로그인
   login: async (req: LoginRequest, res: Response) => {
     const { email, password } = req.body;

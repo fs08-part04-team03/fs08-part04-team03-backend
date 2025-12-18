@@ -1,4 +1,5 @@
 import argon2 from 'argon2';
+import { createHash, randomUUID } from 'node:crypto';
 import { prisma } from '../../common/database/prisma.client';
 import { JwtUtil } from '../../common/utils/jwt.util';
 import { CustomError } from '../../common/utils/error.util';
@@ -6,8 +7,133 @@ import { HttpStatus } from '../../common/constants/httpStatus.constants';
 import { ErrorCodes } from '../../common/constants/errorCodes.constants';
 
 type LoginInput = { email: string; password: string };
+type SignupInput = {
+  name: string;
+  email: string;
+  password: string;
+  inviteToken: string;
+};
+
+// 초대장 사용 가능 여부 검사
+function assertInvitationUsable(invitation: {
+  isValid: boolean;
+  isUsed: boolean;
+  expiresAt: Date;
+}) {
+  if (!invitation.isValid) {
+    throw new CustomError(
+      HttpStatus.UNAUTHORIZED,
+      ErrorCodes.AUTH_INVALID_TOKEN,
+      '취소된 초대장입니다.'
+    );
+  }
+  if (invitation.isUsed) {
+    throw new CustomError(
+      HttpStatus.UNAUTHORIZED,
+      ErrorCodes.AUTH_INVALID_TOKEN,
+      '이미 사용된 초대장입니다.'
+    );
+  }
+  if (invitation.expiresAt.getTime() <= Date.now()) {
+    throw new CustomError(
+      HttpStatus.UNAUTHORIZED,
+      ErrorCodes.AUTH_TOKEN_EXPIRED,
+      '초대장이 만료되었습니다.'
+    );
+  }
+}
+
+function hashInviteToken(rawToken: string): string {
+  return createHash('sha256').update(rawToken).digest('hex');
+}
 
 export const authService = {
+  // 회원가입
+  async signup({ name, email, password, inviteToken }: SignupInput) {
+    if (!inviteToken) {
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERAL_BAD_REQUEST,
+        '초대 토큰이 필요합니다.'
+      );
+    }
+
+    // 중복 이메일 검사
+    const normalizedEmail = email.trim().toLowerCase();
+    const existingUser = await prisma.users.findUnique({ where: { email: normalizedEmail } });
+    if (existingUser) {
+      throw new CustomError(
+        HttpStatus.CONFLICT,
+        ErrorCodes.USER_DETAIL_CONFLICT,
+        '이미 가입된 이메일입니다.'
+      );
+    }
+
+    // 초대장 조회 및 검증
+    const tokenHash = hashInviteToken(inviteToken);
+    const invitation = await prisma.invitations.findUnique({ where: { token: tokenHash } });
+    if (!invitation) {
+      throw new CustomError(
+        HttpStatus.UNAUTHORIZED,
+        ErrorCodes.AUTH_INVALID_TOKEN,
+        '유효하지 않은 초대장입니다.'
+      );
+    }
+    assertInvitationUsable(invitation);
+    if (invitation.email !== normalizedEmail) {
+      throw new CustomError(
+        HttpStatus.UNAUTHORIZED,
+        ErrorCodes.AUTH_INVALID_TOKEN,
+        '초대된 이메일과 일치하지 않습니다.'
+      );
+    }
+
+    const passwordHash = await argon2.hash(password);
+
+    return prisma.$transaction(async (tx) => {
+      // 사용자 생성
+      const user = await tx.users.create({
+        data: {
+          companyId: invitation.companyId,
+          email: normalizedEmail,
+          name,
+          role: invitation.role,
+          password: passwordHash,
+          isActive: true,
+        },
+        select: {
+          id: true,
+          companyId: true,
+          email: true,
+          name: true,
+          role: true,
+        },
+      });
+
+      // 리프레시 토큰 발급/저장
+      const refreshToken = JwtUtil.generateRefreshToken({ userId: user.id, jti: randomUUID() });
+      const refreshTokenHash = await argon2.hash(refreshToken);
+      await tx.users.update({ where: { id: user.id }, data: { refreshToken: refreshTokenHash } });
+
+      // 초대장 소진 처리
+      await tx.invitations.update({
+        where: { id: invitation.id },
+        data: { isUsed: true, isValid: false },
+      });
+
+      const accessToken = JwtUtil.generateAccessToken(
+        JwtUtil.buildAccessPayload({
+          companyId: user.companyId,
+          id: user.id,
+          email: user.email,
+          role: user.role,
+        })
+      );
+
+      return { user, accessToken, refreshToken };
+    });
+  },
+
   // 로그인
   async login({ email, password }: LoginInput) {
     const user = await prisma.users.findUnique({ where: { email } });
