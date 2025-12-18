@@ -48,9 +48,11 @@ const validateGetMyPurchaseDetail = [
 
 // 💰 [Purchase] 구매 요청 관리/조회 API (관리자)
 const validateManagePurchaseRequests = [
-  query('status').optional().isIn(['PENDING', 'APPROVED', 'REJECTED']),
+  query('status').optional().isIn(['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED']),
   query('page').optional().isInt({ min: 1 }).toInt(),
   query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
+  query('sortBy').optional().isIn(['createdAt', 'updatedAt', 'totalPrice']),
+  query('order').optional().isIn(['asc', 'desc']),
 ];
 
 // 💰 [Purchase] 구매 요청 승인 API (관리자)
@@ -89,7 +91,7 @@ const validateRequestPurchase = [
     .bail()
     .isInt({ min: 1 })
     .withMessage('상품 ID는 1 이상의 정수여야 합니다.')
-    .toInt(),
+    .toInt(10),
   body('items.*.quantity')
     .notEmpty()
     .withMessage('수량은 필수입니다.')

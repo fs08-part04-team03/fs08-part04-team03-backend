@@ -1,5 +1,5 @@
 // 💰 [Purchase] 전체 구매 내역 목록 API (관리자)
-import { purchaseItems } from '@prisma/client';
+import { purchaseRequests } from '@prisma/client';
 
 export interface GetAllPurchasesQuery {
   page?: number;
@@ -17,7 +17,7 @@ export interface PurchaseNowBody {
   shippingFee: number;
   // productId: number;
   // quantity: number;
-  items: purchaseItems[];
+  items: purchaseRequests[];
   // reason?: string;
 }
 

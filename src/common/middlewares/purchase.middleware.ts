@@ -55,14 +55,14 @@ export async function checkBudget(req: BudgetCheckRequest, _res: Response, next:
 
   // 3. 예산이 0인 경우 처리
   // 회사에 등록된 예산이 없으면 구매 불가
-  if (totalBudget === 0) {
+  if (totalBudget <= 0) {
     // TODO: 이메일을 보내는 함수 만들기 (메시지: 예산이 없습니다)
 
     return next(
       new CustomError(
         HttpStatus.BAD_REQUEST,
         ErrorCodes.PURCHASE_INSUFFICIENT_BUDGET,
-        '이 회사의 예산이 없습니다.'
+        '이 회사의 예산이 부족하거나 없습니다.'
       )
     );
   }
@@ -70,6 +70,15 @@ export async function checkBudget(req: BudgetCheckRequest, _res: Response, next:
   // 4. 구매 금액 계산
   // 요청된 모든 상품의 가격을 병렬로 조회하여 계산
   const productPromises = req.body.items.map(async (item) => {
+    // 수량 검증
+    if (item.quantity <= 0) {
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
+        `상품 ID ${item.productId}의 수량이 올바르지 않습니다.`
+      );
+    }
+
     // 4-1. 각 상품의 현재 가격 조회
     const product = await prisma.products.findUnique({
       where: { id: item.productId },
@@ -82,6 +91,15 @@ export async function checkBudget(req: BudgetCheckRequest, _res: Response, next:
         HttpStatus.NOT_FOUND,
         ErrorCodes.GENERAL_NOT_FOUND,
         `상품 ID ${item.productId}를 찾을 수 없습니다.`
+      );
+    }
+
+    // 가격 검증
+    if (product.price < 0) {
+      throw new CustomError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
+        `상품 가격이 유효하지 않습니다. (상품 ID: ${item.productId})`
       );
     }
 
