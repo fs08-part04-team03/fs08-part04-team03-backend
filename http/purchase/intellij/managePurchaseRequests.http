@@ -1,0 +1,63 @@
+### 로그인 (먼저 이것을 실행하세요!)
+# @name login
+POST http://localhost:4000/api/v1/auth/login
+Content-Type: application/json
+
+{
+    "email": "manager@test.com",
+    "password": "testM"
+}
+
+> {%
+    client.global.set("token", response.body.data.accessToken);
+%}
+
+###
+
+
+###
+# @name managePurchaseRequests - 구매 요청 조회 (전체)
+GET http://localhost:4000/api/v1/purchase/admin/managePurchaseRequests
+Authorization: Bearer {{token}}
+
+###
+
+
+###
+# @name managePurchaseRequests - 구매 요청 조회 (PENDING만)
+GET http://localhost:4000/api/v1/purchase/admin/managePurchaseRequests?status=PENDING
+Authorization: Bearer {{token}}
+
+###
+
+
+###
+# @name managePurchaseRequests - 구매 요청 조회 (APPROVED만)
+GET http://localhost:4000/api/v1/purchase/admin/managePurchaseRequests?status=APPROVED
+Authorization: Bearer {{token}}
+
+###
+
+
+###
+# @name managePurchaseRequests - 구매 요청 조회 (REJECTED만)
+GET http://localhost:4000/api/v1/purchase/admin/managePurchaseRequests?status=REJECTED
+Authorization: Bearer {{token}}
+
+###
+
+
+###
+# @name managePurchaseRequests - 구매 요청 조회 (페이징)
+GET http://localhost:4000/api/v1/purchase/admin/managePurchaseRequests?page=1&limit=10
+Authorization: Bearer {{token}}
+
+###
+
+
+###
+# @name managePurchaseRequests - 구매 요청 조회 (PENDING + 페이징)
+GET http://localhost:4000/api/v1/purchase/admin/managePurchaseRequests?status=PENDING&page=1&limit=10
+Authorization: Bearer {{token}}
+
+###

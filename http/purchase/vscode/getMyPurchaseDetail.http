@@ -1,0 +1,25 @@
+### 로그인 (먼저 이것을 실행하세요!)
+# @name login
+POST http://localhost:4000/api/v1/auth/login
+Content-Type: application/json
+
+{
+    "email": "manager@test.com",
+    "password": "testM"
+}
+
+###
+
+### 내 정보 조회
+GET http://localhost:4000/api/v1/auth/me
+Authorization: Bearer {{login.response.body.data.accessToken}}
+
+###
+
+### 내 구매 상세 조회 - 기본
+# 먼저 getMyPurchases.http를 실행하여 구매 ID를 확인하세요
+GET http://localhost:4000/api/v1/purchase/user/getMyPurchaseDetail/{구매ID}
+Authorization: Bearer {{login.response.body.data.accessToken}}
+
+###
+
