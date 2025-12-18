@@ -18,7 +18,7 @@ Authorization: Bearer {{login.response.body.data.accessToken}}
 Content-Type: application/json
 
 {
-  "companyId": "0000000-0000-0000-0000-00000000",
+  "companyId": "00000000-0000-0000-0000-000000000000",
   "email": "johndoe@example.com",
   "name": "John Doe",
   "role": "USER"
