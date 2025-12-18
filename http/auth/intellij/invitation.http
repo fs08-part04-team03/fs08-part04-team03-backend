@@ -1,5 +1,4 @@
 @baseUrl = http://localhost:4000/api/v1
-@inviteUrl = http://localhost:4000/signup?token=00000000-0000-0000-0000-000000000000
 
 ### 로그인
 POST {{baseUrl}}/auth/login
@@ -27,12 +26,16 @@ Content-Type: application/json
   "role": "USER"
 }
 
+> {%
+  client.global.set("generatedInviteUrl", response.body.data.inviteUrl);
+%}
+
 ### 초대 URL 검증
 POST {{baseUrl}}/auth/invitation/verifyUrl
 Content-Type: application/json
 
 {
-  "inviteUrl": "{{inviteUrl}}"
+  "inviteUrl": "{{generatedInviteUrl}}"
 }
 
 ### 잘못된 토큰 예시 (401 기대)
