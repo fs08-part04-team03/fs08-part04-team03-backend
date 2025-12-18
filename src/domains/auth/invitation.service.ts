@@ -166,7 +166,7 @@ export const invitationAuthService = {
    * 프론트 흐름:
    * - 사용자가 링크 클릭 -> 프론트가 token(raw)을 얻음
    * - 백엔드로 raw token 전달(현재는 GET param) -> 서버는 hash로 변환 -> DB 조회
-   * - 유효하면 name/email/role을 반환 -> 가입 페이지에서 read-only 채움
+   * - 유효하면 name/email을 반환 -> 가입 페이지에서 read-only 채움
    */
   async getPublicInfoByToken(rawToken: string): Promise<PublicInvitationInfo> {
     const tokenHash = hashInviteToken(rawToken);
