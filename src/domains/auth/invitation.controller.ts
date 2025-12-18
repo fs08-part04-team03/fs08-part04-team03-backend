@@ -1,5 +1,6 @@
 // invitation Service를 호출해 초대 링크 생성(토큰을 받아옴) + 반환
 import type { Request, Response } from 'express';
+import { env } from '../../config/env.config';
 import type { AuthenticatedRequest } from '../../common/types/common.types';
 import { HttpStatus } from '../../common/constants/httpStatus.constants';
 import { ResponseUtil } from '../../common/utils/response.util';
@@ -8,10 +9,11 @@ import { ErrorCodes } from '../../common/constants/errorCodes.constants';
 import { invitationAuthService } from './invitation.service';
 import type { CreateInvitationBody } from './invitation.types';
 
-// 초대 링크 생성 (TODO: 프론트 주소로 변경)
+// 초대 링크 생성
 function buildInviteUrl(rawToken: string) {
-  const webAppBaseUrl = process.env.WEB_APP_BASE_URL ?? 'http://localhost:4000';
-  const url = new URL('/signup', webAppBaseUrl);
+  const webAppBaseUrl =
+    env.NODE_ENV === 'development' ? 'http://localhost:4000' : env.WEB_APP_BASE_URL;
+  const url = new URL('/invite', webAppBaseUrl);
   url.searchParams.set('token', rawToken);
 
   return url.toString();
