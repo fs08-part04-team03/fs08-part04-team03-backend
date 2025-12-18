@@ -20,6 +20,7 @@ type CreateInvitationInput = {
 type PublicInvitationInfo = {
   email: string;
   name: string;
+  role: Role;
 };
 
 // 초대 토큰 해시
@@ -188,6 +189,7 @@ export const invitationAuthService = {
     return {
       email: invitation.email,
       name: invitation.name,
+      role: invitation.role,
     };
   },
 };

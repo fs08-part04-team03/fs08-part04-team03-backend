@@ -54,6 +54,7 @@ router.post(
         {
           name: info.name,
           email: info.email,
+          role: info.role,
         },
         '초대 URL이 유효합니다.'
       )
