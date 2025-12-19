@@ -208,7 +208,7 @@ export const purchaseService = {
     return ResponseUtil.successWithPagination(
       purchaseList,
       { page, limit, total },
-      '즉시 구매가 완료되었습니다.'
+      '내 구매 내역을 조회했습니다.'
     );
   },
 
@@ -341,10 +341,9 @@ export const purchaseService = {
       },
     });
 
-    const totalPages = Math.ceil(totalItems / limit);
     return ResponseUtil.successWithPagination(
       purchaseRequests,
-      { page, limit: totalPages, total: totalItems },
+      { page, limit, total: totalItems },
       '구매 요청 목록을 조회했습니다.'
     );
   },

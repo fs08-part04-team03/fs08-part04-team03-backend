@@ -15,9 +15,8 @@ export class JwtUtil {
     companyId: string;
     email: string;
     role: AuthTokenPayload['role'];
-  }): AccessPayload {
+  }): { id: string; companyId: string; email: string; role: 'USER' | 'MANAGER' | 'ADMIN' } {
     return {
-      userId: user.id,
       id: user.id,
       companyId: user.companyId,
       email: user.email,

@@ -7,7 +7,6 @@ import type { AuthenticatedRequest } from '../../common/types/common.types';
 import { purchaseService } from './purchase.service';
 import type {
   GetAllPurchasesQuery,
-  PurchaseItemRequest,
   PurchaseNowBody,
   RejectPurchaseRequestBody,
   RequestPurchaseBody,
@@ -52,9 +51,7 @@ export const purchaseController = {
     }
 
     // 요청 바디에서 필요한 정보 추출
-    const requestBody = req.body as unknown as PurchaseNowBody;
-    const { shippingFee } = requestBody;
-    const items = requestBody.items as unknown as PurchaseItemRequest[];
+    const { shippingFee, items } = req.body as PurchaseNowBody;
 
     // 요청 바디 유효성 검사 (exception-safe)
     if (!items || !Array.isArray(items) || items.length === 0) {
