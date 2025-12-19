@@ -65,7 +65,7 @@ Authorization: Bearer {{token}}
 ###
 
 ### 장바구니 조회 - 추가된 상품 확인
-GET http://localhost:4000/api/v1/cart/getMycart
+GET http://localhost:4000/api/v1/cart/getMyCart
 Authorization: Bearer {{token}}
 
 ###

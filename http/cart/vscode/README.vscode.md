@@ -84,11 +84,11 @@ Content-Type: application/json
 
 ```http
 # 기본 조회 (첫 페이지, 10개)
-GET http://localhost:4000/api/v1/cart/getMycart
+GET http://localhost:4000/api/v1/cart/getMyCart
 Authorization: Bearer {{token}}
 
 # 2페이지, 5개씩
-GET http://localhost:4000/api/v1/cart/getMycart?page=2&limit=5
+GET http://localhost:4000/api/v1/cart/getMyCart?page=2&limit=5
 Authorization: Bearer {{token}}
 ```
 

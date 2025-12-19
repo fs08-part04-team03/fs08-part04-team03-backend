@@ -18,7 +18,7 @@ Content-Type: application/json
 ###
 
 ### 장바구니 조회 - 삭제할 항목의 ID 확인
-GET http://localhost:4000/api/v1/cart/getMycart
+GET http://localhost:4000/api/v1/cart/getMyCart
 Authorization: Bearer {{accessToken}}
 
 > {%
@@ -60,6 +60,6 @@ Authorization: Bearer {{accessToken}}
 ###
 
 ### 장바구니 조회 - 삭제 결과 확인
-GET http://localhost:4000/api/v1/cart/getMycart
+GET http://localhost:4000/api/v1/cart/getMyCart
 Authorization: Bearer {{accessToken}}
 
