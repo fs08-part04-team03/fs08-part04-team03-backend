@@ -24,7 +24,7 @@ export const authValidator = {
     body('passwordConfirm')
       .custom(passwordMatchValidator)
       .withMessage('passwordConfirm이 password와 다릅니다'),
-    body('inviteToken').isUUID().withMessage('inviteToken은 UUID 형식이어야 합니다'),
+    body('inviteUrl').isString().trim().isLength({ min: 1, max: 2048 }),
     validateRequest,
   ],
   login: [

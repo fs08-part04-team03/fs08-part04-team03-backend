@@ -10,7 +10,13 @@ import { env } from '../../config/env.config';
 type SignupRequest = Request<
   unknown,
   unknown,
-  { name: string; email: string; password: string; passwordConfirm: string; inviteToken: string },
+  {
+    name: string;
+    email: string;
+    password: string;
+    passwordConfirm: string;
+    inviteUrl: string;
+  },
   unknown
 >;
 
@@ -23,6 +29,32 @@ type LoginRequest = Request<
   },
   unknown
 >;
+
+// inviteUrl에서 token 추출
+function extractTokenFromInviteUrl(inviteUrl: string): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(inviteUrl);
+  } catch {
+    throw new CustomError(
+      HttpStatus.BAD_REQUEST,
+      ErrorCodes.GENERAL_BAD_REQUEST,
+      'inviteUrl에서 token을 찾을 수 없습니다.'
+    );
+  }
+
+  const fromQuery = parsed.searchParams.get('token');
+  if (fromQuery) return fromQuery;
+
+  const fromHash = new URLSearchParams(parsed.hash.replace(/^#/, '')).get('token');
+  if (fromHash) return fromHash;
+
+  throw new CustomError(
+    HttpStatus.BAD_REQUEST,
+    ErrorCodes.GENERAL_BAD_REQUEST,
+    'inviteUrl에서 token을 찾을 수 없습니다.'
+  );
+}
 
 // refresh token cookie 옵션
 const refreshCookieOptions = (maxAgeMs: number): CookieOptions => ({
@@ -37,7 +69,9 @@ const refreshCookieOptions = (maxAgeMs: number): CookieOptions => ({
 export const authController = {
   // 회원가입
   signup: async (req: SignupRequest, res: Response) => {
-    const { name, email, password, inviteToken } = req.body;
+    const { name, email, password, inviteUrl } = req.body;
+    const inviteToken = extractTokenFromInviteUrl(inviteUrl);
+
     const { accessToken, refreshToken, user } = await authService.signup({
       name,
       email,
