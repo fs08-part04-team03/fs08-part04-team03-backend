@@ -44,10 +44,30 @@ function extractTokenFromInviteUrl(inviteUrl: string): string {
   }
 
   const fromQuery = parsed.searchParams.get('token');
-  if (fromQuery) return fromQuery;
+  if (fromQuery !== null) {
+    const token = fromQuery.trim();
+    if (token.length === 0) {
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERAL_BAD_REQUEST,
+        'inviteUrl에서 token을 찾을 수 없습니다.'
+      );
+    }
+    return token;
+  }
 
   const fromHash = new URLSearchParams(parsed.hash.replace(/^#/, '')).get('token');
-  if (fromHash) return fromHash;
+  if (fromHash !== null) {
+    const token = fromHash.trim();
+    if (token.length === 0) {
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERAL_BAD_REQUEST,
+        'inviteUrl에서 token을 찾을 수 없습니다.'
+      );
+    }
+    return token;
+  }
 
   throw new CustomError(
     HttpStatus.BAD_REQUEST,
