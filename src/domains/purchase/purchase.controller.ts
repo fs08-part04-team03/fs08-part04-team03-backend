@@ -100,7 +100,7 @@ export const purchaseController = {
     // 서비스 호출
     const result = await purchaseService.purchaseNow(
       req.user.companyId,
-      req.user.userId,
+      req.user.id,
       shippingFee,
       items
     );
@@ -128,7 +128,7 @@ export const purchaseController = {
     };
 
     // 서비스 호출
-    const result = await purchaseService.getMyPurchases(req.user.companyId, req.user.userId, query);
+    const result = await purchaseService.getMyPurchases(req.user.companyId, req.user.id, query);
 
     // 응답 반환
     res.status(HttpStatus.OK).json(result);
@@ -158,7 +158,7 @@ export const purchaseController = {
     // 서비스 호출
     const result = await purchaseService.getMyPurchaseDetail(
       req.user.companyId,
-      req.user.userId,
+      req.user.id,
       purchaseRequestId
     );
 
@@ -214,7 +214,7 @@ export const purchaseController = {
     // 서비스 호출
     const result = await purchaseService.approvePurchaseRequest(
       req.user.companyId,
-      req.user.userId,
+      req.user.id,
       purchaseRequestId
     );
 
@@ -247,7 +247,7 @@ export const purchaseController = {
     // 서비스 호출
     const result = await purchaseService.rejectPurchaseRequest(
       req.user.companyId,
-      req.user.userId,
+      req.user.id,
       purchaseRequestId,
       body
     );
@@ -338,7 +338,7 @@ export const purchaseController = {
     // 서비스 호출 - items 배열 전체를 전달
     const result = await purchaseService.requestPurchase(
       req.user.companyId,
-      req.user.userId,
+      req.user.id,
       shippingFee,
       items,
       requestMessage
@@ -371,7 +371,7 @@ export const purchaseController = {
     // 서비스 호출
     const result = await purchaseService.cancelPurchaseRequest(
       req.user.companyId,
-      req.user.userId,
+      req.user.id,
       purchaseRequestId
     );
 

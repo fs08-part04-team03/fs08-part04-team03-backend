@@ -6,7 +6,7 @@ import { CustomError } from './error.util';
 import type { AuthTokenPayload } from '../types/common.types';
 
 type AccessPayload = Omit<AuthTokenPayload, 'iat' | 'exp'>;
-type RefreshPayload = { userId: string; jti: string };
+type RefreshPayload = { id: string; jti: string };
 
 export class JwtUtil {
   // access token 페이로드 생성

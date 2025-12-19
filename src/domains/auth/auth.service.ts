@@ -43,7 +43,7 @@ export const authService = {
 
     // 4) refresh 토큰 발급 및 해시 저장
     const refreshToken = JwtUtil.generateRefreshToken({
-      userId: user.id,
+      id: user.id,
       jti: crypto.randomUUID(),
     });
     const refreshTokenHash = await argon2.hash(refreshToken);
@@ -64,11 +64,11 @@ export const authService = {
 
   // refresh
   async refresh(refreshToken: string) {
-    // 1) JWT 서명/만료 검증 및 userId 추출
+    // 1) JWT 서명/만료 검증 및 id 추출
     const payload = JwtUtil.verifyRefreshToken(refreshToken);
 
     // 2) 사용자 조회 및 해시 검증
-    const user = await prisma.users.findUnique({ where: { id: payload.userId } });
+    const user = await prisma.users.findUnique({ where: { id: payload.id } });
     if (!user || !user.refreshToken) {
       throw new CustomError(
         HttpStatus.UNAUTHORIZED,
@@ -112,7 +112,7 @@ export const authService = {
       })
     );
     const newRefreshToken = JwtUtil.generateRefreshToken({
-      userId: user.id,
+      id: user.id,
       jti: crypto.randomUUID(),
     });
     const newRefreshHash = await argon2.hash(newRefreshToken);
@@ -154,8 +154,8 @@ export const authService = {
   // 로그아웃
   async logoutByToken(refreshToken: string) {
     try {
-      const { userId } = JwtUtil.verifyRefreshToken(refreshToken);
-      await prisma.users.update({ where: { id: userId }, data: { refreshToken: null } });
+      const { id } = JwtUtil.verifyRefreshToken(refreshToken);
+      await prisma.users.update({ where: { id }, data: { refreshToken: null } });
     } catch {
       // 토큰이 만료/위조되어도 무시하고 로그아웃 처리
     }
