@@ -185,25 +185,27 @@
  *             schema:
  *               type: object
  *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/PurchaseRequest'
+ *                 pagination:
  *                   type: object
  *                   properties:
- *                     purchaseList:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/PurchaseRequest'
- *                     currentPage:
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     total:
  *                       type: integer
  *                     totalPages:
  *                       type: integer
- *                     totalItems:
- *                       type: integer
- *                     itemsPerPage:
- *                       type: integer
- *                     hasNextPage:
- *                       type: boolean
- *                     hasPreviousPage:
- *                       type: boolean
+ *                 message:
+ *                   type: string
+ *                   example: "조회 성공"
  *       401:
  *         description: 인증 실패
  *       403:
@@ -255,8 +257,14 @@
  *             schema:
  *               type: object
  *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 data:
  *                   $ref: '#/components/schemas/PurchaseRequest'
+ *                 message:
+ *                   type: string
+ *                   example: "즉시 구매가 완료되었습니다."
  *       400:
  *         description: 잘못된 요청
  *       401:
@@ -308,25 +316,27 @@
  *             schema:
  *               type: object
  *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/PurchaseRequest'
+ *                 pagination:
  *                   type: object
  *                   properties:
- *                     purchaseList:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/PurchaseRequest'
- *                     currentPage:
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     total:
  *                       type: integer
  *                     totalPages:
  *                       type: integer
- *                     totalItems:
- *                       type: integer
- *                     itemsPerPage:
- *                       type: integer
- *                     hasNextPage:
- *                       type: boolean
- *                     hasPreviousPage:
- *                       type: boolean
+ *                 message:
+ *                   type: string
+ *                   example: "조회 성공"
  *       401:
  *         description: 인증 실패
  */
@@ -354,8 +364,13 @@
  *             schema:
  *               type: object
  *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 data:
  *                   $ref: '#/components/schemas/PurchaseRequest'
+ *                 message:
+ *                   type: string
  *       401:
  *         description: 인증 실패
  *       404:
@@ -411,25 +426,27 @@
  *             schema:
  *               type: object
  *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/PurchaseRequest'
+ *                 pagination:
  *                   type: object
  *                   properties:
- *                     purchaseRequests:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/PurchaseRequest'
- *                     currentPage:
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     total:
  *                       type: integer
  *                     totalPages:
  *                       type: integer
- *                     totalItems:
- *                       type: integer
- *                     itemsPerPage:
- *                       type: integer
- *                     hasNextPage:
- *                       type: boolean
- *                     hasPreviousPage:
- *                       type: boolean
+ *                 message:
+ *                   type: string
+ *                   example: "조회 성공"
  *       400:
  *         description: 잘못된 요청 (유효하지 않은 상태 값)
  *       401:
@@ -461,8 +478,13 @@
  *             schema:
  *               type: object
  *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 data:
  *                   $ref: '#/components/schemas/PurchaseRequest'
+ *                 message:
+ *                   type: string
  *       400:
  *         description: 이미 처리된 구매 요청
  *       401:
@@ -508,8 +530,13 @@
  *             schema:
  *               type: object
  *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 data:
  *                   $ref: '#/components/schemas/PurchaseRequest'
+ *                 message:
+ *                   type: string
  *       400:
  *         description: 이미 처리된 구매 요청
  *       401:
@@ -570,8 +597,13 @@
  *             schema:
  *               type: object
  *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 data:
  *                   $ref: '#/components/schemas/PurchaseRequest'
+ *                 message:
+ *                   type: string
  *       400:
  *         description: 잘못된 요청 (장바구니에 상품이 없거나 수량 불일치)
  *       401:
@@ -585,47 +617,35 @@
  *     summary: 긴급 구매 요청 (예산 체크 우회)
  *     description: |
  *       **예산 확인 없이 긴급하게 구매 요청을 생성합니다.**
- *
  *       ### 🚨 중요 특징
  *       - **예산 우회 (의도적 설계)**:
  *         - 일반 구매 요청(`/user/requestPurchase`)과 달리 `checkBudget` 미들웨어를 거치지 않습니다.
  *         - 긴급 상황(예: 시스템 장애, 긴급 업무 필요, 예기치 않은 비즈니스 기회)에서 빠른 구매 처리를 위해 **의도적으로 설계**되었습니다.
  *         - 라우터에서 `checkBudget` 미들웨어를 제외하여 예산 검증을 우회합니다.
- *
  *       - **장바구니 기반**:
  *         - 장바구니에 있는 상품으로만 구매 요청이 가능합니다.
  *         - 요청 성공 시 해당 상품은 장바구니에서 자동 삭제됩니다.
- *
  *       ### ⚠️ 남용 방지 메커니즘
- *
  *       **1. 승인 프로세스**
  *       - 긴급 구매 요청도 관리자(`MANAGER`)의 승인이 필요합니다.
  *       - 관리자는 긴급 요청의 타당성을 검토하고 반려할 수 있습니다.
- *
  *       **2. 감사 로그 (모니터링)**
  *       - 모든 긴급 구매 요청은 시스템 로그에 자동 기록됩니다.
  *       - 로그 정보: 요청자, 요청일시, 상품 목록, 총 금액, 요청 사유
  *       - 관리자는 `/admin/managePurchaseRequests`에서 모든 긴급 구매를 조회 및 모니터링할 수 있습니다.
- *
  *       **3. 요청 사유 기록**
  *       - `requestMessage`를 통해 긴급 구매의 사유를 명확히 기록하는 것을 **강력히 권장**합니다.
  *       - 예시: "서버 장애로 인한 긴급 하드웨어 교체", "중요 고객 미팅을 위한 긴급 물품 구매"
- *
  *       **4. 정기 검토**
  *       - 긴급 구매 내역을 정기적으로 검토하여 남용 패턴을 식별할 수 있습니다.
  *       - 지출 통계(`/admin/expenseStatistics`)에서 긴급 구매 비율을 모니터링합니다.
- *
  *       ### ✅ 자동화된 테스트 검증
- *
  *       다음 사항이 자동화된 테스트를 통해 검증됩니다:
- *
  *       1. **일반 구매 요청**: `checkBudget` 미들웨어가 적용되어 예산 검증이 수행됨
  *       2. **긴급 구매 요청**: `checkBudget` 미들웨어가 적용되지 않아 예산 우회됨
  *       3. **공통 검증**: 두 엔드포인트 모두 동일한 인증(`verifyAccessToken`) 및 권한(`requireMinRole('USER')`) 검증을 거침
  *       4. **장바구니 검증**: 두 엔드포인트 모두 장바구니에 있는 상품만 구매 요청 가능
- *
  *       ### 📊 사용 시나리오
- *
  *       - ✅ **적절한 사용**: 서버 장애로 인한 긴급 하드웨어 교체, 예기치 않은 중요 고객 미팅
  *       - ❌ **부적절한 사용**: 일상적인 구매, 단순 편의를 위한 예산 우회
  *     tags: [Purchase]
@@ -665,7 +685,6 @@
  *                 type: string
  *                 description: |
  *                   긴급 요청 사유 (강력 권장)
- *
  *                   예시:
  *                   - "서버 장애로 인한 긴급 하드웨어 교체 필요"
  *                   - "중요 고객 미팅을 위한 긴급 물품 구매"
@@ -678,8 +697,13 @@
  *             schema:
  *               type: object
  *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 data:
  *                   $ref: '#/components/schemas/PurchaseRequest'
+ *                 message:
+ *                   type: string
  *       400:
  *         description: 잘못된 요청 (장바구니에 상품이 없거나 수량 불일치)
  *       401:
@@ -710,8 +734,13 @@
  *             schema:
  *               type: object
  *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 data:
  *                   $ref: '#/components/schemas/PurchaseRequest'
+ *                 message:
+ *                   type: string
  *       400:
  *         description: 대기 중인 구매 요청이 아님 (이미 처리됨)
  *       401:
@@ -736,8 +765,13 @@
  *             schema:
  *               type: object
  *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 data:
  *                   $ref: '#/components/schemas/ExpenseStatistics'
+ *                 message:
+ *                   type: string
  *       401:
  *         description: 인증 실패
  *       403:
@@ -788,6 +822,9 @@
  *             schema:
  *               type: object
  *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 data:
  *                   type: object
  *                   properties:
@@ -822,7 +859,19 @@
  *                       items:
  *                         $ref: '#/components/schemas/PurchaseRequest'
  *                     pagination:
- *                       $ref: '#/components/schemas/PaginationInfo'
+ *                       type: object
+ *                       properties:
+ *                         page:
+ *                           type: integer
+ *                         limit:
+ *                           type: integer
+ *                         total:
+ *                           type: integer
+ *                         totalPages:
+ *                           type: integer
+ *                 message:
+ *                   type: string
+ *                   example: "구매 관리 대시보드 정보를 조회했습니다."
  *       401:
  *         description: 인증 실패
  *       403:

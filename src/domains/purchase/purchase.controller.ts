@@ -36,9 +36,7 @@ export const purchaseController = {
     const result = await purchaseService.getAllPurchases(req.user.companyId, query);
 
     // 응답 반환
-    res
-      .status(HttpStatus.OK)
-      .json({ success: true, ...result, message: '전체 구매 내역을 조회했습니다.' });
+    res.status(HttpStatus.OK).json(result);
   },
 
   // 💰 [Purchase] 즉시 구매 API (관리자)
@@ -56,64 +54,58 @@ export const purchaseController = {
     const { shippingFee, items } = req.body as PurchaseNowBody;
 
     // 요청 바디 유효성 검사 (exception-safe)
-    const invalidItems =
-      !Array.isArray(items) ||
-      items.length === 0 ||
-      items.some(
-        (i) =>
-          !i ||
-          typeof i !== 'object' ||
-          typeof i.productId !== 'number' ||
-          !Number.isInteger(i.productId) ||
-          i.productId < 1 ||
-          typeof i.quantity !== 'number' ||
-          !Number.isInteger(i.quantity) ||
-          i.quantity < 1
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
+        'items는 최소 1개 이상의 배열이어야 합니다.'
       );
+    }
 
+    // items 배열의 각 항목 유효성 검사
+    const invalidItems = items.some(
+      (item) =>
+        !item ||
+        typeof item !== 'object' ||
+        typeof item.productId !== 'number' ||
+        !Number.isInteger(item.productId) ||
+        item.productId < 1 ||
+        typeof item.quantity !== 'number' ||
+        !Number.isInteger(item.quantity) ||
+        item.quantity < 1
+    );
+
+    if (invalidItems) {
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
+        '모든 항목의 productId와 quantity는 1 이상의 정수여야 합니다.'
+      );
+    }
+
+    // shippingFee 유효성 검사
     if (
       typeof shippingFee !== 'number' ||
       !Number.isFinite(shippingFee) ||
       !Number.isInteger(shippingFee) ||
-      shippingFee < 0 ||
-      invalidItems
+      shippingFee < 0
     ) {
       throw new CustomError(
         HttpStatus.BAD_REQUEST,
         ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
-        '요청 바디가 올바르지 않습니다.'
-      );
-    }
-
-    // 입력 값 검증
-    if (!items.length) {
-      throw new CustomError(
-        HttpStatus.BAD_REQUEST,
-        ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
-        '구매할 상품 항목이 없어 구매를 진행할 수 없습니다.'
-      );
-    }
-
-    if (shippingFee < 0 || items.some((i) => i.quantity <= 0)) {
-      throw new CustomError(
-        HttpStatus.BAD_REQUEST,
-        ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
-        '배송비는 0 이상이어야 하며, 모든 상품의 수량은 1 이상이어야 합니다.'
+        '배송비는 0 이상의 정수여야 합니다.'
       );
     }
 
     // 서비스 호출
     const result = await purchaseService.purchaseNow(
       req.user.companyId,
-      req.user.userId,
+      req.user.id,
       shippingFee,
       items
     );
-
     // 응답 반환
-    res
-      .status(HttpStatus.OK)
-      .json({ success: true, ...result, message: '즉시 구매가 완료되었습니다.' });
+    res.status(HttpStatus.OK).json(result);
   },
 
   // 💰 [Purchase] 내 구매 내역 조회 API
@@ -136,12 +128,10 @@ export const purchaseController = {
     };
 
     // 서비스 호출
-    const result = await purchaseService.getMyPurchases(req.user.companyId, req.user.userId, query);
+    const result = await purchaseService.getMyPurchases(req.user.companyId, req.user.id, query);
 
     // 응답 반환
-    res
-      .status(HttpStatus.OK)
-      .json({ success: true, ...result, message: '내 구매 내역을 조회했습니다.' });
+    res.status(HttpStatus.OK).json(result);
   },
 
   // 💰 [Purchase] 내 구매 상세 조회 API
@@ -168,14 +158,12 @@ export const purchaseController = {
     // 서비스 호출
     const result = await purchaseService.getMyPurchaseDetail(
       req.user.companyId,
-      req.user.userId,
+      req.user.id,
       purchaseRequestId
     );
 
     // 응답 반환
-    res
-      .status(HttpStatus.OK)
-      .json({ success: true, ...result, message: '내 구매 상세 내역을 조회했습니다.' });
+    res.status(HttpStatus.OK).json(result);
   },
 
   // 💰 [Purchase] 구매 요청 조회 API (관리자)
@@ -200,9 +188,7 @@ export const purchaseController = {
     const result = await purchaseService.managePurchaseRequests(req.user.companyId, query);
 
     // 응답 반환
-    res
-      .status(HttpStatus.OK)
-      .json({ success: true, ...result, message: '구매 요청 내역을 조회했습니다.' });
+    res.status(HttpStatus.OK).json(result);
   },
 
   // 💰 [Purchase] 구매 요청 승인 API (관리자)
@@ -228,14 +214,12 @@ export const purchaseController = {
     // 서비스 호출
     const result = await purchaseService.approvePurchaseRequest(
       req.user.companyId,
-      req.user.userId,
+      req.user.id,
       purchaseRequestId
     );
 
     // 응답 반환
-    res
-      .status(HttpStatus.OK)
-      .json({ success: true, ...result, message: '구매 요청을 승인했습니다.' });
+    res.status(HttpStatus.OK).json(result);
   },
 
   // 💰 [Purchase] 구매 요청 반려 API (관리자)
@@ -263,15 +247,13 @@ export const purchaseController = {
     // 서비스 호출
     const result = await purchaseService.rejectPurchaseRequest(
       req.user.companyId,
-      req.user.userId,
+      req.user.id,
       purchaseRequestId,
       body
     );
 
     // 응답 반환
-    res
-      .status(HttpStatus.OK)
-      .json({ success: true, ...result, message: '구매 요청을 반려했습니다.' });
+    res.status(HttpStatus.OK).json(result);
   },
 
   // 💰 [Purchase] 구매 요청 API
@@ -356,16 +338,14 @@ export const purchaseController = {
     // 서비스 호출 - items 배열 전체를 전달
     const result = await purchaseService.requestPurchase(
       req.user.companyId,
-      req.user.userId,
+      req.user.id,
       shippingFee,
       items,
       requestMessage
     );
 
     // 응답 반환
-    res
-      .status(HttpStatus.OK)
-      .json({ success: true, ...result, message: '구매 요청이 완료되었습니다.' });
+    res.status(HttpStatus.OK).json(result);
   },
 
   // 💰 [Purchase] 구매 요청 취소 API
@@ -391,14 +371,12 @@ export const purchaseController = {
     // 서비스 호출
     const result = await purchaseService.cancelPurchaseRequest(
       req.user.companyId,
-      req.user.userId,
+      req.user.id,
       purchaseRequestId
     );
 
     // 응답 반환
-    res
-      .status(HttpStatus.OK)
-      .json({ success: true, ...result, message: '구매 요청을 취소했습니다.' });
+    res.status(HttpStatus.OK).json(result);
   },
 
   // 💰 [Purchase] 지출 통계 조회 API
@@ -416,9 +394,7 @@ export const purchaseController = {
     const result = await purchaseService.getExpenseStatistics(req.user.companyId);
 
     // 응답 반환
-    res
-      .status(HttpStatus.OK)
-      .json({ success: true, ...result, message: '지출 통계를 조회했습니다.' });
+    res.status(HttpStatus.OK).json(result);
   },
 
   // 💰 [Purchase] 구매 관리 대시보드 API
@@ -444,8 +420,6 @@ export const purchaseController = {
     const result = await purchaseService.getPurchaseDashboard(req.user.companyId, query);
 
     // 응답 반환
-    res
-      .status(HttpStatus.OK)
-      .json({ success: true, ...result, message: '구매 관리 대시보드 정보를 조회했습니다.' });
+    res.status(HttpStatus.OK).json(result);
   },
 };

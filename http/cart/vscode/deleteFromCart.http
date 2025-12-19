@@ -1,0 +1,114 @@
+### 로그인 (먼저 이것을 실행하세요!)
+# @name login
+POST http://localhost:4000/api/v1/auth/login
+Content-Type: application/json
+
+{
+    "email": "user@test.com",
+    "password": "testU"
+}
+
+# VSCode 사용 시:
+# 1. 위 요청을 실행한 후 응답에서 accessToken 값을 복사하세요
+# 2. 아래 @token 변수에 토큰을 붙여넣거나
+# 3. http-client.env.json 파일에 token 값을 설정하세요
+
+###
+
+# 토큰을 여기에 설정하거나 http-client.env.json 파일을 사용하세요
+@token = YOUR_ACCESS_TOKEN_HERE
+
+###
+
+### 내 정보 조회
+GET http://localhost:4000/api/v1/user/me
+Authorization: Bearer {{token}}
+
+###
+
+### 1단계: 장바구니 조회 - 삭제할 항목의 ID 확인
+GET http://localhost:4000/api/v1/cart/getMyCart
+Authorization: Bearer {{token}}
+
+# 응답에서 data[0].id 값을 복사하여 아래 변수에 설정하세요
+# 예: @cartItemId = abc12345
+
+###
+
+# 단일 삭제용 장바구니 항목 ID
+@cartItemId = YOUR_CART_ITEM_ID_HERE
+
+###
+
+### 2단계: 장바구니에서 상품 삭제 (단일)
+DELETE http://localhost:4000/api/v1/cart/deleteFromCart
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "cartItemId": "{{cartItemId}}"
+}
+
+###
+
+### 2-1단계: 장바구니에서 상품 삭제 (다중)
+DELETE http://localhost:4000/api/v1/cart/deleteMultiple
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "cartItemIds": [
+    "019b3014-7162-7b01-84a2-b97bac03005b",
+    "019b2a80-65bc-7590-99c8-f40e99a984bb"
+  ]
+}
+
+###
+
+### 3단계: 장바구니 조회 - 삭제 결과 확인
+GET http://localhost:4000/api/v1/cart/getMyCart
+Authorization: Bearer {{token}}
+
+###
+
+### 응답 예시 (단일 삭제):
+# {
+#   "success": true,
+#   "data": {
+#     "id": "cart-item-id"
+#   },
+#   "message": "장바구니에서 상품이 삭제되었습니다."
+# }
+
+###
+
+### 응답 예시 (다중 삭제):
+# {
+#   "success": true,
+#   "data": {
+#     "deletedCount": 2,
+#     "deletedIds": ["id1", "id2"]
+#   },
+#   "message": "2개의 상품이 장바구니에서 삭제되었습니다."
+# }
+
+###
+
+### 에러 예시 - 빈 배열:
+# {
+#   "error": {
+#     "code": "GENERAL_INVALID_REQUEST_BODY",
+#     "message": "삭제할 장바구니 항목을 선택해주세요."
+#   }
+# }
+
+###
+
+### 에러 예시 - 권한 없음:
+# {
+#   "error": {
+#     "code": "GENERAL_NOT_FOUND",
+#     "message": "일부 장바구니 항목을 찾을 수 없거나 권한이 없습니다."
+#   }
+# }
+

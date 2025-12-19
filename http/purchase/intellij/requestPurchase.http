@@ -25,8 +25,8 @@ Authorization: Bearer {{token}}
   "shippingFee": 3000,
   "items": [
     {
-      "productId": 221,
-      "quantity": 3
+      "productId": 222,
+      "quantity": 6
     }
   ],
   "requestMessage": "업무용으로 필요한 물품입니다."

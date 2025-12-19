@@ -11,7 +11,7 @@ Content-Type: application/json
 ###
 
 ### 내 정보 조회
-GET http://localhost:4000/api/v1/auth/me
+GET http://localhost:4000/api/v1/user/me
 Authorization: Bearer {{login.response.body.data.accessToken}}
 
 ###

@@ -8,6 +8,7 @@ import type {
   PurchaseItemRequest,
   RejectPurchaseRequestBody,
 } from './purchase.types';
+import { ResponseUtil } from '../../common/utils/response.util';
 
 export const purchaseService = {
   // 💰 [Purchase] 전체 구매 내역 목록 API (관리자)
@@ -21,7 +22,7 @@ export const purchaseService = {
     const skip = (page - 1) * limit;
 
     // 전체 개수 조회
-    const totalItems = await prisma.purchaseRequests.count({
+    const total = await prisma.purchaseRequests.count({
       where: {
         companyId,
       },
@@ -74,19 +75,11 @@ export const purchaseService = {
       take: limit,
     });
 
-    const totalPages = Math.ceil(totalItems / limit);
-
-    return {
-      data: {
-        purchaseList,
-        currentPage: page,
-        totalPages,
-        totalItems,
-        itemsPerPage: limit,
-        hasNextPage: page < totalPages,
-        hasPreviousPage: page > 1,
-      },
-    };
+    return ResponseUtil.successWithPagination(
+      purchaseList,
+      { page, limit, total },
+      '전체 구매 내역을 조회했습니다.'
+    );
   },
 
   // 💰 [Purchase] 즉시 구매 API (관리자)
@@ -153,7 +146,7 @@ export const purchaseService = {
       return newPurchaseRequest;
     });
 
-    return { data: result };
+    return ResponseUtil.success(result, '즉시 구매가 완료되었습니다.');
   },
 
   // 💰 [Purchase] 내 구매 내역 조회 API
@@ -167,7 +160,7 @@ export const purchaseService = {
     const skip = (page - 1) * limit;
 
     // 전체 개수 조회
-    const totalItems = await prisma.purchaseRequests.count({
+    const total = await prisma.purchaseRequests.count({
       where: {
         companyId,
         requesterId: userId,
@@ -212,19 +205,11 @@ export const purchaseService = {
       take: limit,
     });
 
-    const totalPages = Math.ceil(totalItems / limit);
-
-    return {
-      data: {
-        purchaseList,
-        currentPage: page,
-        totalPages,
-        totalItems,
-        itemsPerPage: limit,
-        hasNextPage: page < totalPages,
-        hasPreviousPage: page > 1,
-      },
-    };
+    return ResponseUtil.successWithPagination(
+      purchaseList,
+      { page, limit, total },
+      '내 구매 내역을 조회했습니다.'
+    );
   },
 
   // 💰 [Purchase] 내 구매 상세 조회 API
@@ -289,7 +274,7 @@ export const purchaseService = {
       );
     }
 
-    return { data: purchaseDetail };
+    return ResponseUtil.success(purchaseDetail, '내 구매 상세 내역을 조회했습니다.');
   },
 
   // 💰 [Purchase] 구매 요청 확인 API (관리자)
@@ -356,18 +341,11 @@ export const purchaseService = {
       },
     });
 
-    const totalPages = Math.ceil(totalItems / limit);
-    return {
-      data: {
-        purchaseRequests,
-        currentPage: page,
-        totalPages,
-        totalItems,
-        itemsPerPage: limit,
-        hasNextPage: page < totalPages,
-        hasPreviousPage: page > 1,
-      },
-    };
+    return ResponseUtil.successWithPagination(
+      purchaseRequests,
+      { page, limit, total: totalItems },
+      '구매 요청 목록을 조회했습니다.'
+    );
   },
 
   // 💰 [Purchase] 구매 요청 승인 API (관리자)
@@ -418,14 +396,14 @@ export const purchaseService = {
       );
     }
 
-    const updatedPurchaseRequest = await prisma.purchaseRequests.findFirst({
+    const result = await prisma.purchaseRequests.findFirst({
       where: {
         id: purchaseRequestId,
         companyId,
       },
     });
 
-    return { data: updatedPurchaseRequest };
+    return ResponseUtil.success(result, '구매 요청을 승인했습니다.');
   },
 
   // 💰 [Purchase] 구매 요청 반려 API (관리자)
@@ -482,14 +460,14 @@ export const purchaseService = {
       );
     }
 
-    const updatedPurchaseRequest = await prisma.purchaseRequests.findFirst({
+    const result = await prisma.purchaseRequests.findFirst({
       where: {
         id: purchaseRequestId,
         companyId,
       },
     });
 
-    return { data: updatedPurchaseRequest };
+    return ResponseUtil.success(result, '구매 요청을 반려했습니다.');
   },
 
   // 💰 [Purchase] 구매 요청 API
@@ -585,7 +563,7 @@ export const purchaseService = {
       return newPurchaseRequest;
     });
 
-    return { data: result };
+    return ResponseUtil.success(result, '구매 요청이 완료되었습니다.');
   },
 
   // 💰 [Purchase] 구매 요청 취소 API
@@ -662,7 +640,7 @@ export const purchaseService = {
       },
     });
 
-    return { data: cancelledRequest };
+    return ResponseUtil.success(cancelledRequest, '구매 요청이 취소되었습니다.');
   },
 
   // 💰 [Purchase] 지출 통계 조회 API
@@ -778,20 +756,20 @@ export const purchaseService = {
       ? thisMonthBudget.amount - thisMonthTotalExpenses
       : null;
 
-    return {
-      data: {
-        expenses: {
-          thisMonth: (thisMonthSum.totalPrice || 0) + (thisMonthSum.shippingFee || 0),
-          lastMonth: (lastMonthSum.totalPrice || 0) + (lastMonthSum.shippingFee || 0),
-          thisYear: (thisYearSum.totalPrice || 0) + (thisYearSum.shippingFee || 0),
-          lastYear: (lastYearSum.totalPrice || 0) + (lastYearSum.shippingFee || 0),
-        },
-        budget: {
-          thisMonthBudget: thisMonthBudget?.amount || null,
-          remainingBudget,
-        },
+    const data = {
+      expenses: {
+        thisMonth: (thisMonthSum.totalPrice || 0) + (thisMonthSum.shippingFee || 0),
+        lastMonth: (lastMonthSum.totalPrice || 0) + (lastMonthSum.shippingFee || 0),
+        thisYear: (thisYearSum.totalPrice || 0) + (thisYearSum.shippingFee || 0),
+        lastYear: (lastYearSum.totalPrice || 0) + (lastYearSum.shippingFee || 0),
+      },
+      budget: {
+        thisMonthBudget: thisMonthBudget?.amount || null,
+        remainingBudget,
       },
     };
+
+    return ResponseUtil.success(data, '지출 통계를 조회했습니다.');
   },
 
   // 💰 [Purchase] 구매 관리 대시보드 API
@@ -970,29 +948,26 @@ export const purchaseService = {
       take: limit,
     });
     const totalPages = Math.ceil(totalItems / limit);
-
-    return {
-      data: {
-        expenses: {
-          thisMonth: (thisMonthSum.totalPrice || 0) + (thisMonthSum.shippingFee || 0),
-          lastMonth: (lastMonthSum.totalPrice || 0) + (lastMonthSum.shippingFee || 0),
-          thisYear: (thisYearSum.totalPrice || 0) + (thisYearSum.shippingFee || 0),
-          lastYear: (lastYearSum.totalPrice || 0) + (lastYearSum.shippingFee || 0),
-        },
-        budget: {
-          thisMonthBudget: thisMonthBudget?.amount || null,
-          remainingBudget,
-        },
-        purchaseList,
-        pagination: {
-          currentPage: page,
-          totalPages,
-          totalItems,
-          itemsPerPage: limit,
-          hasNextPage: page < totalPages,
-          hasPreviousPage: page > 1,
-        },
+    const data = {
+      expenses: {
+        thisMonth: (thisMonthSum.totalPrice || 0) + (thisMonthSum.shippingFee || 0),
+        lastMonth: (lastMonthSum.totalPrice || 0) + (lastMonthSum.shippingFee || 0),
+        thisYear: (thisYearSum.totalPrice || 0) + (thisYearSum.shippingFee || 0),
+        lastYear: (lastYearSum.totalPrice || 0) + (lastYearSum.shippingFee || 0),
+      },
+      budget: {
+        thisMonthBudget: thisMonthBudget?.amount || null,
+        remainingBudget,
+      },
+      purchaseList,
+      pagination: {
+        page,
+        limit,
+        total: totalItems,
+        totalPages,
       },
     };
+
+    return ResponseUtil.success(data, '구매 관리 대시보드 정보를 조회했습니다.');
   },
 };

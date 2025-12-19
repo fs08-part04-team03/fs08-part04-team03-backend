@@ -6,7 +6,7 @@ import { CustomError } from './error.util';
 import type { AuthTokenPayload } from '../types/common.types';
 
 type AccessPayload = Omit<AuthTokenPayload, 'iat' | 'exp'>;
-type RefreshPayload = { userId: string; jti: string };
+type RefreshPayload = { id: string; jti: string };
 
 export class JwtUtil {
   // access token 페이로드 생성
@@ -15,8 +15,13 @@ export class JwtUtil {
     companyId: string;
     email: string;
     role: AuthTokenPayload['role'];
-  }): AccessPayload {
-    return { userId: user.id, companyId: user.companyId, email: user.email, role: user.role };
+  }): { id: string; companyId: string; email: string; role: 'USER' | 'MANAGER' | 'ADMIN' } {
+    return {
+      id: user.id,
+      companyId: user.companyId,
+      email: user.email,
+      role: user.role,
+    };
   }
 
   // access token 생성
@@ -38,11 +43,11 @@ export class JwtUtil {
       if (
         typeof decoded === 'object' &&
         decoded !== null &&
-        'userId' in decoded &&
+        'id' in decoded &&
         'companyId' in decoded &&
         'email' in decoded &&
         'role' in decoded &&
-        typeof decoded.userId === 'string' &&
+        typeof decoded.id === 'string' &&
         typeof decoded.companyId === 'string' &&
         typeof decoded.email === 'string' &&
         ['USER', 'MANAGER', 'ADMIN'].includes(decoded.role as string)
@@ -88,11 +93,11 @@ export class JwtUtil {
       if (
         typeof decoded === 'object' &&
         decoded !== null &&
-        'userId' in decoded &&
+        'id' in decoded &&
         'jti' in decoded &&
         'exp' in decoded &&
         'iat' in decoded &&
-        typeof decoded.userId === 'string' &&
+        typeof decoded.id === 'string' &&
         typeof decoded.jti === 'string' &&
         typeof decoded.exp === 'number' &&
         typeof decoded.iat === 'number'
