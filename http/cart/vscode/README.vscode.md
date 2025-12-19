@@ -71,7 +71,7 @@ Content-Type: application/json
 
 ### 🛒 Cart (사용자)
 
-#### GET /api/v1/cart/getMycart
+#### GET /api/v1/cart/getMyCart
 
 내 장바구니 목록 조회
 

@@ -43,11 +43,11 @@ export class JwtUtil {
       if (
         typeof decoded === 'object' &&
         decoded !== null &&
-        'userId' in decoded &&
+        'id' in decoded &&
         'companyId' in decoded &&
         'email' in decoded &&
         'role' in decoded &&
-        typeof decoded.userId === 'string' &&
+        typeof decoded.id === 'string' &&
         typeof decoded.companyId === 'string' &&
         typeof decoded.email === 'string' &&
         ['USER', 'MANAGER', 'ADMIN'].includes(decoded.role as string)
@@ -93,11 +93,11 @@ export class JwtUtil {
       if (
         typeof decoded === 'object' &&
         decoded !== null &&
-        'userId' in decoded &&
+        'id' in decoded &&
         'jti' in decoded &&
         'exp' in decoded &&
         'iat' in decoded &&
-        typeof decoded.userId === 'string' &&
+        typeof decoded.id === 'string' &&
         typeof decoded.jti === 'string' &&
         typeof decoded.exp === 'number' &&
         typeof decoded.iat === 'number'

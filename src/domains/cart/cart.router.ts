@@ -19,7 +19,7 @@ router.post(
 
 // 🛒 [Cart] 내 장바구니 조회 API
 router.get(
-  '/getMycart',
+  '/getMyCart',
   verifyAccessToken,
   requireMinRole('USER'),
   cartValidator.validateGetMyCart,

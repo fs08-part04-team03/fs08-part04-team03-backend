@@ -20,7 +20,7 @@ Authorization: Bearer {{accessToken}}
 
 > {%
   // 첫 번째 장바구니 항목의 ID를 저장
-  const items = response.body?.result?.items;
+  const items = response.body?.data;
   if (items && items.length > 0) {
     client.global.set("cartItemId", items[0].id);
   }
