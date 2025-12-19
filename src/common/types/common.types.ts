@@ -3,6 +3,7 @@ import type { Request } from 'express';
 // 인증 토큰 페이로드
 export type AuthTokenPayload = {
   userId: string;
+  id: string;
   companyId: string;
   email: string;
   role: 'USER' | 'MANAGER' | 'ADMIN';
@@ -22,10 +23,6 @@ export type PurchaseRequestBody = {
 
 export type AuthenticatedRequest = Request & { user?: AuthTokenPayload };
 
-export interface BudgetCheckRequest {
+export type BudgetCheckRequest = Request<never, never, PurchaseRequestBody, never> & {
   user?: AuthTokenPayload;
-  body: PurchaseRequestBody;
-  params: any;
-  query: any;
-  headers: any;
-}
+};

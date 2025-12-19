@@ -16,7 +16,13 @@ export class JwtUtil {
     email: string;
     role: AuthTokenPayload['role'];
   }): AccessPayload {
-    return { userId: user.id, companyId: user.companyId, email: user.email, role: user.role };
+    return {
+      userId: user.id,
+      id: user.id,
+      companyId: user.companyId,
+      email: user.email,
+      role: user.role,
+    };
   }
 
   // access token 생성

@@ -17,7 +17,7 @@ Content-Type: application/json
 
 ###
 # @name approvePurchaseRequest - 메시지 없이 승인
-PATCH http://localhost:4000/api/v1/purchase/admin/approvePurchaseRequest/019b1fa4-2a99-76b2-901b-ce0850ceae45
+PATCH http://localhost:4000/api/v1/purchase/admin/approvePurchaseRequest/019b2a80-65a9-78b1-9f62-cf5f59178ec6
 Content-Type: application/json
 Authorization: Bearer {{token}}
 
