@@ -1,0 +1,51 @@
+@baseUrl = http://localhost:4000/api/v1
+@companyId = 00000000-0000-0000-0000-000000000000
+@inviteEmail = johndoe@example.com
+@inviteName = John Doe
+@inviteRole = USER
+@password = testJohn123!
+
+### 로그인 (admin)
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@test.com",
+  "password": "test-password"
+}
+
+### 초대장 생성 (inviteUrl 반환)
+# @name createInvitation
+POST {{baseUrl}}/auth/invitation/create
+Authorization: Bearer {{login.response.body.data.accessToken}}
+Content-Type: application/json
+
+{
+  "companyId": "{{companyId}}",
+  "email": "{{inviteEmail}}",
+  "name": "{{inviteName}}",
+  "role": "{{inviteRole}}"
+}
+
+### Optional: 초대 URL 검증
+# @name verifyInviteUrl
+POST {{baseUrl}}/auth/invitation/verifyUrl
+Content-Type: application/json
+
+{
+  "inviteUrl": "{{createInvitation.response.body.data.inviteUrl}}"
+}
+
+### 초대 토큰으로 회원가입
+# @name signupByInvite
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "name": "{{inviteName}}",
+  "email": "{{inviteEmail}}",
+  "password": "{{password}}",
+  "passwordConfirm": "{{password}}",
+  "inviteUrl": "{{createInvitation.response.body.data.inviteUrl}}"
+}

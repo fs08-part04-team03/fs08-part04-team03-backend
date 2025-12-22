@@ -7,7 +7,74 @@ import { CustomError } from '../../common/utils/error.util';
 import { JwtUtil } from '../../common/utils/jwt.util';
 import { env } from '../../config/env.config';
 
-type LoginRequest = Request<unknown, unknown, { email: string; password: string }, unknown>;
+type SignupRequest = Request<
+  unknown,
+  unknown,
+  {
+    name: string;
+    email: string;
+    password: string;
+    passwordConfirm: string;
+    inviteUrl: string;
+  },
+  unknown
+>;
+
+type LoginRequest = Request<
+  unknown,
+  unknown,
+  {
+    email: string;
+    password: string;
+  },
+  unknown
+>;
+
+// inviteUrl에서 token 추출
+function extractTokenFromInviteUrl(inviteUrl: string): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(inviteUrl);
+  } catch {
+    throw new CustomError(
+      HttpStatus.BAD_REQUEST,
+      ErrorCodes.GENERAL_BAD_REQUEST,
+      'inviteUrl에서 token을 찾을 수 없습니다.'
+    );
+  }
+
+  const fromQuery = parsed.searchParams.get('token');
+  if (fromQuery !== null) {
+    const token = fromQuery.trim();
+    if (token.length === 0) {
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERAL_BAD_REQUEST,
+        'inviteUrl에서 token을 찾을 수 없습니다.'
+      );
+    }
+    return token;
+  }
+
+  const fromHash = new URLSearchParams(parsed.hash.replace(/^#/, '')).get('token');
+  if (fromHash !== null) {
+    const token = fromHash.trim();
+    if (token.length === 0) {
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERAL_BAD_REQUEST,
+        'inviteUrl에서 token을 찾을 수 없습니다.'
+      );
+    }
+    return token;
+  }
+
+  throw new CustomError(
+    HttpStatus.BAD_REQUEST,
+    ErrorCodes.GENERAL_BAD_REQUEST,
+    'inviteUrl에서 token을 찾을 수 없습니다.'
+  );
+}
 
 // refresh token cookie 옵션
 const refreshCookieOptions = (maxAgeMs: number): CookieOptions => ({
@@ -20,6 +87,27 @@ const refreshCookieOptions = (maxAgeMs: number): CookieOptions => ({
 });
 
 export const authController = {
+  // 회원가입
+  signup: async (req: SignupRequest, res: Response) => {
+    const { name, email, password, inviteUrl } = req.body;
+    const inviteToken = extractTokenFromInviteUrl(inviteUrl);
+
+    const { accessToken, refreshToken, user } = await authService.signup({
+      name,
+      email,
+      password,
+      inviteToken,
+    });
+
+    const { exp } = JwtUtil.verifyRefreshToken(refreshToken);
+    const maxAge = Math.max(0, exp * 1000 - Date.now());
+
+    res.cookie('refreshToken', refreshToken, refreshCookieOptions(maxAge));
+    res
+      .status(HttpStatus.CREATED)
+      .json(ResponseUtil.success({ user, accessToken }, '회원가입 완료'));
+  },
+
   // 로그인
   login: async (req: LoginRequest, res: Response) => {
     const { email, password } = req.body;
