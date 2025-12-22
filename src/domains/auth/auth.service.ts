@@ -111,7 +111,7 @@ export const authService = {
       });
 
       // 리프레시 토큰 발급/저장
-      const refreshToken = JwtUtil.generateRefreshToken({ userId: user.id, jti: randomUUID() });
+      const refreshToken = JwtUtil.generateRefreshToken({ id: user.id, jti: randomUUID() });
       const refreshTokenHash = await argon2.hash(refreshToken);
       await tx.users.update({ where: { id: user.id }, data: { refreshToken: refreshTokenHash } });
 
