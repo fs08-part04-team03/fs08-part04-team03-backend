@@ -123,12 +123,7 @@ router.post(
 
     // 초대 이메일 발송
     sendInvitationEmail(email, url as unknown as string).catch((error) => {
-      throw new CustomError(
-        HttpStatus.INTERNAL_SERVER_ERROR,
-        ErrorCodes.EMAIL_SENDING_FAILED,
-        '초대 이메일 전송에 실패했습니다.',
-        `이메일 전송 실패: ${error instanceof Error ? error.message : String(error)}`
-      );
+      console.error('초대 이메일 전송 실패:', error);
     });
 
     res
