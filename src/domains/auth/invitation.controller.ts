@@ -1,5 +1,6 @@
 // invitation Service를 호출해 초대 링크 생성(토큰을 받아옴) + 반환
 import type { Request, Response } from 'express';
+import { sendInvitationEmail } from '@/common/utils/email.util';
 import { env } from '../../config/env.config';
 import type { AuthenticatedRequest } from '../../common/types/common.types';
 import { HttpStatus } from '../../common/constants/httpStatus.constants';
@@ -45,8 +46,10 @@ export const invitationController = {
     // 초대 링크 생성
     const inviteUrl = buildInviteUrl(token);
 
-    // 여기서는 링크만 반환
-    // email에서 결과값을 받아 실제 이메일에 포함시켜 전송
+    // 초대 이메일 발송
+    console.log(`Invitation link for ${email}: ${inviteUrl}`);
+    await sendInvitationEmail(email, inviteUrl);
+
     res
       .status(HttpStatus.CREATED)
       .json(ResponseUtil.success({ invitation, inviteUrl }, '초대 링크가 생성되었습니다.'));

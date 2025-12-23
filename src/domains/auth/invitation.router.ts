@@ -8,6 +8,7 @@ import { CustomError } from '../../common/utils/error.util';
 import { HttpStatus } from '../../common/constants/httpStatus.constants';
 import { ErrorCodes } from '../../common/constants/errorCodes.constants';
 import { invitationAuthService } from './invitation.service';
+import { sendInvitationEmail } from '../../common/utils/email.util';
 
 const router = Router();
 
@@ -119,6 +120,10 @@ router.post(
     const webAppBaseUrl = 'http://localhost:4000';
     const url = new URL('/invite', webAppBaseUrl);
     url.searchParams.set('token', rawToken);
+
+    // 초대 이메일 발송
+    console.log(`Invitation link for ${email}: ${url as unknown as string}`);
+    await sendInvitationEmail(email, url as unknown as string);
 
     res
       .status(HttpStatus.CREATED)
