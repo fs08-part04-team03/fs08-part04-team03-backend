@@ -26,6 +26,7 @@ CREATE TABLE "users" (
     "password" TEXT NOT NULL,
     "name" VARCHAR(255) NOT NULL,
     "role" "role" NOT NULL DEFAULT 'USER',
+    "refreshToken" VARCHAR(255),
     "profileImage" VARCHAR(255),
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -102,6 +103,7 @@ CREATE TABLE "purchase_requests" (
     "shippingFee" INTEGER NOT NULL DEFAULT 3000,
     "requestMessage" VARCHAR(255),
     "rejectReason" VARCHAR(255),
+    "reason" VARCHAR(255),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -126,7 +128,7 @@ CREATE TABLE "invitations" (
     "name" VARCHAR(255) NOT NULL,
     "email" VARCHAR(255) NOT NULL,
     "token" VARCHAR(255) NOT NULL,
-    "role" VARCHAR(255) NOT NULL,
+    "role" "role" NOT NULL,
     "isUsed" BOOLEAN NOT NULL DEFAULT false,
     "expiresAt" TIMESTAMP(3) NOT NULL,
     "isValid" BOOLEAN NOT NULL DEFAULT true,
@@ -148,10 +150,22 @@ CREATE TABLE "history" (
 );
 
 -- CreateIndex
+CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "users_companyId_email_key" ON "users"("companyId", "email");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "budget_criteria_companyId_key" ON "budget_criteria"("companyId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "budgets_companyId_year_month_key" ON "budgets"("companyId", "year", "month");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "invitations_email_key" ON "invitations"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "invitations_token_key" ON "invitations"("token");
 
 -- AddForeignKey
 ALTER TABLE "users" ADD CONSTRAINT "users_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "companies"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -178,13 +192,13 @@ ALTER TABLE "budget_criteria" ADD CONSTRAINT "budget_criteria_companyId_fkey" FO
 ALTER TABLE "budgets" ADD CONSTRAINT "budgets_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "companies"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "purchase_requests" ADD CONSTRAINT "purchase_requests_approverId_fkey" FOREIGN KEY ("approverId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "purchase_requests" ADD CONSTRAINT "purchase_requests_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "companies"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "purchase_requests" ADD CONSTRAINT "purchase_requests_requesterId_fkey" FOREIGN KEY ("requesterId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "purchase_requests" ADD CONSTRAINT "purchase_requests_approverId_fkey" FOREIGN KEY ("approverId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "purchase_items" ADD CONSTRAINT "purchase_items_purchaseRequestId_fkey" FOREIGN KEY ("purchaseRequestId") REFERENCES "purchase_requests"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
