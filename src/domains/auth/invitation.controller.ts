@@ -47,8 +47,14 @@ export const invitationController = {
     const inviteUrl = buildInviteUrl(token);
 
     // 초대 이메일 발송
-    console.log(`Invitation link for ${email}: ${inviteUrl}`);
-    await sendInvitationEmail(email, inviteUrl);
+    sendInvitationEmail(email, inviteUrl).catch((error) => {
+      throw new CustomError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        ErrorCodes.EMAIL_SENDING_FAILED,
+        '초대 이메일 전송에 실패했습니다.',
+        `이메일 전송 실패: ${error instanceof Error ? error.message : String(error)}`
+      );
+    });
 
     res
       .status(HttpStatus.CREATED)

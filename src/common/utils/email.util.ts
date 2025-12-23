@@ -30,7 +30,7 @@ async function sendEmail(to: string, subject: string, html: string) {
       HttpStatus.INTERNAL_SERVER_ERROR,
       ErrorCodes.EMAIL_SENDING_FAILED,
       '이메일 전송에 실패했습니다.',
-      `이메일 전송 실패: ${error as string}`
+      `이메일 전송 실패: ${error instanceof Error ? error.message : String(error)}`
     );
   }
 }
@@ -43,9 +43,7 @@ export function sendInvitationEmail(to: string, invitationLink: string) {
     <a href="${invitationLink}">${invitationLink}</a>
   `;
 
-  setTimeout(() => {
-    console.log('메일 전송 완료: ', to);
-  }, 1000);
+  setTimeout(() => {}, 1000);
 
   return sendEmail(to, subject, html);
 }
@@ -59,9 +57,7 @@ export function sendBudgetAlertEmail(to: string, budget: number, message: string
     <p>자세한 내용: <strong>${message}</strong></p>
   `;
 
-  setTimeout(() => {
-    console.log('메일 전송 완료: ', to);
-  }, 1000);
+  setTimeout(() => {}, 1000);
 
   return sendEmail(to, subject, html);
 }
