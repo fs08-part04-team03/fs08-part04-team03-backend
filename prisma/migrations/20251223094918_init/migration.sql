@@ -159,7 +159,7 @@ CREATE UNIQUE INDEX "budget_criteria_companyId_key" ON "budget_criteria"("compan
 CREATE UNIQUE INDEX "budgets_companyId_year_month_key" ON "budgets"("companyId", "year", "month");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "invitations_email_key" ON "invitations"("email");
+CREATE UNIQUE INDEX "invitations_companyId_email_key" ON "invitations"("companyId", "email");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "invitations_token_key" ON "invitations"("token");
