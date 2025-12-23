@@ -111,7 +111,7 @@ export const authService = {
       });
 
       // 리프레시 토큰 발급/저장
-      const refreshToken = JwtUtil.generateRefreshToken({ userId: user.id, jti: randomUUID() });
+      const refreshToken = JwtUtil.generateRefreshToken({ id: user.id, jti: randomUUID() });
       const refreshTokenHash = await argon2.hash(refreshToken);
       await tx.users.update({ where: { id: user.id }, data: { refreshToken: refreshTokenHash } });
 
@@ -170,7 +170,7 @@ export const authService = {
     // 4) refresh 토큰 발급 및 해시 저장
     const refreshToken = JwtUtil.generateRefreshToken({
       id: user.id,
-      jti: crypto.randomUUID(),
+      jti: randomUUID(),
     });
     const refreshTokenHash = await argon2.hash(refreshToken);
     await prisma.users.update({ where: { id: user.id }, data: { refreshToken: refreshTokenHash } });
@@ -239,7 +239,7 @@ export const authService = {
     );
     const newRefreshToken = JwtUtil.generateRefreshToken({
       id: user.id,
-      jti: crypto.randomUUID(),
+      jti: randomUUID(),
     });
     const newRefreshHash = await argon2.hash(newRefreshToken);
 
