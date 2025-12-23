@@ -78,7 +78,7 @@ model companies {
 model users {
   id           String   @id @default(uuid(7)) @db.Uuid
   companyId    String   @db.Uuid
-  email        String   @unique
+  email        String
   password     String
   name         String   @db.VarChar(255)
   role         role     @default(USER)
