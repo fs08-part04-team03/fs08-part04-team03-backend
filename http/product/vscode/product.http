@@ -47,8 +47,7 @@ Content-Type: application/json
   "name": "버터링",
   "price": 2500,
   "link": "https://example.com/products/http-test-a",
-  "image": "http_test_a.png",
-  "isActive": true
+  "image": "http_test_a.png"
 }
 
 ###
