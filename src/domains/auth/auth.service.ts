@@ -1,5 +1,6 @@
 import argon2 from 'argon2';
 import { createHash, randomUUID } from 'node:crypto';
+import { role } from '@prisma/client';
 import { prisma } from '../../common/database/prisma.client';
 import { JwtUtil } from '../../common/utils/jwt.util';
 import { CustomError } from '../../common/utils/error.util';
@@ -195,7 +196,7 @@ export const authService = {
           companyId: company.id,
           email: normalizedEmail,
           name,
-          role: 'ADMIN',
+          role: role.ADMIN,
           password: passwordHash,
           isActive: true,
         },
