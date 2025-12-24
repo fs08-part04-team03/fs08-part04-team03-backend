@@ -7,11 +7,12 @@ export const invitationValidator = {
     body('email')
       .isEmail()
       .withMessage('email은 올바른 이메일 형식이어야 합니다.')
-      .normalizeEmail(),
+      .normalizeEmail(), // 이메일 정규화 (이미 안전함)
     body('name')
       .isString()
       .withMessage('name은 문자열이어야 합니다.')
       .trim()
+      .escape() // XSS 방지: HTML 특수문자 이스케이프
       .isLength({ min: 1, max: 255 })
       .withMessage('name은 1~255자여야 합니다.'),
     body('role')
