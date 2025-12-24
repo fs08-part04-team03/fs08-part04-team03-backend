@@ -6,13 +6,22 @@ import { CustomError } from '../../common/utils/error.util';
 import { HttpStatus } from '../../common/constants/httpStatus.constants';
 import { ErrorCodes } from '../../common/constants/errorCodes.constants';
 
-type LoginInput = { email: string; password: string };
 type SignupInput = {
   name: string;
   email: string;
   password: string;
   inviteToken: string;
 };
+
+type AdminRegisterInput = {
+  name: string;
+  email: string;
+  password: string;
+  companyName: string;
+  businessNumber: string;
+};
+
+type LoginInput = { email: string; password: string };
 
 // 초대장 사용 가능 여부 검사
 function assertInvitationUsable(invitation: {
@@ -136,6 +145,90 @@ export const authService = {
       );
 
       return { user, accessToken, refreshToken };
+    });
+  },
+
+  // 어드민 회원가입
+  async adminRegister({ name, email, password, companyName, businessNumber }: AdminRegisterInput) {
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedCompanyName = companyName.trim();
+    const normalizedBusinessNumber = businessNumber.trim();
+    const passwordHash = await argon2.hash(password);
+
+    // 사업자 번호 중복 검사 및 회사/어드민 유저 생성
+    return prisma.$transaction(async (tx) => {
+      const existingCompany = await tx.companies.findFirst({
+        where: { businessNumber: normalizedBusinessNumber },
+      });
+
+      if (existingCompany) {
+        throw new CustomError(
+          HttpStatus.CONFLICT,
+          ErrorCodes.DB_UNIQUE_CONSTRAINT_VIOLATION,
+          '사업자 번호가 이미 존재합니다.'
+        );
+      }
+
+      // 회사 생성
+      const company = await tx.companies.create({
+        data: {
+          name: normalizedCompanyName,
+          businessNumber: normalizedBusinessNumber,
+        },
+        select: {
+          id: true,
+          name: true,
+          businessNumber: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      // 예산 기준 초기화 (0원으로 기본값 설정)
+      await tx.budgetCriteria.create({
+        data: { companyId: company.id, amount: 0 },
+      });
+
+      // 최고 관리자 생성
+      const user = await tx.users.create({
+        data: {
+          companyId: company.id,
+          email: normalizedEmail,
+          name,
+          role: 'ADMIN',
+          password: passwordHash,
+          isActive: true,
+        },
+        select: {
+          id: true,
+          companyId: true,
+          email: true,
+          name: true,
+          role: true,
+        },
+      });
+
+      // 로그인 정보 생성 (refresh/access token 발급 및 저장)
+      const refreshToken = JwtUtil.generateRefreshToken({
+        id: user.id,
+        jti: randomUUID(),
+      });
+      const refreshTokenHash = await argon2.hash(refreshToken);
+      await tx.users.update({
+        where: { id: user.id },
+        data: { refreshToken: refreshTokenHash },
+      });
+
+      const accessToken = JwtUtil.generateAccessToken(
+        JwtUtil.buildAccessPayload({
+          companyId: user.companyId,
+          id: user.id,
+          email: user.email,
+          role: user.role,
+        })
+      );
+
+      return { user, company, accessToken, refreshToken };
     });
   },
 

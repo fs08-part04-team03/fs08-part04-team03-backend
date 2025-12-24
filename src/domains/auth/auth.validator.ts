@@ -16,6 +16,9 @@ type SignupBody = { password?: string };
 const passwordMatchValidator: CustomValidator = (v, { req }) =>
   v === (req.body as SignupBody).password;
 
+// 사업자 번호 형식 (123-45-67890)
+const businessNumberRegex = /^\d{3}-\d{2}-\d{5}$/;
+
 export const authValidator = {
   signup: [
     body('name').isString().trim().isLength({ min: 1, max: 255 }).withMessage('name은 1~255자'),
@@ -25,6 +28,29 @@ export const authValidator = {
       .custom(passwordMatchValidator)
       .withMessage('passwordConfirm이 password와 다릅니다'),
     body('inviteUrl').isString().trim().isLength({ min: 1, max: 2048 }),
+    validateRequest,
+  ],
+  adminRegister: [
+    body('name')
+      .isString()
+      .trim()
+      .isLength({ min: 1, max: 255 })
+      .withMessage('name은 1~255자여야 합니다'),
+    body('email').isEmail().withMessage('email 형식이 올바르지 않습니다').toLowerCase(),
+    passwordRule,
+    body('passwordConfirm')
+      .custom(passwordMatchValidator)
+      .withMessage('passwordConfirm이 password와 다릅니다'),
+    body('companyName')
+      .isString()
+      .trim()
+      .isLength({ min: 1, max: 255 })
+      .withMessage('companyName은 1~255자여야 합니다'),
+    body('businessNumber')
+      .isString()
+      .trim()
+      .matches(businessNumberRegex)
+      .withMessage('businessNumber는 123-45-67890 형식이어야 합니다'),
     validateRequest,
   ],
   login: [
