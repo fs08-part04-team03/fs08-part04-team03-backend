@@ -1,0 +1,13 @@
+@baseUrl = http://localhost:4000/api/v1
+
+POST {{baseUrl}}/auth/admin/register
+Content-Type: application/json
+
+{
+  "name": "admin",
+  "email": "admintest@test.com",
+  "password": "testpassword1!",
+  "passwordConfirm": "testpassword1!",
+  "companyName": "Test Company",
+  "businessNumber": "123-45-12345"
+}

@@ -20,6 +20,20 @@ type SignupRequest = Request<
   unknown
 >;
 
+type AdminRegisterRequest = Request<
+  unknown,
+  unknown,
+  {
+    name: string;
+    email: string;
+    password: string;
+    passwordConfirm: string;
+    companyName: string;
+    businessNumber: string;
+  },
+  unknown
+>;
+
 type LoginRequest = Request<
   unknown,
   unknown,
@@ -106,6 +120,27 @@ export const authController = {
     res
       .status(HttpStatus.CREATED)
       .json(ResponseUtil.success({ user, accessToken }, '회원가입 완료'));
+  },
+
+  // 어드민 회원가입
+  adminRegister: async (req: AdminRegisterRequest, res: Response) => {
+    const { name, email, password, companyName, businessNumber } = req.body;
+
+    const { accessToken, refreshToken, user, company } = await authService.adminRegister({
+      name,
+      email,
+      password,
+      companyName,
+      businessNumber,
+    });
+
+    const { exp } = JwtUtil.verifyRefreshToken(refreshToken);
+    const maxAge = Math.max(0, exp * 1000 - Date.now());
+
+    res.cookie('refreshToken', refreshToken, refreshCookieOptions(maxAge));
+    res
+      .status(HttpStatus.CREATED)
+      .json(ResponseUtil.success({ user, company, accessToken }, '어드민 회원가입 완료'));
   },
 
   // 로그인
