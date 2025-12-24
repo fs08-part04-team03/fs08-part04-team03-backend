@@ -68,7 +68,6 @@ const validateRejectPurchaseRequest = [
     .bail()
     .isString()
     .trim()
-    .escape() // XSS 방지: HTML 특수문자 이스케이프
     .withMessage('반려 사유는 문자열이어야 합니다.'),
 ];
 
@@ -109,7 +108,6 @@ const validateRequestPurchase = [
     .withMessage('구매 사유는 문자열이어야 합니다.')
     .bail()
     .trim()
-    .escape() // XSS 방지: HTML 특수문자 이스케이프
     .isLength({ min: 1, max: 255 })
     .withMessage('구매 사유는 1자 이상 255자 이하여야 합니다.'),
 ];

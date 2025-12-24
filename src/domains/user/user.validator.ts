@@ -29,12 +29,7 @@ export const userValidator = {
 
   // 어드민: 회사명/비밀번호 변경
   patchAdminProfile: [
-    body('companyName')
-      .optional()
-      .isString()
-      .trim()
-      .escape() // XSS 방지: HTML 특수문자 이스케이프
-      .isLength({ min: 1, max: 255 }),
+    body('companyName').optional().isString().trim().isLength({ min: 1, max: 255 }),
     body('newPassword')
       .optional()
       .isLength({
@@ -80,12 +75,7 @@ export const userValidator = {
 
   // 회사 소속 사용자 목록 조회/검색
   getUsers: [
-    query('q')
-      .optional()
-      .isString()
-      .trim()
-      .escape() // XSS 방지: HTML 특수문자 이스케이프
-      .isLength({ min: 1, max: 255 }),
+    query('q').optional().isString().trim().isLength({ min: 1, max: 255 }),
     query('role').optional().isIn(['USER', 'MANAGER', 'ADMIN']),
     query('isActive').default(true).isBoolean().toBoolean(),
     query('page').optional().isInt({ min: 1 }).toInt(),
