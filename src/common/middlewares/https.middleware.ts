@@ -18,19 +18,13 @@ export const forceHttps = (req: Request, res: Response, next: NextFunction) => {
     return next();
   }
 
-  // 이미 HTTPS인 경우
+  // req.secure는 trust proxy 설정을 존중하여 HTTPS 연결 확인
+  // (x-forwarded-proto 헤더를 자동으로 고려)
   if (req.secure) {
     return next();
   }
 
-  // 프록시 헤더 확인 (Render, Heroku, AWS 등)
-  const forwardedProto = req.headers['x-forwarded-proto'];
-  if (forwardedProto === 'https') {
-    return next();
-  }
-
   // HTTP 요청을 HTTPS로 리다이렉트 (301 영구 리다이렉트)
-  const host = req.get('host') || req.hostname;
-  const httpsUrl = `https://${host}${req.url}`;
+  const httpsUrl = `https://${req.get('host')}${req.url}`;
   return res.redirect(301, httpsUrl);
 };
