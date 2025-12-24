@@ -60,7 +60,7 @@ export const authService = {
 
     // 중복 이메일 검사
     const normalizedEmail = email.trim().toLowerCase();
-    const existingUser = await prisma.users.findUnique({ where: { email: normalizedEmail } });
+    const existingUser = await prisma.users.findFirst({ where: { email: normalizedEmail } });
     if (existingUser) {
       throw new CustomError(
         HttpStatus.CONFLICT,
@@ -136,7 +136,7 @@ export const authService = {
 
   // 로그인
   async login({ email, password }: LoginInput) {
-    const user = await prisma.users.findUnique({ where: { email } });
+    const user = await prisma.users.findFirst({ where: { email } });
 
     const ok = user && (await argon2.verify(user.password, password));
     // 1) 로그인 정보 오류 (이메일 혹은 비밀번호 불일치)

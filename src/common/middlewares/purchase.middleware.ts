@@ -46,8 +46,15 @@ export async function checkBudget(req: BudgetCheckRequest, _res: Response, next:
 
   // 2. 회사 예산 합계 계산
   // budgets 테이블에서 해당 회사의 모든 예산을 합산
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
   const userBudget = await prisma.budgets.aggregate({
-    where: { companyId: req.user.companyId },
+    where: {
+      companyId: req.user.companyId,
+      year: currentYear,
+      month: currentMonth,
+    },
     _sum: { amount: true },
   });
 

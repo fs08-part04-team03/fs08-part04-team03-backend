@@ -87,7 +87,7 @@ export const invitationAuthService = {
     const email = input.email.trim().toLowerCase();
 
     // 2) 이미 가입된 users에 존재하면 초대 불가
-    const existingUser = await prisma.users.findUnique({ where: { email } });
+    const existingUser = await prisma.users.findFirst({ where: { email } });
     if (existingUser) {
       throw new CustomError(
         HttpStatus.CONFLICT,
