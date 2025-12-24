@@ -9,6 +9,7 @@ import { swaggerDocs } from './config/swagger.config';
 import { logger } from './common/utils/logger.util';
 import { requestLogger } from './common/middlewares/logger.middleware';
 import { rateLimiter } from './common/middlewares/rateLimiter.middleware';
+import { forceHttps } from './common/middlewares/https.middleware';
 import { errorHandler } from './common/middlewares/error.middleware';
 import { authRouter } from './domains/auth/auth.router';
 import { budgetRouter } from './domains/budget/budget.router';
@@ -19,12 +20,33 @@ import { purchaseRouter } from './domains/purchase/purchase.router';
 
 const app: Application = express();
 
-// proxy 신뢰 설정
+// proxy 신뢰 설정 (Render, Heroku 등 프록시 환경)
 app.set('trust proxy', 1);
+
+// HTTPS 강제 리다이렉트 (프로덕션에서만 작동)
+app.use(forceHttps);
 
 // 미들웨어
 app.use(corsMiddleware());
-app.use(helmet());
+app.use(
+  helmet({
+    // HSTS (HTTP Strict Transport Security) 설정
+    hsts: {
+      maxAge: 31536000, // 1년 (초 단위)
+      includeSubDomains: true, // 모든 서브도메인 포함
+      preload: true, // HSTS preload 리스트 등록 가능
+    },
+    // Content Security Policy (XSS 방어 강화)
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"], // Swagger UI를 위해 필요
+        imgSrc: ["'self'", 'data:', 'https:'],
+      },
+    },
+  })
+);
 app.use(requestLogger);
 app.use(cookieParser());
 app.use(rateLimiter());
