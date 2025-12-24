@@ -22,6 +22,7 @@ type PublicInvitationInfo = {
   email: string;
   name: string;
   role: Role;
+  companyId: string;
 };
 
 // 초대 토큰 해시
@@ -87,7 +88,9 @@ export const invitationAuthService = {
     const email = input.email.trim().toLowerCase();
 
     // 2) 이미 가입된 users에 존재하면 초대 불가
-    const existingUser = await prisma.users.findUnique({ where: { email } });
+    const existingUser = await prisma.users.findFirst({
+      where: { email, companyId: input.companyId },
+    });
     if (existingUser) {
       throw new CustomError(
         HttpStatus.CONFLICT,
@@ -192,6 +195,7 @@ export const invitationAuthService = {
 
     // 프론트가 필요로 하는 최소 정보만 반환(민감 정보 제외)
     return {
+      companyId: invitation.companyId,
       email: invitation.email,
       name: invitation.name,
       role: invitation.role,

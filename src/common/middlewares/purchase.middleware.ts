@@ -1,4 +1,5 @@
 import type { NextFunction, Response } from 'express';
+import { sendBudgetAlertEmail } from '../utils/email.util';
 import { CustomError } from '../utils/error.util';
 import { HttpStatus } from '../constants/httpStatus.constants';
 import { ErrorCodes } from '../constants/errorCodes.constants';
@@ -41,11 +42,19 @@ export async function checkBudget(req: BudgetCheckRequest, _res: Response, next:
       )
     );
   }
+  const { companyId } = req.user;
 
   // 2. 회사 예산 합계 계산
   // budgets 테이블에서 해당 회사의 모든 예산을 합산
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
   const userBudget = await prisma.budgets.aggregate({
-    where: { companyId: req.user.companyId },
+    where: {
+      companyId: req.user.companyId,
+      year: currentYear,
+      month: currentMonth,
+    },
     _sum: { amount: true },
   });
 
@@ -56,13 +65,29 @@ export async function checkBudget(req: BudgetCheckRequest, _res: Response, next:
   // 3. 예산이 0인 경우 처리
   // 회사에 등록된 예산이 없으면 구매 불가
   if (totalBudget <= 0) {
-    // TODO: 이메일을 보내는 함수 만들기 (메시지: 예산이 없습니다)
+    // 관리자 이메일 조회 (ADMIN 또는 MANAGER 역할)
+    const admins = await prisma.users.findMany({
+      where: {
+        companyId,
+        role: { in: ['ADMIN', 'MANAGER'] },
+      },
+      select: { email: true },
+    });
+
+    // 관리자들에게 예산 부족 이메일 발송 (백그라운드 처리)
+    // 이메일 전송 실패해도 에러를 반환하지 않음
+    const emailPromises = admins.map((admin) =>
+      sendBudgetAlertEmail(admin.email, totalBudget, '회사의 예산이 없습니다.')
+    );
+
+    // 이메일 전송 결과를 기다림 (실패해도 구매 거부 진행)
+    await Promise.allSettled(emailPromises);
 
     return next(
       new CustomError(
         HttpStatus.BAD_REQUEST,
         ErrorCodes.PURCHASE_INSUFFICIENT_BUDGET,
-        '이 회사의 예산이 부족하거나 없습니다.'
+        '이 회사의 예산이 없습니다.'
       )
     );
   }
@@ -128,7 +153,27 @@ export async function checkBudget(req: BudgetCheckRequest, _res: Response, next:
   // 8. 예산 부족 시 처리
   // 구매 후 예산이 음수가 되면 구매 불가
   if (availableBudget < 0) {
-    // TODO: 이메일을 보내는 함수 만들기 (메시지: 예산이 부족합니다)
+    // 관리자 이메일 조회 (ADMIN 또는 MANAGER 역할)
+    const admins = await prisma.users.findMany({
+      where: {
+        companyId,
+        role: { in: ['ADMIN', 'MANAGER'] },
+      },
+      select: { email: true },
+    });
+
+    // 관리자들에게 예산 부족 이메일 발송 (백그라운드 처리)
+    // 이메일 전송 실패해도 에러를 반환하지 않음
+    const emailPromises = admins.map((admin) =>
+      sendBudgetAlertEmail(
+        admin.email,
+        totalBudget,
+        `회사의 예산이 부족합니다. 부족 금액: ${availableBudget}원`
+      )
+    );
+
+    // 이메일 전송 결과를 기다림 (실패해도 구매 거부 진행)
+    await Promise.allSettled(emailPromises);
 
     return next(
       new CustomError(

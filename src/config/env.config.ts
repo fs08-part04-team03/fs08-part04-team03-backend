@@ -89,4 +89,9 @@ export const env = {
   INVITATION_EXPIRES_HOURS: int('INVITATION_EXPIRES_HOURS', 48),
 
   WEB_APP_BASE_URL: str('WEB_APP_BASE_URL', 'http://localhost:4000'),
+
+  EMAIL_HOST: str('EMAIL_HOST', 'smtp.example.com'),
+  EMAIL_PORT: int('EMAIL_PORT', 587),
+  EMAIL_USER: str('EMAIL_USER', 'example@example.com'),
+  EMAIL_PASS: str('EMAIL_PASS', 'password'),
 } as const;

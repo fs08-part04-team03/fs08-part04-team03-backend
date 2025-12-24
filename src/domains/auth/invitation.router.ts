@@ -8,6 +8,7 @@ import { CustomError } from '../../common/utils/error.util';
 import { HttpStatus } from '../../common/constants/httpStatus.constants';
 import { ErrorCodes } from '../../common/constants/errorCodes.constants';
 import { invitationAuthService } from './invitation.service';
+import { sendInvitationEmail } from '../../common/utils/email.util';
 
 const router = Router();
 
@@ -73,6 +74,7 @@ router.post(
     res.status(HttpStatus.OK).json(
       ResponseUtil.success(
         {
+          companyId: info.companyId,
           name: info.name,
           email: info.email,
           role: info.role,
@@ -119,6 +121,11 @@ router.post(
     const webAppBaseUrl = 'http://localhost:4000';
     const url = new URL('/invite', webAppBaseUrl);
     url.searchParams.set('token', rawToken);
+
+    // 초대 이메일 발송
+    sendInvitationEmail(email, url as unknown as string).catch((error) => {
+      console.error('초대 이메일 전송 실패:', error);
+    });
 
     res
       .status(HttpStatus.CREATED)
