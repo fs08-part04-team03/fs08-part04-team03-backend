@@ -18,6 +18,7 @@
  *     InvitationPublicInfo:
  *       type: object
  *       properties:
+ *         companyId: { type: string, format: uuid }
  *         name: { type: string, example: "홍길동" }
  *         email: { type: string, format: email, example: "user@example.com" }
  *         role: { type: string, enum: ["USER", "MANAGER", "ADMIN"] }

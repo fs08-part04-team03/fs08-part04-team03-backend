@@ -111,7 +111,10 @@ export const authController = {
   // 로그인
   login: async (req: LoginRequest, res: Response) => {
     const { email, password } = req.body;
-    const { accessToken, refreshToken, user } = await authService.login({ email, password });
+    const { accessToken, refreshToken, user } = await authService.login({
+      email,
+      password,
+    });
 
     const { exp } = JwtUtil.verifyRefreshToken(refreshToken);
     const maxAge = Math.max(0, exp * 1000 - Date.now());

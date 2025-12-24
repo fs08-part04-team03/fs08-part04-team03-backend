@@ -74,6 +74,7 @@ router.post(
     res.status(HttpStatus.OK).json(
       ResponseUtil.success(
         {
+          companyId: info.companyId,
           name: info.name,
           email: info.email,
           role: info.role,

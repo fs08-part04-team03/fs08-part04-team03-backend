@@ -58,18 +58,7 @@ export const authService = {
       );
     }
 
-    // 중복 이메일 검사
-    const normalizedEmail = email.trim().toLowerCase();
-    const existingUser = await prisma.users.findFirst({ where: { email: normalizedEmail } });
-    if (existingUser) {
-      throw new CustomError(
-        HttpStatus.CONFLICT,
-        ErrorCodes.USER_DETAIL_CONFLICT,
-        '이미 가입된 이메일입니다.'
-      );
-    }
-
-    // 초대장 조회 및 검증
+    // 초대장 조회를 먼저 수행하여 companyId 확보
     const tokenHash = hashInviteToken(inviteToken);
     const invitation = await prisma.invitations.findUnique({ where: { token: tokenHash } });
     if (!invitation) {
@@ -79,6 +68,22 @@ export const authService = {
         '유효하지 않은 초대장입니다.'
       );
     }
+    assertInvitationUsable(invitation);
+
+    // 중복 이메일 검사
+    const normalizedEmail = email.trim().toLowerCase();
+    const existingUser = await prisma.users.findFirst({
+      where: { email: normalizedEmail, companyId: invitation.companyId },
+    });
+    if (existingUser) {
+      throw new CustomError(
+        HttpStatus.CONFLICT,
+        ErrorCodes.USER_DETAIL_CONFLICT,
+        '이미 가입된 이메일입니다.'
+      );
+    }
+
+    // 초대장 조회 및 검증
     assertInvitationUsable(invitation);
     if (invitation.email !== normalizedEmail) {
       throw new CustomError(
