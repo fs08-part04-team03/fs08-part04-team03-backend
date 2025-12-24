@@ -67,6 +67,7 @@ const validateRejectPurchaseRequest = [
     .withMessage('반려 사유는 필수입니다.')
     .bail()
     .isString()
+    .trim()
     .withMessage('반려 사유는 문자열이어야 합니다.'),
 ];
 
@@ -106,9 +107,9 @@ const validateRequestPurchase = [
     .isString()
     .withMessage('구매 사유는 문자열이어야 합니다.')
     .bail()
+    .trim()
     .isLength({ min: 1, max: 255 })
-    .withMessage('구매 사유는 1자 이상 255자 이하여야 합니다.')
-    .trim(),
+    .withMessage('구매 사유는 1자 이상 255자 이하여야 합니다.'),
 ];
 
 // 💰 [Purchase] 구매 요청 취소 API

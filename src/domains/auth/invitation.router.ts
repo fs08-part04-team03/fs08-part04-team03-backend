@@ -9,6 +9,7 @@ import { HttpStatus } from '../../common/constants/httpStatus.constants';
 import { ErrorCodes } from '../../common/constants/errorCodes.constants';
 import { invitationAuthService } from './invitation.service';
 import { sendInvitationEmail } from '../../common/utils/email.util';
+import { invitationValidator } from './invitation.validator';
 
 const router = Router();
 
@@ -94,10 +95,7 @@ router.post(
   verifyAccessToken,
   [
     body('companyId').isUUID(),
-    body('email').isEmail().normalizeEmail(),
-    body('name').isString().trim().isLength({ min: 1, max: 255 }),
-    body('role').isIn(['USER', 'MANAGER', 'ADMIN']),
-    validateRequest,
+    ...invitationValidator.create, // XSS 방지: escape() 포함된 validator 사용
   ],
   async (req: Request, res: Response) => {
     // 2) 여기서만 캐스팅

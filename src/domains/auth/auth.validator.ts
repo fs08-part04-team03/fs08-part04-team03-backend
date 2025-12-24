@@ -19,7 +19,7 @@ const passwordMatchValidator: CustomValidator = (v, { req }) =>
 export const authValidator = {
   signup: [
     body('name').isString().trim().isLength({ min: 1, max: 255 }).withMessage('name은 1~255자'),
-    body('email').isEmail().withMessage('email 형식이 올바르지 않습니다').toLowerCase(),
+    body('email').isEmail().withMessage('email 형식이 올바르지 않습니다').normalizeEmail(), // 이메일 정규화
     passwordRule,
     body('passwordConfirm')
       .custom(passwordMatchValidator)
@@ -28,7 +28,11 @@ export const authValidator = {
     validateRequest,
   ],
   login: [
-    body('email').isEmail().withMessage('email 형식이 올바르지 않습니다').toLowerCase(),
+    body('email')
+      .isEmail()
+      .withMessage('email 형식이 올바르지 않습니다')
+      .normalizeEmail()
+      .toLowerCase(),
     passwordRule,
     validateRequest,
   ],
