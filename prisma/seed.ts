@@ -692,7 +692,7 @@ async function main() {
   console.log('👤 테스트 사용자 생성 중...');
 
   // 테스트용 비밀번호 (실제 운영 환경에서는 다른 비밀번호 사용)
-  let textPassword = process.env.SEED_ADMIN_PASSWORD ?? 'testA';
+  let textPassword = process.env.SEED_ADMIN_PASSWORD ?? 'testA1234!';
   let hashedPassword = await argon2.hash(textPassword);
   console.log(`   관리자 비밀번호: ${textPassword}\n`);
 
@@ -706,7 +706,7 @@ async function main() {
     },
   });
 
-  textPassword = process.env.SEED_MANAGER_PASSWORD ?? 'testM';
+  textPassword = process.env.SEED_MANAGER_PASSWORD ?? 'testM1234!';
   hashedPassword = await argon2.hash(textPassword);
   console.log(`   매니저 비밀번호: ${textPassword}\n`);
 
@@ -720,7 +720,7 @@ async function main() {
     },
   });
 
-  textPassword = process.env.SEED_USER_PASSWORD ?? 'testU';
+  textPassword = process.env.SEED_USER_PASSWORD ?? 'testU1234!';
   hashedPassword = await argon2.hash(textPassword);
   console.log(`   일반사용자 비밀번호: ${textPassword}\n`);
 
@@ -734,7 +734,7 @@ async function main() {
     },
   });
 
-  textPassword = process.env.SEED_USER2_PASSWORD ?? 'testU2';
+  textPassword = process.env.SEED_USER2_PASSWORD ?? 'testU21234!';
   hashedPassword = await argon2.hash(textPassword);
   console.log(`   일반사용자2 비밀번호: ${textPassword}\n`);
 
