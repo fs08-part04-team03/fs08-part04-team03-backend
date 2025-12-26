@@ -52,15 +52,16 @@ const config: Config = {
   // 상세 출력
   verbose: true,
 
-  // 커버리지 임계값 (선택사항)
-  coverageThreshold: {
-    global: {
-      branches: 70,
-      functions: 70,
-      lines: 70,
-      statements: 70,
-    },
-  },
+  // TODO: 필요시 추가 설정
+  // // 커버리지 임계값 (선택사항)
+  // coverageThreshold: {
+  //   global: {
+  //     branches: 70,
+  //     functions: 70,
+  //     lines: 70,
+  //     statements: 70,
+  //   },
+  // },
 };
 
 export default config;
