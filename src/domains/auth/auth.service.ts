@@ -235,7 +235,8 @@ export const authService = {
 
   // 로그인
   async login({ email, password }: LoginInput) {
-    const user = await prisma.users.findFirst({ where: { email } });
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await prisma.users.findFirst({ where: { email: normalizedEmail } });
 
     const ok = user && (await argon2.verify(user.password, password));
     // 1) 로그인 정보 오류 (이메일 혹은 비밀번호 불일치)
