@@ -112,7 +112,7 @@
 
 /**
  * @swagger
- * /api/v1/cart/getMycart:
+ * /api/v1/cart/getMyCart:
  *   get:
  *     summary: 내 장바구니 조회
  *     description: |
