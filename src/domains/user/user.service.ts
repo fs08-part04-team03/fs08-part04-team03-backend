@@ -121,7 +121,7 @@ export const userService = {
       }
 
       if (hashedPassword) {
-        await prisma.users.update({
+        await tx.users.update({
           where: { id: actor.id },
           data: { password: hashedPassword, refreshToken: null },
         });
