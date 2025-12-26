@@ -2,6 +2,7 @@ import 'express-async-errors';
 import express, { type Application, type Request, type Response } from 'express';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
+import { csrf } from 'lusca';
 import { env } from './config/env.config';
 import { corsMiddleware } from './config/cors.config';
 import { startBudgetScheduler } from './config/cron.config';
@@ -51,6 +52,7 @@ app.use(
 );
 app.use(requestLogger);
 app.use(cookieParser());
+app.use(csrf());
 app.use(rateLimiter());
 app.use(express.json());
 
