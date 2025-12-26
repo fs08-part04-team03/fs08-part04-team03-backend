@@ -4,7 +4,7 @@ module.exports = {
   parserOptions: {
     ecmaVersion: 2021,
     sourceType: 'module',
-    project: './tsconfig.json',
+    project: './tsconfig.eslint.json',
     tsconfigRootDir: __dirname,
   },
   extends: [
@@ -57,5 +57,19 @@ module.exports = {
   env: {
     node: true,
     es2021: true,
+    jest: true,
   },
+  overrides: [
+    {
+      files: ['**/*.test.ts', '**/*.spec.ts', '**/__tests__/**/*.ts', 'jest.config*.ts'],
+      rules: {
+        '@typescript-eslint/no-unsafe-assignment': 'off',
+        '@typescript-eslint/no-unsafe-call': 'off',
+        '@typescript-eslint/no-unsafe-member-access': 'off',
+        '@typescript-eslint/no-unsafe-return': 'off',
+        '@typescript-eslint/unbound-method': 'off',
+        '@typescript-eslint/require-await': 'off',
+      },
+    },
+  ],
 };
