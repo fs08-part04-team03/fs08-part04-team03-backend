@@ -1,4 +1,5 @@
 import { body, param, query } from 'express-validator';
+import { validateRequest } from '../../common/middlewares/validator.middleware';
 
 // 상품 생성 요청 바디 검증
 const validateCreateProduct = [
@@ -31,6 +32,7 @@ const validateCreateProduct = [
     .isLength({ min: 1, max: 255 })
     .withMessage('link는 1자 이상 255자 이하여야 합니다.')
     .trim(),
+  validateRequest,
 ];
 
 // 상품 목록 조회 쿼리 파라미터 검증
@@ -39,11 +41,13 @@ const validateGetProducts = [
   query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
   query('categoryId').optional().isInt({ min: 1 }).toInt(),
   query('sort').optional().isIn(['latest', 'sales', 'priceAsc', 'priceDesc']),
+  validateRequest,
 ];
 
 // 상품 상세 조회 파라미터 검증
 const validateGetProductDetail = [
   param('id').notEmpty().withMessage('product id는 필수 항목입니다.').isInt({ min: 1 }).toInt(),
+  validateRequest,
 ];
 
 // 상품 수정 요청 바디 검증
@@ -88,9 +92,10 @@ const validateUpdateProduct = [
     .isLength({ min: 1, max: 255 })
     .withMessage('link는 1자 이상 255자 이하여야 합니다.')
     .trim(),
+  validateRequest,
 ];
 // 상품 삭제 파라미터 검증
-const validateDeleteProduct = [param('id').notEmpty().isInt({ min: 1 }).toInt()];
+const validateDeleteProduct = [param('id').notEmpty().isInt({ min: 1 }).toInt(), validateRequest];
 
 export const productValidator = {
   validateCreateProduct,
