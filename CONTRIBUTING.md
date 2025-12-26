@@ -21,7 +21,7 @@
 [부가 설명]
 ```
 
-자세한 내용은 [공통 컨벤션 문서](CONVENTIONS.md)를 참고하세요.
+자세한 내용은 [공통 컨벤션 문서](docs/conventions.md)를 참고하세요.
 
 ## 코드 리뷰
 
@@ -33,7 +33,7 @@
 
 궁금한 점이 있다면:
 
-- Discord 개발 채널에 질문
+- Discord/Slack 개발 채널에 질문
 - GitHub Discussions 활용
 - 이슈로 질문 등록
 

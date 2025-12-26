@@ -70,8 +70,10 @@ feature/123-login (기능 개발)
    ```
 
 2. **브랜치 삭제**
-   - PR 머지 후 **자동 삭제** 설정
-   - GitHub에서 "Automatically delete head branches" 옵션 활성화
+
+- PR 머지 후 **자동 삭제** 설정
+- GitHub에서 "Automatically delete head branches" 옵션 활성화
+
 3. **작업 완료 후**
 
    ```bash
@@ -83,27 +85,40 @@ feature/123-login (기능 개발)
 
 ## 2. 커밋 메시지
 
-### 2.1 커밋 타입
+### 2.1 커밋 타입: 해당 타입을 사용하지 않을 경우, 커밋이 중단됨
 
-| 타입       | 설명                          | 예시                                  |
-| ---------- | ----------------------------- | ------------------------------------- |
-| `feat`     | 새로운 기능 추가              | feat: Add user login API              |
-| `fix`      | 버그 수정                     | fix: Resolve authentication error     |
-| `docs`     | 문서 수정                     | docs: Update README                   |
-| `style`    | 코드 포맷팅, 세미콜론 누락 등 | style: Format code with Prettier      |
-| `refactor` | 코드 리팩토링                 | refactor: Simplify user service logic |
-| `test`     | 테스트 코드 추가/수정         | test: Add user login test cases       |
-| `chore`    | 빌드, 패키지 매니저 설정 등   | chore: Update dependencies            |
+| 타입       | 설명                              | 예시                                  |
+| ---------- | --------------------------------- | ------------------------------------- |
+| `feat`     | 새로운 기능 추가                  | feat: Add user login API              |
+| `fix`      | 버그 수정                         | fix: Resolve authentication error     |
+| `docs`     | 문서 수정                         | docs: Update README                   |
+| `style`    | 코드 포맷팅, 세미콜론 누락 등     | style: Format code with Prettier      |
+| `refactor` | 코드 리팩토링                     | refactor: Simplify user service logic |
+| `perf`     | 성능 개선                         | perf: Enhancement performance         |
+| `test`     | 테스트 코드 추가/수정             | test: Add user login test cases       |
+| `build`    | 빌드 시스템 또는 외부 종속성 변경 | build: Update dependencies            |
+| `ci`       | CI 구성 파일 및 스크립트 변경     | ci: Update action workflow            |
+| `chore`    | 빌드, 패키지 매니저 설정 등       | chore: Add document                   |
+| `revert`   | 이전 커밋 되돌리기                | revert: Wrong Commits (#커밋해시)     |
 
 ### 2.2 커밋 메시지 형식
 
 ```
 <타입>: <제목> (#이슈번호)
 
-[부가 설명 - 선택사항]
+[부가 설명 - 필수 사항]
 ```
 
-### 2.3 작성 규칙
+### 2.3 커밋 검사 규칙: 미 준수 시, 커밋이 중단됨
+
+- Type은 항상 소문자
+- Type은 비어있으면 안됨
+- Subject는 비어있으면 안됨
+- Subject는 마침표로 끝나면 안됨
+- Subject는 대문자로 시작하지 않음
+- Header(첫 줄)의 최대 길이: 100
+
+### 2.4 작성 규칙
 
 ### 제목 (Title)
 
@@ -121,7 +136,7 @@ feature/123-login (기능 개발)
 - "왜" 변경했는지 설명
 - 선택사항 (간단한 커밋은 생략 가능)
 
-### 2.4 커밋 예시
+### 2.5 커밋 예시
 
 **간단한 커밋**
 
@@ -149,7 +164,7 @@ fix: Resolve token refresh error (#456)
 만료된 리프레시 토큰 검증 로직을 추가했습니다.
 ```
 
-### 2.5 나쁜 예시
+### 2.6 나쁜 예시
 
 ```bash
 ❌ 로그인 추가               # 한글 제목
@@ -187,7 +202,45 @@ fix: Resolve token refresh error (#456)
 
 ### 3.3 PR 템플릿
 
-템플릿 파일은 `.github/pull_request_template.md`를 참고하세요.
+```markdown
+## 📝 변경사항
+
+<!-- 무엇을 변경했는지 간단히 설명해주세요 -->
+
+## 🔨 작업 내용
+
+- [ ] 작업 내용 1
+- [ ] 작업 내용 2
+- [ ] 작업 내용 3
+
+## 🧪 테스트 방법
+
+<!-- 어떻게 테스트했는지 설명해주세요 -->
+
+1.
+2.
+3.
+
+## 📸 스크린샷 (UI 변경 시)
+
+<!-- UI 변경이 있다면 Before/After 스크린샷을 첨부해주세요 -->
+
+| Before | After  |
+| ------ | ------ |
+| 이미지 | 이미지 |
+
+## ✅ 체크리스트
+
+- [ ] 코드 스타일 가이드를 준수했습니다
+- [ ] 주요 로직에 주석을 작성했습니다
+- [ ] 테스트 코드를 작성했습니다
+- [ ] 문서를 업데이트했습니다 (필요 시)
+- [ ] 이슈를 연결했습니다
+
+## 🔗 관련 이슈
+
+Closes #이슈번호
+```
 
 ### 3.4 PR 생성 프로세스
 
@@ -198,26 +251,39 @@ fix: Resolve token refresh error (#456)
    ```
 
 2. **PR 생성**
-   - GitHub에서 "New Pull Request" 클릭
-   - `develop` ← `feature/123-user-login`
-   - 템플릿에 따라 내용 작성
+
+- GitHub에서 "New Pull Request" 클릭
+- `develop` ← `feature/123-user-login`
+- 템플릿에 따라 내용 작성
+
 3. **리뷰어 지정**
-   - 팀원 중 1명 이상 지정
-   - 본인은 리뷰어로 지정 불가
+
+- 팀원 중 1명 이상 지정
+- 본인은 리뷰어로 지정 불가
+
 4. **코드 리뷰**
-   - 리뷰어는 24시간 이내 응답
-   - 수정 요청 시 즉시 반영
+
+- CodeRabbit을 통해 자동으로 코드 리뷰 수행
+- 작성자는 리뷰에 따른 수정 사항 수정
+- 수정이 완료됐을 경우, 팀원은 24시간 이내 Merge
+
 5. **머지**
-   - 승인 후 "Squash and merge" 또는 "Merge pull request"
-   - 브랜치 자동 삭제
+
+- 승인 후 "Squash and merge" 또는 "Merge pull request"
+- 사용한 브랜치 삭제
 
 ### 3.5 코드 리뷰 가이드
 
-### 리뷰어
+### 자동화 도구
 
-- 코드 로직, 가독성, 성능, 보안 검토
-- 건설적인 피드백 제공
-- 24시간 이내 응답
+- OSV-Scanner (develop, main)와 CodeQL (main)이 패키지와 코드의 취약점을 찾아줌
+- CodeRabbit을 통해, AI에 기반한 코드리뷰를 받을 수 있음
+- 자동화 도구는 실행되는데 시간이 걸림
+
+### 팀원
+
+- 자동화 도구의 요구사항/수정사항을 만족할 경우, PR을 Merge
+- 24시간 이내 응답할 수 있도록 함
 
 ### PR 작성자
 
@@ -227,7 +293,7 @@ fix: Resolve token refresh error (#456)
 
 ---
 
-## 4. 이슈 관리
+## 4. 이슈 관리: 기술 관련 요구 사항 신청
 
 ### 4.1 이슈 라벨
 
@@ -239,42 +305,102 @@ fix: Resolve token refresh error (#456)
 | `enhancement`   | 새로운 기능 또는 개선 | 🔵 파랑 |
 | `documentation` | 문서 관련             | 📘 초록 |
 
-### 영역 라벨
-
-| 라벨       | 설명            | 색상    |
-| ---------- | --------------- | ------- |
-| `frontend` | 프론트엔드 관련 | 💜 보라 |
-| `backend`  | 백엔드 관련     | 💛 노랑 |
-
-### 우선순위 라벨
-
-| 라벨               | 설명                    | 색상    |
-| ------------------ | ----------------------- | ------- |
-| `priority: high`   | 긴급, 즉시 처리 필요    | 🔴 빨강 |
-| `priority: medium` | 중요, 계획된 처리       | 🟡 노랑 |
-| `priority: low`    | 낮음, 여유 있을 때 처리 | 🟢 초록 |
-
 ### 4.2 이슈 템플릿
 
-이슈 템플릿은 다음 파일들을 참고하세요:
+### 버그 리포트
 
-- `.github/ISSUE_TEMPLATE/bug_report.md`
-- `.github/ISSUE_TEMPLATE/feature_request.md`
+```markdown
+---
+name: 버그 리포트
+about: 버그를 제보할 때 사용하세요
+labels: bug
+---
+
+## 🐛 버그 설명
+
+<!-- 어떤 버그인지 간단히 설명해주세요 -->
+
+## 📋 재현 방법
+
+1.
+2.
+3.
+4.
+
+## ✅ 예상 동작
+
+<!-- 어떻게 동작해야 하는지 설명해주세요 -->
+
+## ❌ 실제 동작
+
+<!-- 실제로 어떻게 동작하는지 설명해주세요 -->
+
+## 📸 스크린샷
+
+<!-- 가능하다면 스크린샷을 첨부해주세요 -->
+
+## 💻 환경
+
+- OS: [예: Windows 11, macOS 14]
+- 브라우저: [예: Chrome 120, Safari 17]
+- Node.js 버전: [예: 18.17.0]
+
+## 📝 추가 정보
+
+<!-- 기타 참고할 만한 정보가 있다면 작성해주세요 -->
+```
+
+### 기능 요청
+
+```markdown
+---
+name: 기능 요청
+about: 새로운 기능을 제안할 때 사용하세요
+labels: enhancement
+---
+
+## 💡 기능 설명
+
+<!-- 어떤 기능을 추가하고 싶은지 설명해주세요 -->
+
+## 🎯 사용 사례
+
+<!-- 이 기능이 어떤 상황에서 필요한지 설명해주세요 -->
+
+## 📌 제안하는 해결 방법
+
+<!-- 어떻게 구현하면 좋을지 제안해주세요 (선택사항) -->
+
+## 🔄 대안
+
+<!-- 고려해본 다른 방법이 있다면 작성해주세요 (선택사항) -->
+
+## 📝 추가 정보
+
+<!-- 기타 참고할 만한 정보가 있다면 작성해주세요 -->
+```
 
 ### 4.3 이슈 생성 프로세스
 
 1. **이슈 생성**
-   - GitHub Issues 탭에서 "New issue" 클릭
-   - 적절한 템플릿 선택
-   - 내용 작성
+
+- GitHub Issues 탭에서 "New issue" 클릭
+- 적절한 템플릿 선택
+- 내용 작성
+
 2. **라벨 지정**
-   - 타입, 영역, 우선순위 라벨 선택
-   - 예: `bug`, `backend`, `priority: high`
+
+- 타입 라벨 선택
+- 예: `bug`
+
 3. **담당자 배정**
-   - Assignees에서 담당자 지정
-   - 미정인 경우 추후 배정
+
+- Assignees에서 담당자 지정
+- 미정인 경우 추후 배정
+
 4. **프로젝트 연결** (선택)
-   - GitHub Projects와 연결 (사용 시)
+
+- GitHub Projects와 연결 (사용 시)
 
 ---
 
@@ -318,45 +444,116 @@ project-root/
 └── README.md
 ```
 
-> 모노레포는 사용하지 않습니다. 프론트엔드와 백엔드는 별도 레포지토리로 관리합니다.
-
 ---
 
 ## 6. 코드 스타일
 
-### 6.1 코드 포맷팅
+### 6.1 Prettier 설정
 
-프로젝트는 다음 도구들을 사용하여 코드 스타일을 통일합니다:
+**`.prettierrc`**
 
-- **Prettier**: 코드 포맷팅
-- **ESLint**: 코드 품질 검사
-- **EditorConfig**: 에디터 설정 통일
-
-설정 파일:
-
-- `.prettierrc` - Prettier 설정
-- `.prettierignore` - Prettier 무시 파일
-- `.eslintrc.js` - ESLint 설정
-- `.editorconfig` - 에디터 설정
-
-### 6.2 에디터 설정
-
-VS Code 사용자를 위한 권장 설정은 `.vscode/settings.json`을 참고하세요.
-
-### 6.3 Pre-commit Hook
-
-코드 커밋 전 자동으로 린트와 포맷팅을 수행합니다.
-
-필요한 패키지:
-
-```bash
-npm install -D husky lint-staged
+```json
+{
+  "semi": true,
+  "singleQuote": true,
+  "tabWidth": 2,
+  "printWidth": 100,
+  "trailingComma": "es5",
+  "arrowParens": "always",
+  "endOfLine": "lf"
+}
 ```
 
-설정 파일:
+**`.prettierignore`**
 
-- `package.json` - lint-staged 설정 포함
-- `.husky/pre-commit` - Husky pre-commit hook
+```
+node_modules
+dist
+build
+.next
+coverage
+*.log
+```
+
+### 6.2 ESLint 설정
+
+**`.eslintrc.js`**
+
+```javascript
+module.exports = {
+  extends: ['airbnb', 'airbnb/hooks', 'prettier'],
+  plugins: ['prettier'],
+  rules: {
+    'prettier/prettier': 'error',
+    // 프로젝트별 커스텀 룰 추가
+  },
+  env: {
+    browser: true,
+    node: true,
+    es2021: true,
+  },
+};
+```
+
+### 6.3 에디터 설정
+
+**`.editorconfig`**
+
+```
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.md]
+trim_trailing_whitespace = false
+```
+
+### 6.4 VS Code 설정 (권장)
+
+**`.vscode/settings.json`**
+
+```json
+{
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true
+  },
+  "editor.tabSize": 2
+}
+```
+
+### 6.5 Pre-commit Hook
+
+**Husky + lint-staged 설정**
+
+```json
+// package.json
+{
+  "scripts": {
+    "prepare": "husky install"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": ["eslint --fix", "prettier --write"],
+    "*.{json,md}": ["prettier --write"]
+  }
+}
+```
+
+**`.husky/pre-commit`**
+
+```bash
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+npx lint-staged
+```
 
 ---
 
@@ -364,52 +561,165 @@ npm install -D husky lint-staged
 
 ### 7.1 README.md 필수 항목
 
-모든 프로젝트는 다음 내용을 포함한 README.md를 작성합니다:
+````markdown
+# 프로젝트명
 
-1. **프로젝트 소개**
-   - 프로젝트명
-   - 한 줄 설명
-   - 상세 설명
+> 프로젝트에 대한 간단한 한 줄 설명
 
-2. **기술 스택**
-   - Frontend 기술
-   - Backend 기술
-   - 데이터베이스 등
+## 📖 프로젝트 소개
 
-3. **설치 방법**
-   - 요구사항
-   - 설치 명령어
-   - 환경 변수 설정
+프로젝트에 대한 상세한 설명을 작성합니다.
 
-4. **실행 방법**
-   - 개발 모드
-   - 빌드
-   - 프로덕션 모드
-   - 테스트
+## 🛠 기술 스택
 
-5. **API 문서** (백엔드의 경우)
-   - Swagger UI 링크 등
+### Frontend
 
-6. **기여 방법**
-   - CONTRIBUTING.md 링크
+- Next.js
+- TypeScript
+- Tailwind CSS
 
-7. **라이선스**
+### Backend
 
-8. **팀원**
+- Express
+- TypeScript
+- PostgreSQL
+
+## 📦 설치 방법
+
+### 요구사항
+
+- Node.js 18.x 이상
+- PostgreSQL 14 이상
+
+### 설치
+
+```bash
+# 레포지토리 클론
+git clone https://github.com/username/project.git
+
+# 의존성 설치
+npm install
+
+# 환경 변수 설정
+cp .env.example .env
+```
+````
+
+## 🔧 환경 변수 설정
+
+`.env` 파일을 생성하고 다음 변수를 설정하세요:
+
+```
+# 데이터베이스
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_NAME=myapp
+
+# JWT
+JWT_SECRET=your-secret-key
+
+# 서버
+PORT=3000
+```
+
+자세한 내용은 `.env.example` 파일을 참고하세요.
+
+## 🚀 실행 방법
+
+### 개발 모드
+
+```bash
+npm run dev
+```
+
+### 빌드
+
+```bash
+npm run build
+```
+
+### 프로덕션 모드
+
+```bash
+npm start
+```
+
+### 테스트
+
+```bash
+npm test
+```
+
+## 📚 API 문서
+
+API 문서는 다음 경로에서 확인할 수 있습니다:
+
+- Swagger UI: http://localhost:3000/api-docs
+
+## 🤝 기여 방법
+
+기여 방법은 [CONTRIBUTING.md](CONTRIBUTING.md)를 참고하세요.
+
+## 📝 라이선스
+
+이 프로젝트는 MIT 라이선스를 따릅니다.
+
+## 👥 팀원
+
+- 홍길동 ([@github-id](https://github.com/github-id)) - Frontend
+- 김철수 ([@github-id](https://github.com/github-id)) - Backend
+
+````
 
 ### 7.2 CONTRIBUTING.md
 
-기여 가이드는 별도의 CONTRIBUTING.md 파일로 관리합니다.
+```markdown
+# 기여 가이드
 
-### 7.3 프로젝트 위키
+이 프로젝트에 기여해주셔서 감사합니다! 🎉
 
-GitHub Wiki 또는 Notion에 다음 내용 정리:
+## 개발 프로세스
 
-- 아키텍처 설계
-- API 명세
-- 데이터베이스 스키마
-- 배포 가이드
-- 트러블슈팅 가이드
+1. 이슈 생성 또는 기존 이슈 선택
+2. 브랜치 생성 (`feature/이슈번호-기능명`)
+3. 코드 작성 및 커밋
+4. Pull Request 생성
+5. 코드 리뷰
+6. 머지
+
+## 커밋 규칙
+
+커밋 메시지는 다음 형식을 따릅니다:
+
+````
+
+<타입>: <제목> (#이슈번호)
+
+[부가 설명]
+
+```
+
+자세한 내용은 [공통 컨벤션 문서](docs/conventions.md)를 참고하세요.
+
+## 코드 리뷰
+
+- 모든 PR은 최소 1명의 승인이 필요합니다
+- 리뷰어는 24시간 이내 응답합니다
+- 건설적인 피드백을 제공해주세요
+
+## 질문하기
+
+궁금한 점이 있다면:
+- Discord/Slack 개발 채널에 질문
+- GitHub Discussions 활용
+- 이슈로 질문 등록
+
+## 행동 강령
+
+- 서로 존중하며 협력합니다
+- 건설적인 피드백을 제공합니다
+- 다양성을 존중합니다
+```
 
 ---
 
@@ -436,12 +746,16 @@ GitHub Wiki 또는 Notion에 다음 내용 정리:
    ```
 
 3. **긴급 PR 생성**
-   - `main` ← `hotfix/이슈번호-수정내용`
-   - PR 제목에 `[HOTFIX]` 접두사 추가
-   - 팀원에게 즉시 알림 (Slack/Discord 멘션)
+
+- `main` ← `hotfix/이슈번호-수정내용`
+- PR 제목에 `[HOTFIX]` 접두사 추가
+- 팀원에게 즉시 알림 (Slack/Discord 멘션)
+
 4. **빠른 리뷰 및 머지**
-   - 리뷰어는 최대한 빠르게 검토
-   - 승인 후 즉시 `main`에 머지
+
+- 리뷰어는 최대한 빠르게 검토
+- 승인 후 즉시 `main`에 머지
+
 5. **develop 동기화**
 
    ```bash
@@ -455,7 +769,7 @@ GitHub Wiki 또는 Notion에 다음 내용 정리:
 
 ### 작성 도구
 
-- Notion 또는 Google Docs 사용
+- Notion 사용
 
 ### 회의록 템플릿
 
@@ -498,35 +812,30 @@ GitHub Wiki 또는 Notion에 다음 내용 정리:
 
 ### 관리 방법
 
-- **작성 담당**: 회의마다 순번제
 - **보관 위치**: 팀 Notion 워크스페이스
 - **공유**: 회의 후 24시간 이내 공유
 
 ### 8.3 커뮤니케이션 채널
 
-### Discord/Slack 채널 구조
+### Discord 채널 구조
 
-| 채널            | 용도                   |
-| --------------- | ---------------------- |
-| `#general`      | 일상 소통, 공지사항    |
-| `#dev-frontend` | 프론트엔드 기술 논의   |
-| `#dev-backend`  | 백엔드 기술 논의       |
-| `#code-review`  | 코드 리뷰 알림 및 논의 |
-| `#bugs`         | 버그 리포트 및 논의    |
-| `#deployment`   | 배포 관련 공지         |
-| `#random`       | 자유 주제              |
-
-### 응답 시간 가이드
-
-- **일반 질문**: 당일 또는 익일 응답
-- **긴급 이슈**: 1시간 이내 응답
-- **코드 리뷰**: 24시간 이내 응답
+| 채널           | 용도                   |
+| -------------- | ---------------------- |
+| `#공지사항`    | 공지사항               |
+| `#github-알림` | 코드 리뷰 알림 및 논의 |
+| `#일반`        | 기타 사항 논의         |
+| `#프론트엔드`  | 프론트엔드 기술 논의   |
+| `#백엔드`      | 백엔드 기술 논의       |
+| `#회의실`      | 음성/영상 회의실       |
 
 ### 멘션 사용
 
-- `@all`: 전체 공지 (신중하게 사용)
+- `@Team`: 전체 호출 (멘토님, 원장님 제외)
+- `@Team Leader`: 팀장 호출
+- `@Lead`: 리드 호출
+- `@Frontend`: 프론트엔드 멤버 호출 (리드 포함)
+- `@Backend`: 백엔드 멤버 호출 (리드 포함)
 - `@here`: 온라인 멤버 공지
-- `@username`: 특정 멤버 호출
 - 긴급한 경우: 전화 또는 DM
 
 ### 8.4 업무 시간
@@ -547,7 +856,8 @@ GitHub Wiki 또는 Notion에 다음 내용 정리:
 
 ### 컨벤션 개선
 
-이 컨벤션은 고정된 것이 아닙니다.
+- 이 컨벤션은 고정된 것이 아닙니다.
+- 이 컨벤션은 실제와 내용이 다를 수 있습니다. 이 경우, 팀장에게 문의해주세요.
 
 **정기 회고** (2주마다):
 
@@ -566,12 +876,11 @@ GitHub Wiki 또는 Notion에 다음 내용 정리:
 
 컨벤션 관련 질문이나 제안이 있다면:
 
-- Discord/Slack `#general` 채널에 문의
-- GitHub Discussions 활용
-- 팀 회의에서 안건으로 제기
+- Discord 일반 채널에 문의
+- 팀 스크럼에서 안건으로 제기
 
 ---
 
-**최종 수정일**: 2024-11-19
+**최종 수정일**: 2025-11-20
 
 **버전**: 1.0.0
