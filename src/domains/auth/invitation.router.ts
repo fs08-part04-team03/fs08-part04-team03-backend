@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
 import type { Request, Response } from 'express';
+import { env } from '../../config/env.config';
 import { verifyAccessToken } from '../../common/middlewares/auth.middleware';
 import { validateRequest } from '../../common/middlewares/validator.middleware';
 import { ResponseUtil } from '../../common/utils/response.util';
@@ -116,7 +117,8 @@ router.post(
       requestedByRole: authReq.user.role,
     });
 
-    const webAppBaseUrl = 'http://localhost:4000';
+    const webAppBaseUrl =
+      env.NODE_ENV === 'development' ? 'http://localhost:4000' : env.WEB_APP_BASE_URL;
     const url = new URL('/invite', webAppBaseUrl);
     url.searchParams.set('token', rawToken);
 
