@@ -1,4 +1,4 @@
-import { purchaseStatus } from '@prisma/client';
+import { purchaseStatus, type Prisma } from '@prisma/client';
 import { prisma } from '../../common/database/prisma.client';
 import { CustomError } from '../../common/utils/error.util';
 import { HttpStatus } from '../../common/constants/httpStatus.constants';
@@ -99,7 +99,7 @@ export const purchaseService = {
       },
     });
 
-    const totalPrice = products.reduce((acc, product) => {
+    const totalPrice = products.reduce((acc: number, product: { id: number; price: number }) => {
       const quantity = items.find((item) => item.productId === product.id)?.quantity || 0;
       return acc + product.price * quantity;
     }, 0);
@@ -112,7 +112,7 @@ export const purchaseService = {
       );
     }
 
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // 2. 구매 요청 생성
       const newPurchaseRequest = await tx.purchaseRequests.create({
         data: {
@@ -127,7 +127,9 @@ export const purchaseService = {
 
       // 3. 구매 항목 생성
       const purchaseItemsData = items.map((item) => {
-        const product = products.find((p) => p.id === item.productId);
+        const product = products.find(
+          (p: { id: number; price: number }) => p.id === item.productId
+        );
         if (!product) {
           throw new Error('상품 정보를 찾을 수 없습니다.'); // Should not happen due to previous check
         }
@@ -478,7 +480,7 @@ export const purchaseService = {
     items: Array<{ productId: number; quantity: number }>,
     requestMessage?: string
   ) {
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // 1. Cart 테이블에서 요청한 모든 상품이 있는지 확인
       const cartItems = await tx.carts.findMany({
         where: {
@@ -492,7 +494,7 @@ export const purchaseService = {
 
       // 2. 요청한 모든 상품이 장바구니에 있는지 확인
       if (cartItems.length !== items.length) {
-        const foundProductIds = cartItems.map((c) => c.productId);
+        const foundProductIds = cartItems.map((c: { productId: number }) => c.productId);
         const missingProductIds = items
           .filter((item) => !foundProductIds.includes(item.productId))
           .map((item) => item.productId);
@@ -504,8 +506,10 @@ export const purchaseService = {
       }
 
       // 3. 각 상품의 수량 및 유효성 확인
-      const totalPrice = items.reduce((sum, item) => {
-        const cartItem = cartItems.find((c) => c.productId === item.productId);
+      const totalPrice = items.reduce((sum: number, item) => {
+        const cartItem = cartItems.find(
+          (c: { productId: number }) => c.productId === item.productId
+        );
         if (!cartItem) return sum;
 
         // 수량 일치 확인
@@ -544,12 +548,14 @@ export const purchaseService = {
 
       // 5. 구매 항목들 생성
       await tx.purchaseItems.createMany({
-        data: cartItems.map((cartItem) => ({
-          purchaseRequestId: newPurchaseRequest.id,
-          productId: cartItem.productId,
-          quantity: cartItem.quantity,
-          priceSnapshot: cartItem.products.price,
-        })),
+        data: cartItems.map(
+          (cartItem: { productId: number; quantity: number; products: { price: number } }) => ({
+            purchaseRequestId: newPurchaseRequest.id,
+            productId: cartItem.productId,
+            quantity: cartItem.quantity,
+            priceSnapshot: cartItem.products.price,
+          })
+        ),
       });
 
       // 6. Cart에서 해당 아이템들 삭제
