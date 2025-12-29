@@ -1,0 +1,31 @@
+@baseUrl = http://localhost:4000/api/v1
+@csrfHeader = X-CSRF-Token
+
+### 1) 로그인 (refreshToken 쿠키 확보)
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@test.com",
+  "password": "testA1234!"
+}
+
+### 2) CSRF 토큰 발급 (SESSION_ID + XSRF-TOKEN 쿠키 생성)
+# @name csrf
+GET {{baseUrl}}/auth/csrf
+
+### 3) refresh 성공 케이스 (헤더 포함)
+POST {{baseUrl}}/auth/refresh
+{{csrfHeader}}: {{csrf.response.body.$.csrfToken}}
+
+### 4) refresh 실패 케이스 (헤더 없음 -> 403 기대)
+POST {{baseUrl}}/auth/refresh
+
+### 5) logout 성공 케이스 (헤더 포함)
+POST {{baseUrl}}/auth/logout
+{{csrfHeader}}: {{csrf.response.body.$.csrfToken}}
+
+### 6) refresh 실패 케이스 (로그아웃으로 refresh token 삭제)
+POST {{baseUrl}}/auth/refresh
+{{csrfHeader}}: {{csrf.response.body.$.csrfToken}}
