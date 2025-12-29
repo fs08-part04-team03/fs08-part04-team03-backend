@@ -114,6 +114,13 @@
  *             message:
  *               type: string
  *               example: '로그아웃 완료'
+ *     AuthCsrfResponse:
+ *       type: object
+ *       properties:
+ *         csrfToken:
+ *           type: string
+ *           description: CSRF token for request header
+ *           example: "2s0bT1...k9"
  */
 
 /**
@@ -208,17 +215,48 @@
 
 /**
  * @openapi
- * /api/v1/auth/refresh:
- *   post:
- *     summary: 토큰 재발급
- *     description: refreshToken 쿠키가 필요하며 새 액세스 토큰과 리프레시 토큰 쿠키를 반환합니다.
+ * /api/v1/auth/csrf:
+ *   get:
+ *     summary: CSRF 토큰 발급
+ *     description: CSRF 토큰을 반환하고 XSRF-TOKEN/SESSION_ID 쿠키를 설정합니다.
  *     tags: [Auth]
  *     responses:
  *       '200':
- *         description: 토큰 재발급 완료
+ *         description: CSRF 토큰 발급 완료
  *         headers:
  *           Set-Cookie:
- *             description: 리프레시 토큰 쿠키
+ *             description: XSRF-TOKEN 및 SESSION_ID 쿠키
+ *             schema:
+ *               type: string
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/AuthCsrfResponse' }
+ */
+
+/**
+ * @openapi
+ * /api/v1/auth/refresh:
+ *   post:
+ *     summary: 토큰 재발급
+ *     description: refreshToken 쿠키 + CSRF 헤더(csrftoken) 필요
+ *     tags: [Auth]
+ *     parameters:
+ *       - in: header
+ *         name: X-CSRF-Token
+ *         required: true
+ *         schema: { type: string }
+ *         description: /auth/csrf 응답으로 받은 CSRF 토큰
+ *       - in: cookie
+ *         name: refreshToken
+ *         required: true
+ *         schema: { type: string }
+ *         description: HttpOnly refresh token cookie
+ *     responses:
+ *       '200':
+ *         description: 토큰 재발급 성공
+ *         headers:
+ *           Set-Cookie:
+ *             description: refresh token cookie
  *             schema:
  *               type: string
  *               example: "refreshToken=...; HttpOnly; Path=/"
@@ -226,7 +264,9 @@
  *           application/json:
  *             schema: { $ref: '#/components/schemas/AuthRefreshResponse' }
  *       '401':
- *         description: 리프레시 토큰 없음/유효하지 않음/만료
+ *         description: refresh token 없음/무효/만료
+ *       '403':
+ *         description: CSRF token missing or mismatch
  */
 
 /**
@@ -234,12 +274,25 @@
  * /api/v1/auth/logout:
  *   post:
  *     summary: 로그아웃
- *     description: 리프레시 토큰 쿠키를 삭제합니다.
+ *     description: refreshToken 쿠키 + CSRF 헤더(csrftoken) 필요
  *     tags: [Auth]
+ *     parameters:
+ *       - in: header
+ *         name: X-CSRF-Token
+ *         required: true
+ *         schema: { type: string }
+ *         description: /auth/csrf 응답으로 받은 CSRF 토큰
+ *       - in: cookie
+ *         name: refreshToken
+ *         required: true
+ *         schema: { type: string }
+ *         description: HttpOnly refresh token cookie
  *     responses:
  *       '200':
- *         description: 로그아웃 완료
+ *         description: 로그아웃 성공
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/AuthLogoutResponse' }
+ *       '403':
+ *         description: CSRF token missing or mismatch
  */
