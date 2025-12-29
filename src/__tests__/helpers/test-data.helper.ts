@@ -1,4 +1,4 @@
-import type { role } from '@prisma/client';
+import { role } from '@prisma/client';
 
 /**
  * 테스트용 회사 데이터 생성
