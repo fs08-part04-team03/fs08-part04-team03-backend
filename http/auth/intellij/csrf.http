@@ -13,6 +13,18 @@ Accept: application/json
 }
 
 > {%
+  // Set-Cookie 헤더에서 refreshToken 추출
+  const setCookieHeader = response.headers.valueOf("Set-Cookie");
+  if (setCookieHeader) {
+    const cookies = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader];
+    const refreshTokenCookie = cookies.find(cookie => cookie.startsWith("refreshToken="));
+    if (refreshTokenCookie) {
+      // "refreshToken=xxx; Path=/; ..." 형태에서 "refreshToken=xxx" 부분만 추출
+      const cookieValue = refreshTokenCookie.split(";")[0];
+      client.global.set("refreshTokenCookie", cookieValue);
+    }
+  }
+
   client.test("login: should be 200", function () {
     client.assert(response.status === 200, "Expected 200, got " + response.status);
   });
@@ -37,7 +49,8 @@ Accept: application/json
 # @name refresh_ok
 POST {{baseUrl}}/auth/refresh
 Accept: application/json
-{{csrfHeader}}: {{csrfToken}}
+Cookie: {{refreshTokenCookie}}
+X-CSRF-Token: {{csrfToken}}
 
 > {%
   client.test("refresh_ok: should be 200", function () {
@@ -60,7 +73,8 @@ Accept: application/json
 # @name logout_ok
 POST {{baseUrl}}/auth/logout
 Accept: application/json
-{{csrfHeader}}: {{csrfToken}}
+Cookie: {{refreshTokenCookie}}
+X-CSRF-Token: {{csrfToken}}
 
 > {%
   client.test("logout_ok: should be 200", function () {
@@ -68,11 +82,12 @@ Accept: application/json
   });
 %}
 
-### 6) refresh 실패 케이스 (로그아웃으로 refresh token 삭제 후 -> 실패 기대)
+### 6) refresh 실패 케이스 (로그아웃으로 refresh token 삭제 후 -> 401/403 기대)
 # @name refresh_after_logout
 POST {{baseUrl}}/auth/refresh
 Accept: application/json
-{{csrfHeader}}: {{csrfToken}}
+Cookie: {{refreshTokenCookie}}
+X-CSRF-Token: {{csrfToken}}
 
 > {%
   client.test("refresh_after_logout: should be 401 or 403", function () {
