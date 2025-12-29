@@ -1,0 +1,57 @@
+### 로그인 (먼저 이것을 실행하세요!)
+
+POST http://localhost:4000/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@test.com",
+  "password": "testU"
+}
+
+> {%
+  // accessToken 저장
+  client.global.set("accessToken", response.body?.data?.accessToken);
+%}
+
+###
+
+### 장바구니에 상품 추가 - 새 상품
+POST http://localhost:4000/api/v1/cart/addToCart
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "productId": 222,
+  "quantity": 2
+}
+
+###
+
+### 장바구니에 상품 추가 - 중복 상품 (수량 증가)
+POST http://localhost:4000/api/v1/cart/addToCart
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "productId": 222,
+  "quantity": 3
+}
+
+###
+
+### 장바구니에 여러 상품 추가
+POST http://localhost:4000/api/v1/cart/addToCart
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "productId": 221,
+  "quantity": 1
+}
+
+###
+
+### 장바구니 조회 - 추가된 상품 확인
+GET http://localhost:4000/api/v1/cart/getMyCart
+Authorization: Bearer {{accessToken}}
+

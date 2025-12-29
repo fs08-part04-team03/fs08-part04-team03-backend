@@ -1,0 +1,25 @@
+### 로그인 (먼저 이것을 실행하세요!)
+# @name login
+POST http://localhost:4000/api/v1/auth/login
+Content-Type: application/json
+
+{
+    "email": "manager@test.com",
+    "password": "testM"
+}
+
+###
+
+### 내 정보 조회
+GET http://localhost:4000/api/v1/user/me
+Authorization: Bearer {{login.response.body.data.accessToken}}
+
+###
+
+### 지출 통계 조회
+# 이번달 지출액, 지난달 지출액, 남은 예산, 올해 총 지출액, 지난해 지출액
+GET http://localhost:4000/api/v1/purchase/admin/expenseStatistics
+Authorization: Bearer {{login.response.body.data.accessToken}}
+
+###
+

@@ -1,0 +1,96 @@
+@baseUrl = http://localhost:4000/api/v1
+@csrfHeader = X-CSRF-Token
+
+### 1) 로그인 (refreshToken 쿠키 확보)
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+Accept: application/json
+
+{
+  "email": "admin@test.com",
+  "password": "testA1234!"
+}
+
+> {%
+  // Set-Cookie 헤더에서 refreshToken 추출
+  const setCookieHeader = response.headers.valueOf("Set-Cookie");
+  if (setCookieHeader) {
+    const cookies = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader];
+    const refreshTokenCookie = cookies.find(cookie => cookie.startsWith("refreshToken="));
+    if (refreshTokenCookie) {
+      // "refreshToken=xxx; Path=/; ..." 형태에서 "refreshToken=xxx" 부분만 추출
+      const cookieValue = refreshTokenCookie.split(";")[0];
+      client.global.set("refreshTokenCookie", cookieValue);
+    }
+  }
+
+  client.test("login: should be 200", function () {
+    client.assert(response.status === 200, "Expected 200, got " + response.status);
+  });
+%}
+
+### 2) CSRF 토큰 발급 (SESSION_ID + XSRF-TOKEN 쿠키 생성 + body.csrfToken 저장)
+# @name csrf
+GET {{baseUrl}}/auth/csrf
+Accept: application/json
+
+> {%
+  // response.body는 JSON이면 object로 접근 가능
+  client.global.set("csrfToken", response.body.csrfToken);
+
+  client.test("csrf: should be 200 and csrfToken exists", function () {
+    client.assert(response.status === 200, "Expected 200, got " + response.status);
+    client.assert(!!client.global.get("csrfToken"), "csrfToken was not saved");
+  });
+%}
+
+### 3) refresh 성공 케이스 (헤더 포함)
+# @name refresh_ok
+POST {{baseUrl}}/auth/refresh
+Accept: application/json
+Cookie: {{refreshTokenCookie}}
+X-CSRF-Token: {{csrfToken}}
+
+> {%
+  client.test("refresh_ok: should be 200", function () {
+    client.assert(response.status === 200, "Expected 200, got " + response.status);
+  });
+%}
+
+### 4) refresh 실패 케이스 (헤더 없음 -> 403 기대)
+# @name refresh_no_header
+POST {{baseUrl}}/auth/refresh
+Accept: application/json
+
+> {%
+  client.test("refresh_no_header: should be 403", function () {
+    client.assert(response.status === 403, "Expected 403, got " + response.status);
+  });
+%}
+
+### 5) logout 성공 케이스 (헤더 포함)
+# @name logout_ok
+POST {{baseUrl}}/auth/logout
+Accept: application/json
+Cookie: {{refreshTokenCookie}}
+X-CSRF-Token: {{csrfToken}}
+
+> {%
+  client.test("logout_ok: should be 200", function () {
+    client.assert(response.status === 200, "Expected 200, got " + response.status);
+  });
+%}
+
+### 6) refresh 실패 케이스 (로그아웃으로 refresh token 삭제 후 -> 401/403 기대)
+# @name refresh_after_logout
+POST {{baseUrl}}/auth/refresh
+Accept: application/json
+Cookie: {{refreshTokenCookie}}
+X-CSRF-Token: {{csrfToken}}
+
+> {%
+  client.test("refresh_after_logout: should be 401 or 403", function () {
+    client.assert([401].includes(response.status), "Expected 401/403, got " + response.status);
+  });
+%}

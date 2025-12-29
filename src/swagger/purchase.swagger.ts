@@ -1,0 +1,889 @@
+/**
+ * @swagger
+ * tags:
+ *   name: Purchase
+ *   description: 구매 관리 API
+ */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     PurchaseItem:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           description: 구매 항목 ID
+ *         quantity:
+ *           type: integer
+ *           description: 수량
+ *         priceSnapshot:
+ *           type: number
+ *           description: 구매 시점 가격
+ *         products:
+ *           type: object
+ *           properties:
+ *             id:
+ *               type: integer
+ *               description: 상품 ID
+ *             name:
+ *               type: string
+ *               description: 상품명
+ *             image:
+ *               type: string
+ *               description: 상품 이미지 URL
+ *             link:
+ *               type: string
+ *               description: 상품 링크
+ *
+ *     User:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           description: 사용자 ID
+ *         name:
+ *           type: string
+ *           description: 사용자 이름
+ *         email:
+ *           type: string
+ *           description: 사용자 이메일
+ *
+ *     PurchaseRequest:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           description: 구매 요청 ID
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *           description: 요청일
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ *           description: 승인/반려일
+ *         totalPrice:
+ *           type: number
+ *           description: 총 가격
+ *         shippingFee:
+ *           type: number
+ *           description: 배송비
+ *         status:
+ *           type: string
+ *           enum: [PENDING, APPROVED, REJECTED, CANCELLED]
+ *           description: 구매 요청 상태
+ *         requestMessage:
+ *           type: string
+ *           description: 요청 메시지
+ *         rejectReason:
+ *           type: string
+ *           description: 반려 사유
+ *         purchaseItems:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/PurchaseItem'
+ *         requester:
+ *           $ref: '#/components/schemas/User'
+ *         approver:
+ *           $ref: '#/components/schemas/User'
+ *
+ *     PaginationInfo:
+ *       type: object
+ *       properties:
+ *         currentPage:
+ *           type: integer
+ *           description: 현재 페이지
+ *         totalPages:
+ *           type: integer
+ *           description: 전체 페이지 수
+ *         totalItems:
+ *           type: integer
+ *           description: 전체 항목 수
+ *         itemsPerPage:
+ *           type: integer
+ *           description: 페이지당 항목 수
+ *         hasNextPage:
+ *           type: boolean
+ *           description: 다음 페이지 존재 여부
+ *         hasPreviousPage:
+ *           type: boolean
+ *           description: 이전 페이지 존재 여부
+ *
+ *     ExpenseStatistics:
+ *       type: object
+ *       properties:
+ *         expenses:
+ *           type: object
+ *           properties:
+ *             thisMonth:
+ *               type: number
+ *               description: 이번달 지출액
+ *             lastMonth:
+ *               type: number
+ *               description: 지난달 지출액
+ *             thisYear:
+ *               type: number
+ *               description: 올해 총 지출액
+ *             lastYear:
+ *               type: number
+ *               description: 지난해 지출액
+ *         budget:
+ *           type: object
+ *           properties:
+ *             thisMonthBudget:
+ *               type: number
+ *               nullable: true
+ *               description: 이번달 예산
+ *             remainingBudget:
+ *               type: number
+ *               nullable: true
+ *               description: 남은 예산
+ */
+
+/**
+ * @swagger
+ * /api/v1/purchase/admin/getAllPurchases:
+ *   get:
+ *     summary: 전체 구매 내역 목록 조회 (관리자)
+ *     tags: [Purchase]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: 페이지 번호
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: 페이지당 항목 수
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [createdAt, updatedAt, totalPrice]
+ *           default: createdAt
+ *         description: 정렬 기준
+ *       - in: query
+ *         name: order
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *         description: 정렬 순서
+ *     responses:
+ *       200:
+ *         description: 전체 구매 내역 목록 조회 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/PurchaseRequest'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     total:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *                 message:
+ *                   type: string
+ *                   example: "조회 성공"
+ *       401:
+ *         description: 인증 실패
+ *       403:
+ *         description: 권한 없음 (관리자만 접근 가능)
+ */
+
+/**
+ * @swagger
+ * /api/v1/purchase/admin/purchaseNow:
+ *   post:
+ *     summary: 즉시 구매 (관리자)
+ *     tags: [Purchase]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - items
+ *               - shippingFee
+ *             properties:
+ *               items:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - productId
+ *                     - quantity
+ *                   properties:
+ *                     productId:
+ *                       type: integer
+ *                       description: 상품 ID
+ *                     quantity:
+ *                       type: integer
+ *                       minimum: 1
+ *                       description: 수량
+ *               shippingFee:
+ *                 type: number
+ *                 minimum: 0
+ *                 description: 배송비
+ *     responses:
+ *       201:
+ *         description: 즉시 구매 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/PurchaseRequest'
+ *                 message:
+ *                   type: string
+ *                   example: "즉시 구매가 완료되었습니다."
+ *       400:
+ *         description: 잘못된 요청
+ *       401:
+ *         description: 인증 실패
+ *       403:
+ *         description: 권한 없음 (관리자만 접근 가능)
+ */
+
+/**
+ * @swagger
+ * /api/v1/purchase/user/getMyPurchases:
+ *   get:
+ *     summary: 내 구매 내역 조회
+ *     tags: [Purchase]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: 페이지 번호
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: 페이지당 항목 수
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [createdAt, updatedAt, totalPrice]
+ *           default: createdAt
+ *         description: 정렬 기준
+ *       - in: query
+ *         name: order
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *         description: 정렬 순서
+ *     responses:
+ *       200:
+ *         description: 내 구매 내역 조회 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/PurchaseRequest'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     total:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *                 message:
+ *                   type: string
+ *                   example: "조회 성공"
+ *       401:
+ *         description: 인증 실패
+ */
+
+/**
+ * @swagger
+ * /api/v1/purchase/user/getMyPurchaseDetail/{purchaseRequestId}:
+ *   get:
+ *     summary: 내 구매 상세 조회
+ *     tags: [Purchase]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: purchaseRequestId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: 구매 요청 ID
+ *     responses:
+ *       200:
+ *         description: 구매 상세 조회 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/PurchaseRequest'
+ *                 message:
+ *                   type: string
+ *       401:
+ *         description: 인증 실패
+ *       404:
+ *         description: 구매 요청을 찾을 수 없음
+ */
+
+/**
+ * @swagger
+ * /api/v1/purchase/admin/managePurchaseRequests:
+ *   get:
+ *     summary: 구매 요청 확인 (관리자)
+ *     tags: [Purchase]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [PENDING, APPROVED, REJECTED, CANCELLED]
+ *         description: 구매 요청 상태 필터
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: 페이지 번호
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: 페이지당 항목 수
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [createdAt, updatedAt, totalPrice]
+ *           default: createdAt
+ *         description: 정렬 기준
+ *       - in: query
+ *         name: order
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *         description: 정렬 순서
+ *     responses:
+ *       200:
+ *         description: 구매 요청 목록 조회 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/PurchaseRequest'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     total:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *                 message:
+ *                   type: string
+ *                   example: "조회 성공"
+ *       400:
+ *         description: 잘못된 요청 (유효하지 않은 상태 값)
+ *       401:
+ *         description: 인증 실패
+ *       403:
+ *         description: 권한 없음 (관리자만 접근 가능)
+ */
+
+/**
+ * @swagger
+ * /api/v1/purchase/admin/approvePurchaseRequest/{purchaseRequestId}:
+ *   patch:
+ *     summary: 구매 요청 승인 (관리자)
+ *     tags: [Purchase]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: purchaseRequestId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: 구매 요청 ID
+ *     responses:
+ *       200:
+ *         description: 구매 요청 승인 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/PurchaseRequest'
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: 이미 처리된 구매 요청
+ *       401:
+ *         description: 인증 실패
+ *       403:
+ *         description: 권한 없음 (관리자만 접근 가능)
+ *       404:
+ *         description: 구매 요청을 찾을 수 없음
+ */
+
+/**
+ * @swagger
+ * /api/v1/purchase/admin/rejectPurchaseRequest/{purchaseRequestId}:
+ *   patch:
+ *     summary: 구매 요청 반려 (관리자)
+ *     tags: [Purchase]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: purchaseRequestId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: 구매 요청 ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - reason
+ *             properties:
+ *               reason:
+ *                 type: string
+ *                 description: 반려 사유
+ *     responses:
+ *       200:
+ *         description: 구매 요청 반려 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/PurchaseRequest'
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: 이미 처리된 구매 요청
+ *       401:
+ *         description: 인증 실패
+ *       403:
+ *         description: 권한 없음 (관리자만 접근 가능)
+ *       404:
+ *         description: 구매 요청을 찾을 수 없음
+ */
+
+/**
+ * @swagger
+ * /api/v1/purchase/user/requestPurchase:
+ *   post:
+ *     summary: 구매 요청
+ *     description: 장바구니에 있는 상품으로 구매 요청을 생성합니다. 요청 성공 시 해당 상품은 장바구니에서 삭제됩니다.
+ *     tags: [Purchase]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - items
+ *               - shippingFee
+ *             properties:
+ *               items:
+ *                 type: array
+ *                 description: 구매할 상품 목록 (장바구니에 있어야 함)
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - productId
+ *                     - quantity
+ *                   properties:
+ *                     productId:
+ *                       type: integer
+ *                       description: 상품 ID
+ *                     quantity:
+ *                       type: integer
+ *                       minimum: 1
+ *                       description: 수량 (장바구니의 수량과 일치해야 함)
+ *               shippingFee:
+ *                 type: number
+ *                 minimum: 0
+ *                 description: 배송비
+ *               requestMessage:
+ *                 type: string
+ *                 description: 요청 메시지 (선택사항)
+ *     responses:
+ *       201:
+ *         description: 구매 요청 생성 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/PurchaseRequest'
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: 잘못된 요청 (장바구니에 상품이 없거나 수량 불일치)
+ *       401:
+ *         description: 인증 실패
+ */
+
+/**
+ * @swagger
+ * /api/v1/purchase/user/urgentRequestPurchase:
+ *   post:
+ *     summary: 긴급 구매 요청 (예산 체크 우회)
+ *     description: |
+ *       **예산 확인 없이 긴급하게 구매 요청을 생성합니다.**
+ *       ### 🚨 중요 특징
+ *       - **예산 우회 (의도적 설계)**:
+ *         - 일반 구매 요청(`/user/requestPurchase`)과 달리 `checkBudget` 미들웨어를 거치지 않습니다.
+ *         - 긴급 상황(예: 시스템 장애, 긴급 업무 필요, 예기치 않은 비즈니스 기회)에서 빠른 구매 처리를 위해 **의도적으로 설계**되었습니다.
+ *         - 라우터에서 `checkBudget` 미들웨어를 제외하여 예산 검증을 우회합니다.
+ *       - **장바구니 기반**:
+ *         - 장바구니에 있는 상품으로만 구매 요청이 가능합니다.
+ *         - 요청 성공 시 해당 상품은 장바구니에서 자동 삭제됩니다.
+ *       ### ⚠️ 남용 방지 메커니즘
+ *       **1. 승인 프로세스**
+ *       - 긴급 구매 요청도 관리자(`MANAGER`)의 승인이 필요합니다.
+ *       - 관리자는 긴급 요청의 타당성을 검토하고 반려할 수 있습니다.
+ *       **2. 감사 로그 (모니터링)**
+ *       - 모든 긴급 구매 요청은 시스템 로그에 자동 기록됩니다.
+ *       - 로그 정보: 요청자, 요청일시, 상품 목록, 총 금액, 요청 사유
+ *       - 관리자는 `/admin/managePurchaseRequests`에서 모든 긴급 구매를 조회 및 모니터링할 수 있습니다.
+ *       **3. 요청 사유 기록**
+ *       - `requestMessage`를 통해 긴급 구매의 사유를 명확히 기록하는 것을 **강력히 권장**합니다.
+ *       - 예시: "서버 장애로 인한 긴급 하드웨어 교체", "중요 고객 미팅을 위한 긴급 물품 구매"
+ *       **4. 정기 검토**
+ *       - 긴급 구매 내역을 정기적으로 검토하여 남용 패턴을 식별할 수 있습니다.
+ *       - 지출 통계(`/admin/expenseStatistics`)에서 긴급 구매 비율을 모니터링합니다.
+ *       ### ✅ 자동화된 테스트 검증
+ *       다음 사항이 자동화된 테스트를 통해 검증됩니다:
+ *       1. **일반 구매 요청**: `checkBudget` 미들웨어가 적용되어 예산 검증이 수행됨
+ *       2. **긴급 구매 요청**: `checkBudget` 미들웨어가 적용되지 않아 예산 우회됨
+ *       3. **공통 검증**: 두 엔드포인트 모두 동일한 인증(`verifyAccessToken`) 및 권한(`requireMinRole('USER')`) 검증을 거침
+ *       4. **장바구니 검증**: 두 엔드포인트 모두 장바구니에 있는 상품만 구매 요청 가능
+ *       ### 📊 사용 시나리오
+ *       - ✅ **적절한 사용**: 서버 장애로 인한 긴급 하드웨어 교체, 예기치 않은 중요 고객 미팅
+ *       - ❌ **부적절한 사용**: 일상적인 구매, 단순 편의를 위한 예산 우회
+ *     tags: [Purchase]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - items
+ *               - shippingFee
+ *             properties:
+ *               items:
+ *                 type: array
+ *                 description: 구매할 상품 목록 (장바구니에 있어야 함)
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - productId
+ *                     - quantity
+ *                   properties:
+ *                     productId:
+ *                       type: integer
+ *                       description: 상품 ID
+ *                     quantity:
+ *                       type: integer
+ *                       minimum: 1
+ *                       description: 수량 (장바구니의 수량과 일치해야 함)
+ *               shippingFee:
+ *                 type: number
+ *                 minimum: 0
+ *                 description: 배송비
+ *               requestMessage:
+ *                 type: string
+ *                 description: |
+ *                   긴급 요청 사유 (강력 권장)
+ *                   예시:
+ *                   - "서버 장애로 인한 긴급 하드웨어 교체 필요"
+ *                   - "중요 고객 미팅을 위한 긴급 물품 구매"
+ *                   - "예기치 않은 시스템 다운타임 방지를 위한 긴급 구매"
+ *     responses:
+ *       201:
+ *         description: 긴급 구매 요청 생성 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/PurchaseRequest'
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: 잘못된 요청 (장바구니에 상품이 없거나 수량 불일치)
+ *       401:
+ *         description: 인증 실패
+ */
+
+/**
+ * @swagger
+ * /api/v1/purchase/user/cancelPurchaseRequest/{purchaseRequestId}:
+ *   patch:
+ *     summary: 구매 요청 취소
+ *     description: 대기 중인 구매 요청을 취소합니다. PENDING 상태의 요청만 취소 가능합니다.
+ *     tags: [Purchase]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: purchaseRequestId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: 구매 요청 ID
+ *     responses:
+ *       200:
+ *         description: 구매 요청 취소 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/PurchaseRequest'
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: 대기 중인 구매 요청이 아님 (이미 처리됨)
+ *       401:
+ *         description: 인증 실패
+ *       404:
+ *         description: 구매 요청을 찾을 수 없음
+ */
+
+/**
+ * @swagger
+ * /api/v1/purchase/admin/expenseStatistics:
+ *   get:
+ *     summary: 지출 통계 조회 (관리자)
+ *     tags: [Purchase]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: 지출 통계 조회 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/ExpenseStatistics'
+ *                 message:
+ *                   type: string
+ *       401:
+ *         description: 인증 실패
+ *       403:
+ *         description: 권한 없음 (관리자만 접근 가능)
+ */
+
+/**
+ * @swagger
+ * /api/v1/purchase/admin/purchaseDashboard:
+ *   get:
+ *     summary: 구매 관리 대시보드 (관리자)
+ *     description: 조직 전체 지출액/예산 조회 및 전체 구매 내역 리스트를 제공합니다.
+ *     tags: [Purchase]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: 페이지 번호
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: 페이지당 항목 수
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [createdAt, updatedAt, totalPrice]
+ *           default: createdAt
+ *         description: 정렬 기준
+ *       - in: query
+ *         name: order
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *         description: 정렬 순서
+ *     responses:
+ *       200:
+ *         description: 대시보드 데이터 조회 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     expenses:
+ *                       type: object
+ *                       properties:
+ *                         thisMonth:
+ *                           type: number
+ *                           description: 이번달 지출액
+ *                         lastMonth:
+ *                           type: number
+ *                           description: 지난달 지출액
+ *                         thisYear:
+ *                           type: number
+ *                           description: 올해 총 지출액
+ *                         lastYear:
+ *                           type: number
+ *                           description: 지난해 지출액
+ *                     budget:
+ *                       type: object
+ *                       properties:
+ *                         thisMonthBudget:
+ *                           type: number
+ *                           nullable: true
+ *                           description: 이번달 예산
+ *                         remainingBudget:
+ *                           type: number
+ *                           nullable: true
+ *                           description: 남은 예산
+ *                     purchaseList:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/PurchaseRequest'
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         page:
+ *                           type: integer
+ *                         limit:
+ *                           type: integer
+ *                         total:
+ *                           type: integer
+ *                         totalPages:
+ *                           type: integer
+ *                 message:
+ *                   type: string
+ *                   example: "구매 관리 대시보드 정보를 조회했습니다."
+ *       401:
+ *         description: 인증 실패
+ *       403:
+ *         description: 권한 없음 (관리자만 접근 가능)
+ */
+
+/**
+ * @swagger
+ * components:
+ *   securitySchemes:
+ *     bearerAuth:
+ *       type: http
+ *       scheme: bearer
+ *       bearerFormat: JWT
+ */

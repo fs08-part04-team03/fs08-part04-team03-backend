@@ -9,7 +9,6 @@ package-lock.json
 # Build outputs
 dist/
 build/
-*.log
 
 # IDE - VS Code
 .vscode/*
@@ -32,3 +31,8 @@ coverage/
 *.swo
 *~
 /.idea/
+
+# Logs
+logs/
+*.log
+npm-debug.log*

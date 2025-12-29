@@ -1,0 +1,15 @@
+@baseUrl = http://localhost:4000/api/v1
+
+### 1) 로그인 (accessToken 발급)
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@test.com",
+  "password": "test-password"
+}
+
+### 2) 회사 정보 조회 (인증 필요)
+GET {{baseUrl}}/company
+Authorization: Bearer {{login.response.body.$.data.accessToken}}

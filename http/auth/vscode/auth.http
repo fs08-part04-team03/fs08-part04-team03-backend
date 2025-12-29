@@ -1,0 +1,30 @@
+@baseUrl = http://localhost:4000/api/v1
+
+# /auth/refresh, /auth/logout은 refreshToken "쿠키"가 필요합니다.
+# VSCode REST Client를 쓰면 쿠키 유지 옵션을 켜야 다음 요청에 쿠키가 자동 전송됩니다.
+# (설정) "rest-client.rememberCookiesForSubsequentRequests": true
+
+### 1) 로그인 (accessToken 발급 + refreshToken 쿠키 세팅)
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@test.com",
+  "password": "test-password"
+}
+
+### 2) (선택) accessToken으로 보호 API 호출해서 토큰 확인
+GET {{baseUrl}}/company
+Authorization: Bearer {{login.response.body.$.data.accessToken}}
+
+### 3) refresh (쿠키 필요, 새 accessToken 발급 + refreshToken 쿠키 갱신)
+# @name refresh
+POST {{baseUrl}}/auth/refresh
+
+### 4) (선택) refresh에서 받은 accessToken으로 확인
+GET {{baseUrl}}/company
+Authorization: Bearer {{refresh.response.body.$.data.accessToken}}
+
+### 5) 로그아웃 (쿠키 필요, refreshToken 무효화 + 쿠키 제거)
+POST {{baseUrl}}/auth/logout

@@ -59,19 +59,17 @@ datasource db {
 
 // 회사 테이블
 model companies {
-  id             String   @id @default(uuid(7)) @db.Uuid
-  name           String   @db.VarChar(255)
-  businessNumber String   @db.VarChar(255)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  // Relations
-  users            users[]
-  products         products[]
+  id               String             @id @default(uuid(7)) @db.Uuid
+  name             String             @db.VarChar(255)
+  businessNumber   String             @db.VarChar(255)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
   budgetCriteria   budgetCriteria?
   budgets          budgets[]
-  purchaseRequests purchaseRequests[]
   invitations      invitations[]
+  products         products[]
+  purchaseRequests purchaseRequests[]
+  users            users[]
 
   @@map("companies")
 }
@@ -80,29 +78,24 @@ model companies {
 model users {
   id           String   @id @default(uuid(7)) @db.Uuid
   companyId    String   @db.Uuid
-  email        String   @unique
+  email        String
   password     String
   name         String   @db.VarChar(255)
   role         role     @default(USER)
+  refreshToken String?  @db.VarChar(255)
   profileImage String?  @db.VarChar(255)
-  isActive     Boolean  @default(true)
+  isActive     Boolean  @default(true) // 논리적 삭제
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   // Relations
-  companies          companies          @relation(fields: [companyId], references: [id])
   carts              carts[]
-  requestedPurchases purchaseRequests[] @relation("Requester")
   approvedPurchases  purchaseRequests[] @relation("Approver")
+  requestedPurchases purchaseRequests[] @relation("Requester")
+  companies          companies          @relation(fields: [companyId], references: [id])
 
   @@unique([companyId, email])
   @@map("users")
-}
-
-enum role {
-  USER
-  MANAGER
-  ADMIN
 }
 
 // 카테고리
@@ -197,23 +190,17 @@ model purchaseRequests {
   shippingFee    Int            @default(3000)
   requestMessage String?        @db.VarChar(255)
   rejectReason   String?        @db.VarChar(255)
+  reason         String?        @db.VarChar(255)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
   // Relations
+  purchaseItems purchaseItems[]
+  approver      users?          @relation("Approver", fields: [approverId], references: [id])
   companies     companies       @relation(fields: [companyId], references: [id])
   requester     users           @relation("Requester", fields: [requesterId], references: [id])
-  approver      users?          @relation("Approver", fields: [approverId], references: [id])
-  purchaseItems purchaseItems[]
 
   @@map("purchase_requests")
-}
-
-enum purchaseStatus {
-  PENDING
-  APPROVED
-  REJECTED
-  CANCELLED
 }
 
 // 구매내역
@@ -260,6 +247,19 @@ model History {
   createdAt     DateTime      @default(now())
 
   @@map("history")
+}
+
+enum role {
+  USER
+  MANAGER
+  ADMIN
+}
+
+enum purchaseStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
 }
 
 enum operationType {

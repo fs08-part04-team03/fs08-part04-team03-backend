@@ -1,0 +1,57 @@
+### 로그인 (먼저 이것을 실행하세요!)
+# @name login
+POST http://localhost:4000/api/v1/auth/login
+Content-Type: application/json
+
+{
+    "email": "manager@test.com",
+    "password": "testM"
+}
+
+# VSCode 사용 시:
+# 1. 위 요청을 실행한 후 응답에서 accessToken 값을 복사하세요
+# 2. 아래 @token 변수에 토큰을 붙여넣거나
+# 3. http-client.env.json 파일에 token 값을 설정하세요
+
+###
+
+# 토큰을 여기에 설정하거나 http-client.env.json 파일을 사용하세요
+@token = YOUR_ACCESS_TOKEN_HERE
+
+###
+
+### 내 정보 조회
+GET http://localhost:4000/api/v1/user/me
+Authorization: Bearer {{token}}
+
+###
+
+### 내 구매 조회 - 기본 (첫 페이지, 10개 항목, 최신순)
+GET http://localhost:4000/api/v1/purchase/user/getMyPurchases
+Authorization: Bearer {{token}}
+
+###
+
+### 내 구매 조회 - 페이지네이션 (2페이지, 페이지당 5개)
+GET http://localhost:4000/api/v1/purchase/user/getMyPurchases?page=2&limit=5
+Authorization: Bearer {{token}}
+
+###
+
+### 내 구매 조회 - 가격 오름차순 정렬
+GET http://localhost:4000/api/v1/purchase/user/getMyPurchases?sortBy=totalPrice&order=asc
+Authorization: Bearer {{token}}
+
+###
+
+### 내 구매 조회 - 가격 내림차순 정렬 + 페이지네이션
+GET http://localhost:4000/api/v1/purchase/user/getMyPurchases?page=1&limit=3&sortBy=totalPrice&order=desc
+Authorization: Bearer {{token}}
+
+###
+
+### 내 구매 조회 - 요청일 오름차순 정렬
+GET http://localhost:4000/api/v1/purchase/user/getMyPurchases?sortBy=createdAt&order=asc
+Authorization: Bearer {{token}}
+
+###

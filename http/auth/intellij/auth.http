@@ -1,0 +1,65 @@
+@base = http://localhost:4000
+@version = v1
+
+### 1) 로그인 (200, refreshToken 쿠키 발급 + accessToken 저장)
+# @name login
+POST {{base}}/api/{{version}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@test.com",
+  "password": "test-password"
+}
+
+> {%
+  // accessToken 저장
+  const accessToken = response.body?.data?.accessToken;
+  if (!accessToken) throw new Error("accessToken이 응답에 없습니다.");
+  client.global.set("accessToken", accessToken);
+%}
+
+### 2) 보호 API 호출해서 토큰 확인 (200 기대)
+# @name company_ok_after_login
+GET {{base}}/api/{{version}}/company
+Authorization: Bearer {{accessToken}}
+
+> {%
+  if (response.status !== 200) {
+    throw new Error("보호 API 호출 실패 (login 후)");
+  }
+%}
+
+### 3) refresh (쿠키 자동 전송, 200 기대, 새 accessToken 저장)
+# @name refresh
+POST {{base}}/api/{{version}}/auth/refresh
+
+> {%
+  if (response.status !== 200) {
+    throw new Error("refresh 실패");
+  }
+  const accessToken = response.body?.data?.accessToken;
+  if (!accessToken) throw new Error("refresh 응답에 accessToken이 없습니다.");
+  client.global.set("accessToken", accessToken);
+%}
+
+### 4) refresh에서 받은 accessToken으로 보호 API 확인 (200 기대)
+# @name company_ok_after_refresh
+GET {{base}}/api/{{version}}/company
+Authorization: Bearer {{accessToken}}
+
+> {%
+  if (response.status !== 200) {
+    throw new Error("보호 API 호출 실패 (refresh 후)");
+  }
+%}
+
+### 5) 로그아웃 (쿠키 필요, 200 기대, accessToken 초기화)
+# @name logout
+POST {{base}}/api/{{version}}/auth/logout
+
+> {%
+  if (response.status !== 200) {
+    throw new Error("logout 실패");
+  }
+  client.global.set("accessToken", "");
+%}

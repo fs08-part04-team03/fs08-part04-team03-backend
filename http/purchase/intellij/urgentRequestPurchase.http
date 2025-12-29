@@ -1,0 +1,45 @@
+### 로그인 (먼저 이것을 실행하세요!)
+# @name login
+POST http://localhost:4000/api/v1/auth/login
+Content-Type: application/json
+
+{
+    "email": "user@test.com",
+    "password": "testU"
+}
+
+> {%
+    // ResponseUtil.success 구조: { success, data: { accessToken, ... }, message }
+    client.global.set("token", response.body.data.accessToken);
+%}
+
+###
+
+### 긴급 구매 요청 (예산 체크 우회)
+# @name urgentRequestPurchase
+POST http://localhost:4000/api/v1/purchase/user/urgentRequestPurchase
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "shippingFee": 3000,
+  "items": [
+    {
+      "productId": 221,
+      "quantity": 1000000
+    }
+  ],
+  "requestMessage": "긴급 업무용 물품 - 서버 장애로 인한 긴급 하드웨어 교체 필요"
+}
+
+> {%
+    // ResponseUtil.success 응답 구조 확인
+    // { success: true, data: { id, status, totalPrice, ... }, message }
+    if (response.body.success && response.body.data) {
+        client.log("구매 요청 ID: " + response.body.data.id);
+        client.log("상태: " + response.body.data.status);
+        client.log("총 금액: " + response.body.data.totalPrice);
+    }
+%}
+
+###
