@@ -2,7 +2,7 @@ import 'express-async-errors';
 import express, { type Application, type Request, type Response } from 'express';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
-import { csrf } from 'lusca';
+import session from 'express-session';
 import { env } from './config/env.config';
 import { corsMiddleware } from './config/cors.config';
 import { startBudgetScheduler } from './config/cron.config';
@@ -68,7 +68,24 @@ app.use(
 
 app.use(requestLogger);
 app.use(cookieParser());
-app.use(csrf());
+
+// 세션 기반 CSRF를 위해 서버에 세션을 유지하고, 쿠키로 세션 ID를 전달
+app.use(
+  session({
+    name: 'SESSION_ID',
+    secret: env.SESSION_SECRET, // 세션 서명용 시크릿
+    resave: false, // 변경 없으면 세션을 다시 저장하지 않음
+    saveUninitialized: false, // 초기 상태(미변경) 세션은 저장하지 않음
+    cookie: {
+      httpOnly: true,
+      secure: env.NODE_ENV === 'production',
+      sameSite: env.COOKIE_SAME_SITE,
+      domain: env.COOKIE_DOMAIN,
+      path: env.COOKIE_PATH,
+    },
+  })
+);
+
 app.use(rateLimiter());
 app.use(express.json());
 

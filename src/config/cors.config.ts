@@ -6,7 +6,7 @@ export const corsMiddleware = () => {
   const corsOptions: cors.CorsOptions = {
     origin: env.ALLOWED_ORIGINS,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token'],
     credentials: true,
     optionsSuccessStatus: 200,
   };
