@@ -87,7 +87,7 @@ export const env = {
 
   API_HOST: str(
     'API_HOST',
-    NODE_ENV === 'production' ? 'https://fs08-part04-team03-backend.onrender.com/' : ''
+    NODE_ENV === 'production' ? 'fs08-part04-team03-backend.onrender.com' : ''
   ),
 
   INVITATION_EXPIRES_HOURS: int('INVITATION_EXPIRES_HOURS', 48),
