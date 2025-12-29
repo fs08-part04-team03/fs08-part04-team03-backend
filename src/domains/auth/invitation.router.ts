@@ -123,7 +123,7 @@ router.post(
     url.searchParams.set('token', rawToken);
 
     // 초대 이메일 발송
-    sendInvitationEmail(email, url as unknown as string).catch((error) => {
+    sendInvitationEmail(email, url.toString()).catch((error) => {
       console.error('초대 이메일 전송 실패:', error);
     });
 

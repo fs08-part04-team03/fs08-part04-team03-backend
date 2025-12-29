@@ -10,9 +10,9 @@ const router = Router();
 
 // CSRF 보호 미들웨어 설정
 const csrfProtection = csrf({
-  header: 'X-CSRF-Token', // xCsrfToken
+  header: 'X-CSRF-Token',
   cookie: {
-    name: 'XSRF-TOKEN', // xsrfToken
+    name: 'XSRF-TOKEN',
     options: {
       sameSite: env.COOKIE_SAME_SITE,
       secure: env.COOKIE_SECURE,
@@ -28,7 +28,7 @@ router.get('/csrf', csrfProtection, (req, res) => {
 
 router.post('/register', authValidator.signup, authController.signup);
 router.post('/admin/register', authValidator.adminRegister, authController.adminRegister);
-router.post('/login', authController.login); // TODO: 로그인 validator 추가 (임시 비밀번호가 해당 조건을 만족하지 않음)
+router.post('/login', authValidator.login, authController.login);
 router.post('/refresh', csrfProtection, authController.refresh);
 router.post('/logout', csrfProtection, authController.logout);
 router.use('/invitation', invitationRouter);
