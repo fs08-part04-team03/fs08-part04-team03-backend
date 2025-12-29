@@ -114,6 +114,13 @@
  *             message:
  *               type: string
  *               example: '로그아웃 완료'
+ *     AuthCsrfResponse:
+ *       type: object
+ *       properties:
+ *         csrfToken:
+ *           type: string
+ *           description: CSRF token for request header
+ *           example: "2s0bT1...k9"
  */
 
 /**
