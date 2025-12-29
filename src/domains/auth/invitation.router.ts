@@ -94,10 +94,7 @@ type AuthedRequest = Request & {
 router.post(
   '/create',
   verifyAccessToken,
-  [
-    body('companyId').isUUID(),
-    ...invitationValidator.create, // XSS 방지: escape() 포함된 validator 사용
-  ],
+  [body('companyId').isUUID(), ...invitationValidator.create],
   async (req: Request, res: Response) => {
     // 2) 여기서만 캐스팅
     const authReq = req as AuthedRequest;
