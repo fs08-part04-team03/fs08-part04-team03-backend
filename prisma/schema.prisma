@@ -259,8 +259,8 @@ model wishLists {
   createdAt DateTime @default(now())
 
   // Relations
-  users    users    @relation(fields: [userId], references: [id])
-  products products @relation(fields: [productId], references: [id])
+  users    users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  products products @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([userId, productId])
   @@map("wish_lists")
