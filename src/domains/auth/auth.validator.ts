@@ -28,6 +28,7 @@ export const authValidator = {
       .custom(passwordMatchValidator)
       .withMessage('passwordConfirm이 password와 다릅니다'),
     body('inviteUrl').isString().trim().isLength({ min: 1, max: 2048 }),
+    body('profileImage').optional({ nullable: true }).isString().trim(),
     validateRequest,
   ],
   adminRegister: [
@@ -51,6 +52,7 @@ export const authValidator = {
       .trim()
       .matches(businessNumberRegex)
       .withMessage('businessNumber는 123-45-67890 형식이어야 합니다'),
+    body('profileImage').optional({ nullable: true }).isString().trim(),
     validateRequest,
   ],
   login: [

@@ -7,19 +7,23 @@ import { CustomError } from '../../common/utils/error.util';
 import { HttpStatus } from '../../common/constants/httpStatus.constants';
 import { ErrorCodes } from '../../common/constants/errorCodes.constants';
 
+// 회원가입 입력 타입
 type SignupInput = {
   name: string;
   email: string;
   password: string;
   inviteToken: string;
+  profileImage?: string | null;
 };
 
+// 어드민 회원가입 입력 타입
 type AdminRegisterInput = {
   name: string;
   email: string;
   password: string;
   companyName: string;
   businessNumber: string;
+  profileImage?: string | null;
 };
 
 type LoginInput = { email: string; password: string };
@@ -59,7 +63,7 @@ function hashInviteToken(rawToken: string): string {
 
 export const authService = {
   // 회원가입
-  async signup({ name, email, password, inviteToken }: SignupInput) {
+  async signup({ name, email, password, inviteToken, profileImage }: SignupInput) {
     if (!inviteToken) {
       throw new CustomError(
         HttpStatus.BAD_REQUEST,
@@ -104,6 +108,7 @@ export const authService = {
     }
 
     const passwordHash = await argon2.hash(password);
+    const profileImageValue = profileImage ? profileImage.trim() : null;
 
     return prisma.$transaction(async (tx) => {
       // 사용자 생성
@@ -115,6 +120,7 @@ export const authService = {
           role: invitation.role,
           password: passwordHash,
           isActive: true,
+          profileImage: profileImageValue,
         },
         select: {
           id: true,
@@ -122,6 +128,7 @@ export const authService = {
           email: true,
           name: true,
           role: true,
+          profileImage: true,
         },
       });
 
@@ -150,11 +157,19 @@ export const authService = {
   },
 
   // 어드민 회원가입
-  async adminRegister({ name, email, password, companyName, businessNumber }: AdminRegisterInput) {
+  async adminRegister({
+    name,
+    email,
+    password,
+    companyName,
+    businessNumber,
+    profileImage,
+  }: AdminRegisterInput) {
     const normalizedEmail = email.trim().toLowerCase();
     const normalizedCompanyName = companyName.trim();
     const normalizedBusinessNumber = businessNumber.trim();
     const passwordHash = await argon2.hash(password);
+    const profileImageValue = profileImage ? profileImage.trim() : null;
 
     // 사업자 번호 중복 검사 및 회사/어드민 유저 생성
     return prisma.$transaction(async (tx) => {
@@ -199,6 +214,7 @@ export const authService = {
           role: role.ADMIN,
           password: passwordHash,
           isActive: true,
+          profileImage: profileImageValue,
         },
         select: {
           id: true,
@@ -206,6 +222,7 @@ export const authService = {
           email: true,
           name: true,
           role: true,
+          profileImage: true,
         },
       });
 
