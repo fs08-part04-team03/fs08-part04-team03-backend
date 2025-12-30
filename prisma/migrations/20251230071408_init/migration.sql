@@ -141,12 +141,22 @@ CREATE TABLE "invitations" (
 CREATE TABLE "history" (
     "id" UUID NOT NULL,
     "tableName" VARCHAR(255) NOT NULL,
-    "tableId" UUID NOT NULL,
+    "tableId" VARCHAR(255) NOT NULL,
     "operationType" "operationType" NOT NULL,
     "data" JSONB NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "history_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "wish_lists" (
+    "id" UUID NOT NULL,
+    "userId" UUID NOT NULL,
+    "productId" INTEGER NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "wish_lists_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -159,10 +169,13 @@ CREATE UNIQUE INDEX "budget_criteria_companyId_key" ON "budget_criteria"("compan
 CREATE UNIQUE INDEX "budgets_companyId_year_month_key" ON "budgets"("companyId", "year", "month");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "invitations_companyId_email_key" ON "invitations"("companyId", "email");
+CREATE UNIQUE INDEX "invitations_email_key" ON "invitations"("email");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "invitations_token_key" ON "invitations"("token");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "wish_lists_userId_productId_key" ON "wish_lists"("userId", "productId");
 
 -- AddForeignKey
 ALTER TABLE "users" ADD CONSTRAINT "users_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "companies"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -205,3 +218,9 @@ ALTER TABLE "purchase_items" ADD CONSTRAINT "purchase_items_productId_fkey" FORE
 
 -- AddForeignKey
 ALTER TABLE "invitations" ADD CONSTRAINT "invitations_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "companies"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "wish_lists" ADD CONSTRAINT "wish_lists_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "wish_lists" ADD CONSTRAINT "wish_lists_productId_fkey" FOREIGN KEY ("productId") REFERENCES "products"("id") ON DELETE CASCADE ON UPDATE CASCADE;
