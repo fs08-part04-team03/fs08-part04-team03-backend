@@ -30,7 +30,7 @@ router.post('/register', authValidator.signup, authController.signup);
 router.post('/admin/register', authValidator.adminRegister, authController.adminRegister);
 router.post('/login', authValidator.login, authController.login);
 router.post('/refresh', csrfProtection, authController.refresh);
-router.post('/logout', csrfProtection, authController.logout);
+router.post('/logout', authController.logout);
 router.use('/invitation', invitationRouter);
 
 export const authRouter = router;
