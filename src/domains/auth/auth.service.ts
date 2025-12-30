@@ -108,7 +108,7 @@ export const authService = {
     }
 
     const passwordHash = await argon2.hash(password);
-    const profileImageValue = profileImage ? profileImage.trim() : null;
+    const profileImageValue = profileImage?.trim() || null;
 
     return prisma.$transaction(async (tx) => {
       // 사용자 생성
@@ -169,7 +169,7 @@ export const authService = {
     const normalizedCompanyName = companyName.trim();
     const normalizedBusinessNumber = businessNumber.trim();
     const passwordHash = await argon2.hash(password);
-    const profileImageValue = profileImage ? profileImage.trim() : null;
+    const profileImageValue = profileImage?.trim() || null;
 
     // 사업자 번호 중복 검사 및 회사/어드민 유저 생성
     return prisma.$transaction(async (tx) => {
