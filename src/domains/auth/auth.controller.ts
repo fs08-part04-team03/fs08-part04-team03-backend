@@ -16,6 +16,7 @@ type SignupRequest = Request<
     password: string;
     passwordConfirm: string;
     inviteUrl: string;
+    profileImage?: string | null;
   },
   unknown
 >;
@@ -30,6 +31,7 @@ type AdminRegisterRequest = Request<
     passwordConfirm: string;
     companyName: string;
     businessNumber: string;
+    profileImage?: string | null;
   },
   unknown
 >;
@@ -103,7 +105,7 @@ const refreshCookieOptions = (maxAgeMs: number): CookieOptions => ({
 export const authController = {
   // 회원가입
   signup: async (req: SignupRequest, res: Response) => {
-    const { name, email, password, inviteUrl } = req.body;
+    const { name, email, password, inviteUrl, profileImage } = req.body;
     const inviteToken = extractTokenFromInviteUrl(inviteUrl);
 
     const { accessToken, refreshToken, user } = await authService.signup({
@@ -111,6 +113,7 @@ export const authController = {
       email,
       password,
       inviteToken,
+      profileImage,
     });
 
     const { exp } = JwtUtil.verifyRefreshToken(refreshToken);
@@ -124,7 +127,7 @@ export const authController = {
 
   // 어드민 회원가입
   adminRegister: async (req: AdminRegisterRequest, res: Response) => {
-    const { name, email, password, companyName, businessNumber } = req.body;
+    const { name, email, password, companyName, businessNumber, profileImage } = req.body;
 
     const { accessToken, refreshToken, user, company } = await authService.adminRegister({
       name,
@@ -132,6 +135,7 @@ export const authController = {
       password,
       companyName,
       businessNumber,
+      profileImage,
     });
 
     const { exp } = JwtUtil.verifyRefreshToken(refreshToken);
