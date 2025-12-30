@@ -76,7 +76,7 @@ export async function checkBudget(req: BudgetCheckRequest, _res: Response, next:
 
     // 관리자들에게 예산 부족 이메일 발송 (백그라운드 처리)
     // 이메일 전송 실패해도 에러를 반환하지 않음
-    const emailPromises = admins.map((admin) =>
+    const emailPromises = admins.map((admin: { email: string }) =>
       sendBudgetAlertEmail(admin.email, totalBudget, '회사의 예산이 없습니다.')
     );
 
@@ -164,7 +164,7 @@ export async function checkBudget(req: BudgetCheckRequest, _res: Response, next:
 
     // 관리자들에게 예산 부족 이메일 발송 (백그라운드 처리)
     // 이메일 전송 실패해도 에러를 반환하지 않음
-    const emailPromises = admins.map((admin) =>
+    const emailPromises = admins.map((admin: { email: string }) =>
       sendBudgetAlertEmail(
         admin.email,
         totalBudget,
