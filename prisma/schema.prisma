@@ -92,6 +92,7 @@ model users {
   carts              carts[]
   approvedPurchases  purchaseRequests[] @relation("Approver")
   requestedPurchases purchaseRequests[] @relation("Requester")
+  wishLists          wishLists[]
   companies          companies          @relation(fields: [companyId], references: [id])
 
   @@unique([companyId, email])
@@ -132,6 +133,7 @@ model products {
   categoies     categoies       @relation(fields: [categoryId], references: [id])
   carts         carts[]
   purchaseItems purchaseItems[]
+  wishLists     wishLists[]
 
   @@map("products")
 }
@@ -241,12 +243,27 @@ model invitations {
 model History {
   id            String        @id @default(uuid(7)) @db.Uuid
   tableName     String        @db.VarChar(255)
-  tableId       String        @db.Uuid
+  tableId       String        @db.VarChar(255)
   operationType operationType
   data          Json // 각 테이블마다 상이
   createdAt     DateTime      @default(now())
 
   @@map("history")
+}
+
+// 찜한 상품
+model wishLists {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  userId    String   @db.Uuid
+  productId Int
+  createdAt DateTime @default(now())
+
+  // Relations
+  users    users    @relation(fields: [userId], references: [id])
+  products products @relation(fields: [productId], references: [id])
+
+  @@unique([userId, productId])
+  @@map("wish_lists")
 }
 
 enum role {
