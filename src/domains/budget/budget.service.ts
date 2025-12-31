@@ -52,32 +52,22 @@ export const budgetService = {
 
   // 예산 기준으로 월별 예산 생성
   async seedMonthlyBudgetsFromCriteria(utcYear: number, utcMonth: number) {
-    // 예산 기준 조회 -> 없는 회사는 생성 X
-    const criteriaList = await prisma.budgetCriteria.findMany();
+    // 트랜잭션으로 모든 회사에 대해 예산 기준을 조회하고 월별 예산 생성
+    await prisma.$transaction(async (tx) => {
+      // 예산 기준 목록 조회
+      const criteriaList = await tx.budgetCriteria.findMany();
 
-    await Promise.all(
-      criteriaList.map(async (criteria) => {
-        const exists = await prisma.budgets.findUnique({
-          where: {
-            companyId_year_month: {
-              companyId: criteria.companyId,
-              year: utcYear,
-              month: utcMonth,
-            },
-          },
-        });
-        // 이미 예산이 있으면 생성 X
-        if (exists) return;
-
-        await prisma.budgets.create({
-          data: {
-            companyId: criteria.companyId,
-            year: utcYear,
-            month: utcMonth,
-            amount: criteria.amount ?? 0,
-          },
-        });
-      })
-    );
+      // 각 회사별로 월별 예산 생성
+      await tx.budgets.createMany({
+        data: criteriaList.map((criteria) => ({
+          companyId: criteria.companyId,
+          year: utcYear,
+          month: utcMonth,
+          amount: criteria.amount ?? 0,
+        })),
+        // 이미 존재하는 경우 삽입 무시
+        skipDuplicates: true,
+      });
+    });
   },
 };

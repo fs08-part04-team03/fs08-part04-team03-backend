@@ -17,6 +17,10 @@
  *         email: { type: string, format: email }
  *         name: { type: string }
  *         role: { type: string, enum: ["USER", "MANAGER", "ADMIN"] }
+ *         profileImage:
+ *           type: string
+ *           nullable: true
+ *           example: "https://example.com/avatar.png"
  *     AuthCompany:
  *       type: object
  *       properties:
@@ -38,6 +42,10 @@
  *           format: uri
  *           description: 'query `token` 또는 `#token=` 해시에 토큰 포함 필요 (예: ?token=... 또는 #token=...)'
  *           example: "https://app.example.com/signup?token=123e4567-e89b-12d3-a456-426614174000"
+ *         profileImage:
+ *           type: string
+ *           nullable: true
+ *           example: "https://example.com/user-avatar.png"
  *     AuthAdminRegisterRequest:
  *       type: object
  *       required: [name, email, password, passwordConfirm, companyName, businessNumber]
@@ -51,6 +59,10 @@
  *           type: string
  *           pattern: "^\\d{3}-\\d{2}-\\d{5}$"
  *           example: "123-45-67890"
+ *         profileImage:
+ *           type: string
+ *           nullable: true
+ *           example: "https://example.com/admin-avatar.png"
  *     AuthLoginRequest:
  *       type: object
  *       required: [email, password]

@@ -1,0 +1,30 @@
+### 로그인
+POST http://localhost:4000/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@test.com",
+  "password": "testU"
+}
+
+> {%
+  client.global.set("accessToken", response.body?.data?.accessToken);
+%}
+
+###
+
+### 찜 등록
+POST http://localhost:4000/api/v1/wishlist/1
+Authorization: Bearer {{accessToken}}
+
+###
+
+### 내 찜 목록 조회
+GET http://localhost:4000/api/v1/wishlist/my?page=1&limit=10&sort=desc
+Authorization: Bearer {{accessToken}}
+
+###
+
+### 찜 해제
+DELETE http://localhost:4000/api/v1/wishlist/1
+Authorization: Bearer {{accessToken}}

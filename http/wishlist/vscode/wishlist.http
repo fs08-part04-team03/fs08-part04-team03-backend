@@ -1,0 +1,25 @@
+@baseUrl = http://localhost:4000/api/v1
+
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@test.com",
+  "password": "testU1234!"
+}
+
+###
+# 찜 등록
+POST {{baseUrl}}/wishlist/1
+Authorization: Bearer {{login.response.body.$.data.accessToken}}
+
+###
+# 내 찜 목록 조회
+GET {{baseUrl}}/wishlist/my?page=1&limit=10&sort=desc
+Authorization: Bearer {{login.response.body.$.data.accessToken}}
+
+###
+# 찜 해제
+DELETE {{baseUrl}}/wishlist/1
+Authorization: Bearer {{login.response.body.$.data.accessToken}}
