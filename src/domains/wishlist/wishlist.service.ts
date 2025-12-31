@@ -1,4 +1,4 @@
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../common/database/prisma.client';
 import { CustomError } from '../../common/utils/error.util';
 import { HttpStatus } from '../../common/constants/httpStatus.constants';
@@ -110,21 +110,23 @@ export const wishlistService = {
       );
     }
 
-    const existing = await prisma.wishLists.findUnique({
-      where: { userId_productId: { userId, productId } },
-      include: { products: { select: productSelect } },
-    });
-
-    if (existing) {
-      return { item: toWishlistItem(existing), isNew: false };
+    try {
+      const created = await prisma.wishLists.create({
+        data: { userId, productId },
+        include: { products: { select: productSelect } },
+      });
+      return { item: toWishlistItem(created), isNew: true };
+    } catch (error) {
+      // Unique constraint violation - fetch existing
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        const existing = await prisma.wishLists.findUniqueOrThrow({
+          where: { userId_productId: { userId, productId } },
+          include: { products: { select: productSelect } },
+        });
+        return { item: toWishlistItem(existing), isNew: false };
+      }
+      throw error;
     }
-
-    const created = await prisma.wishLists.create({
-      data: { userId, productId },
-      include: { products: { select: productSelect } },
-    });
-
-    return { item: toWishlistItem(created), isNew: true };
   },
 
   // 내 찜 목록 조회
