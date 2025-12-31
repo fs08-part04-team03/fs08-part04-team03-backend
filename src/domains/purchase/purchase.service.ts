@@ -395,7 +395,7 @@ export const purchaseService = {
       where: {
         companyId,
         year: now.getUTCFullYear(),
-        month: now.getUTCMonth(),
+        month: now.getUTCMonth() + 1,
       },
     });
     if (!budget) {
