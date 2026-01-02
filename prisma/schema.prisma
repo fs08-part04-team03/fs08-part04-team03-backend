@@ -93,6 +93,7 @@ model users {
   approvedPurchases  purchaseRequests[] @relation("Approver")
   requestedPurchases purchaseRequests[] @relation("Requester")
   wishLists          wishLists[]
+  createdProducts    products[]         @relation("UserCreatedProducts")
   companies          companies          @relation(fields: [companyId], references: [id])
 
   @@unique([companyId, email])
@@ -119,6 +120,7 @@ model categoies {
 model products {
   id         Int      @id @default(autoincrement())
   companyId  String   @db.Uuid
+  createdById String?  @db.Uuid
   categoryId Int
   name       String   @db.VarChar(255)
   price      Int
@@ -130,6 +132,7 @@ model products {
 
   // Relations
   companies     companies       @relation(fields: [companyId], references: [id])
+  createdBy     users?          @relation("UserCreatedProducts", fields: [createdById], references: [id])
   categoies     categoies       @relation(fields: [categoryId], references: [id])
   carts         carts[]
   purchaseItems purchaseItems[]
