@@ -27,6 +27,16 @@ router.get(
   productController.getProducts
 );
 
+// 내가 등록한 상품 목록 조회
+router.get(
+  '/my',
+  verifyAccessToken,
+  requireMinRole('USER'),
+  productValidator.validateGetProducts,
+  validateRequest,
+  productController.getMyProducts
+);
+
 // 상품 상세 조회
 router.get(
   '/:id',

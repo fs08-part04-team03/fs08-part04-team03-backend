@@ -75,7 +75,7 @@ const salesCounts = async (
 
 export const productService = {
   // 상품 생성 (생성 시 isActive는 항상 true)
-  async createProduct(companyId: string, payload: CreateProductBody) {
+  async createProduct(companyId: string, createdById: string, payload: CreateProductBody) {
     const { categoryId, name, price, image, link } = payload;
 
     // 카테고리 존재 확인
@@ -95,6 +95,7 @@ export const productService = {
     const product = await prisma.products.create({
       data: {
         companyId,
+        createdById,
         categoryId,
         name,
         price,
@@ -109,7 +110,7 @@ export const productService = {
   },
 
   // 상품 목록 조회 (페이징, 카테고리 필터, 정렬)
-  async getProducts(companyId: string, query: ProductListQuery) {
+  async getProducts(companyId: string, query: ProductListQuery, createdById?: string) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
     const sort = query.sort ?? defaultSort;
@@ -120,6 +121,7 @@ export const productService = {
       companyId,
       ...(query.categoryId ? { categoryId: query.categoryId } : {}),
       isActive: true,
+      ...(createdById ? { createdById } : {}),
     };
 
     // 페이징용 total 계산

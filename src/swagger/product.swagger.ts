@@ -193,6 +193,83 @@
 
 /**
  * @swagger
+ * /api/v1/product/my:
+ *   get:
+ *     summary: 내가 등록한 상품 목록 조회
+ *     description: |
+ *       내가 등록한 상품만 조회합니다.
+ *       - categoryId로 카테고리 필터링
+ *       - sort로 정렬 (latest, sales, priceAsc, priceDesc)
+ *       - isActive=false 상품은 목록에서 제외됩니다.
+ *     tags: [Product]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 10
+ *       - in: query
+ *         name: categoryId
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *       - in: query
+ *         name: sort
+ *         schema:
+ *           type: string
+ *           enum: [latest, sales, priceAsc, priceDesc]
+ *           default: latest
+ *     responses:
+ *       200:
+ *         description: 내가 등록한 상품 목록 조회 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/ProductWithSales'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                       example: 1
+ *                     limit:
+ *                       type: integer
+ *                       example: 10
+ *                     total:
+ *                       type: integer
+ *                       example: 120
+ *                     totalPages:
+ *                       type: integer
+ *                       example: 12
+ *                 message:
+ *                   type: string
+ *                   example: "내가 등록한 상품 목록을 조회했습니다."
+ *       400:
+ *         description: 잘못된 요청
+ *       401:
+ *         description: 인증 실패
+ */
+
+/**
+ * @swagger
  * /api/v1/product/{id}:
  *   get:
  *     summary: 상품 상세 조회
