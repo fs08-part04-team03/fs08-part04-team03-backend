@@ -460,6 +460,23 @@
  * /api/v1/purchase/admin/approvePurchaseRequest/{purchaseRequestId}:
  *   patch:
  *     summary: 구매 요청 승인 (관리자)
+ *     description: |
+ *       PENDING 상태의 구매 요청을 승인합니다.
+ *
+ *       ### 동작 방식
+ *       - 구매 요청의 상태를 APPROVED로 변경합니다.
+ *       - 승인자(approver) 정보가 자동으로 기록됩니다.
+ *       - 동시성 제어를 통해 중복 승인을 방지합니다.
+ *
+ *       ### 승인 조건
+ *       - 구매 요청이 존재해야 합니다.
+ *       - 구매 요청의 상태가 PENDING이어야 합니다.
+ *       - 요청한 사용자가 관리자(MANAGER) 권한을 가지고 있어야 합니다.
+ *
+ *       ### 승인 후 변경사항
+ *       - `status`: PENDING → APPROVED
+ *       - `approver`: 승인한 관리자 정보가 설정됩니다.
+ *       - `updatedAt`: 승인 시간으로 자동 업데이트됩니다.
  *     tags: [Purchase]
  *     security:
  *       - bearerAuth: []
@@ -483,16 +500,40 @@
  *                   example: true
  *                 data:
  *                   $ref: '#/components/schemas/PurchaseRequest'
+ *                   description: 승인된 구매 요청 (approver 필드 포함)
  *                 message:
  *                   type: string
+ *                   example: "구매 요청을 승인했습니다."
  *       400:
- *         description: 이미 처리된 구매 요청
+ *         description: 이미 처리된 구매 요청 (APPROVED, REJECTED, CANCELLED 상태)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "이미 처리된 구매 요청입니다."
  *       401:
  *         description: 인증 실패
  *       403:
  *         description: 권한 없음 (관리자만 접근 가능)
  *       404:
  *         description: 구매 요청을 찾을 수 없음
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "구매 요청을 찾을 수 없습니다."
  */
 
 /**
