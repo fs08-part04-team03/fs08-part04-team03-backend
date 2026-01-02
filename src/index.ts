@@ -5,7 +5,7 @@ import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import { env } from './config/env.config';
 import { corsMiddleware } from './config/cors.config';
-import { startBudgetScheduler } from './config/cron.config';
+import { startBudgetScheduler, startHealthCheckScheduler } from './config/cron.config';
 import { swaggerDocs } from './config/swagger.config';
 import { logger } from './common/utils/logger.util';
 import { requestLogger } from './common/middlewares/logger.middleware';
@@ -116,6 +116,9 @@ swaggerDocs(app);
 
 // 예산 스케줄러 시작
 startBudgetScheduler();
+
+// 헬스 체크 스케줄러 시작
+startHealthCheckScheduler();
 
 // 에러 처리 미들웨어
 app.use(errorHandler);
