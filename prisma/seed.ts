@@ -1,8 +1,23 @@
 /* eslint-disable */
 import { PrismaClient } from '@prisma/client';
 import argon2 from 'argon2';
+import { faker } from '@faker-js/faker';
 
 const prisma = new PrismaClient();
+
+// ============================================================================
+// 대용량 데이터 생성 설정 (100배 증가)
+// ============================================================================
+const BULK_DATA_CONFIG = {
+  ADDITIONAL_PRODUCTS: 20000, // 추가 상품 수 (200 → 20,000)
+  ADDITIONAL_USERS: 3000, // 추가 사용자 수 (30 → 3,000)
+  ADDITIONAL_PURCHASE_REQUESTS: 5000, // 추가 구매 요청 수 (50 → 5,000)
+  MIN_CART_ITEMS_PER_USER: 0, // 사용자당 최소 장바구니 아이템 수
+  MAX_CART_ITEMS_PER_USER: 8, // 사용자당 최대 장바구니 아이템 수
+  MIN_WISHLIST_ITEMS_PER_USER: 0, // 사용자당 최소 찜 아이템 수
+  MAX_WISHLIST_ITEMS_PER_USER: 12, // 사용자당 최대 찜 아이템 수
+  BATCH_SIZE: 1000, // 배치 단위 (성능 최적화)
+};
 
 // ============================================================================
 // 시드 데이터 정의
@@ -610,6 +625,7 @@ async function main() {
   try {
     await prisma.purchaseItems.deleteMany();
     await prisma.purchaseRequests.deleteMany();
+    await prisma.wishLists.deleteMany();
     await prisma.carts.deleteMany();
     await prisma.products.deleteMany();
     await prisma.categoies.deleteMany();
@@ -747,7 +763,22 @@ async function main() {
       role: 'USER',
     },
   });
-  console.log(`✅ 사용자 4명 생성 완료 (ADMIN, MANAGER, USER, USER2)\n`);
+
+  // 테스트 계정 추가
+  textPassword = '!Q2w3e4r';
+  hashedPassword = await argon2.hash(textPassword);
+  console.log(`   테스트 계정 비밀번호: ${textPassword}\n`);
+
+  const testUser = await prisma.users.create({
+    data: {
+      companyId: company.id,
+      email: 'test@test001.com',
+      password: hashedPassword,
+      name: '테스트사용자',
+      role: 'USER',
+    },
+  });
+  console.log(`✅ 사용자 5명 생성 완료 (ADMIN, MANAGER, USER, USER2, TEST)\n`);
 
   // 7. 예산 기준 설정
   console.log('💰 예산 기준 설정 중...');
@@ -1059,19 +1090,613 @@ async function main() {
 
   console.log(`✅ 장바구니 항목 5개 생성 완료\n`);
 
+  // 12. 찜 목록 데이터 생성
+  console.log('❤️  찜 목록 데이터 생성 중...');
+
+  // 일반 사용자의 찜 목록 (다양한 카테고리)
+  await prisma.wishLists.create({
+    data: {
+      userId: user.id,
+      productId: allProducts[0]!.id, // 농심 새우깡
+    },
+  });
+
+  await prisma.wishLists.create({
+    data: {
+      userId: user.id,
+      productId: allProducts[17]!.id, // 코카콜라
+    },
+  });
+
+  await prisma.wishLists.create({
+    data: {
+      userId: user.id,
+      productId: allProducts[38]!.id, // 신라면 컵
+    },
+  });
+
+  await prisma.wishLists.create({
+    data: {
+      userId: user.id,
+      productId: allProducts[59]!.id, // 카누 미니 아메리카노
+    },
+  });
+
+  // 일반 사용자2의 찜 목록
+  await prisma.wishLists.create({
+    data: {
+      userId: user2.id,
+      productId: allProducts[5]!.id, // 롯데 마가렛트
+    },
+  });
+
+  await prisma.wishLists.create({
+    data: {
+      userId: user2.id,
+      productId: allProducts[11]!.id, // 페레로로쉐
+    },
+  });
+
+  await prisma.wishLists.create({
+    data: {
+      userId: user2.id,
+      productId: allProducts[47]!.id, // 사과
+    },
+  });
+
+  // 매니저의 찜 목록
+  await prisma.wishLists.create({
+    data: {
+      userId: manager.id,
+      productId: allProducts[67]!.id, // 모나미 볼펜
+    },
+  });
+
+  await prisma.wishLists.create({
+    data: {
+      userId: manager.id,
+      productId: allProducts[68]!.id, // 3M 포스트잇
+    },
+  });
+
+  await prisma.wishLists.create({
+    data: {
+      userId: manager.id,
+      productId: allProducts[71]!.id, // 크리넥스 미용티슈
+    },
+  });
+
+  // 테스트 사용자의 찜 목록 (다양한 가격대 및 카테고리)
+  await prisma.wishLists.create({
+    data: {
+      userId: testUser.id,
+      productId: allProducts[1]!.id, // 해태 홈런볼
+    },
+  });
+
+  await prisma.wishLists.create({
+    data: {
+      userId: testUser.id,
+      productId: allProducts[18]!.id, // 펩시콜라
+    },
+  });
+
+  await prisma.wishLists.create({
+    data: {
+      userId: testUser.id,
+      productId: allProducts[31]!.id, // 삼다수
+    },
+  });
+
+  await prisma.wishLists.create({
+    data: {
+      userId: testUser.id,
+      productId: allProducts[48]!.id, // 바나나
+    },
+  });
+
+  await prisma.wishLists.create({
+    data: {
+      userId: testUser.id,
+      productId: allProducts[60]!.id, // 스타벅스 드립백커피
+    },
+  });
+
+  await prisma.wishLists.create({
+    data: {
+      userId: testUser.id,
+      productId: allProducts[16]!.id, // 허니버터 아몬드
+    },
+  });
+
+  console.log(`✅ 찜 목록 18개 생성 완료\n`);
+
+  // 13. 테스트 사용자 장바구니 데이터 생성
+  console.log('🛍️  테스트 사용자 장바구니 생성 중...');
+
+  await prisma.carts.create({
+    data: {
+      userId: testUser.id,
+      productId: allProducts[2]!.id, // 오리온 포카칩
+      quantity: 4,
+    },
+  });
+
+  await prisma.carts.create({
+    data: {
+      userId: testUser.id,
+      productId: allProducts[19]!.id, // 칠성사이다
+      quantity: 6,
+    },
+  });
+
+  await prisma.carts.create({
+    data: {
+      userId: testUser.id,
+      productId: allProducts[32]!.id, // 아이시스 8.0
+      quantity: 10,
+    },
+  });
+
+  await prisma.carts.create({
+    data: {
+      userId: testUser.id,
+      productId: allProducts[39]!.id, // 오뚜기 진라면 컵
+      quantity: 3,
+    },
+  });
+
+  console.log(`✅ 테스트 사용자 장바구니 4개 생성 완료\n`);
+
+  // 14. 테스트 사용자 구매 요청 생성
+  console.log('📝 테스트 사용자 구매 요청 생성 중...');
+
+  // 테스트 사용자 구매 요청 1: 대기 중 (PENDING)
+  const testPurchaseRequest1 = await prisma.purchaseRequests.create({
+    data: {
+      companyId: company.id,
+      requesterId: testUser.id,
+      status: 'PENDING',
+      totalPrice: 14400,
+      shippingFee: 3000,
+      requestMessage: '간식 및 음료 구매 요청합니다.',
+      createdAt: new Date('2024-12-08T09:00:00Z'),
+      updatedAt: new Date('2024-12-08T09:00:00Z'),
+    },
+  });
+
+  await prisma.purchaseItems.create({
+    data: {
+      purchaseRequestId: testPurchaseRequest1.id,
+      productId: allProducts[2]!.id, // 오리온 포카칩
+      quantity: 3,
+      priceSnapshot: allProducts[2]!.price,
+    },
+  });
+
+  await prisma.purchaseItems.create({
+    data: {
+      purchaseRequestId: testPurchaseRequest1.id,
+      productId: allProducts[31]!.id, // 삼다수
+      quantity: 5,
+      priceSnapshot: allProducts[31]!.price,
+    },
+  });
+
+  // 테스트 사용자 구매 요청 2: 승인됨 (APPROVED)
+  const testPurchaseRequest2 = await prisma.purchaseRequests.create({
+    data: {
+      companyId: company.id,
+      requesterId: testUser.id,
+      approverId: manager.id,
+      status: 'APPROVED',
+      totalPrice: 12000,
+      shippingFee: 3000,
+      requestMessage: '업무용 커피 구매 요청',
+      createdAt: new Date('2024-12-07T14:00:00Z'),
+      updatedAt: new Date('2024-12-07T16:00:00Z'),
+    },
+  });
+
+  await prisma.purchaseItems.create({
+    data: {
+      purchaseRequestId: testPurchaseRequest2.id,
+      productId: allProducts[60]!.id, // 스타벅스 드립백커피
+      quantity: 1,
+      priceSnapshot: allProducts[60]!.price,
+    },
+  });
+
+  // 테스트 사용자 구매 요청 3: 거절됨 (REJECTED)
+  const testPurchaseRequest3 = await prisma.purchaseRequests.create({
+    data: {
+      companyId: company.id,
+      requesterId: testUser.id,
+      approverId: admin.id,
+      status: 'REJECTED',
+      totalPrice: 25000,
+      shippingFee: 3000,
+      requestMessage: '간식 대량 구매 요청',
+      rejectReason: '예산 부족으로 반려합니다.',
+      createdAt: new Date('2024-12-06T11:00:00Z'),
+      updatedAt: new Date('2024-12-06T15:00:00Z'),
+    },
+  });
+
+  await prisma.purchaseItems.create({
+    data: {
+      purchaseRequestId: testPurchaseRequest3.id,
+      productId: allProducts[11]!.id, // 페레로로쉐
+      quantity: 5,
+      priceSnapshot: allProducts[11]!.price,
+    },
+  });
+
+  await prisma.purchaseItems.create({
+    data: {
+      purchaseRequestId: testPurchaseRequest3.id,
+      productId: allProducts[16]!.id, // 허니버터 아몬드
+      quantity: 3,
+      priceSnapshot: allProducts[16]!.price,
+    },
+  });
+
+  console.log(`✅ 테스트 사용자 구매 요청 3개 생성 완료\n`);
+
+  // ============================================================================
+  // 대용량 데이터 생성 (Faker 사용)
+  // ============================================================================
+
+  console.log('🚀 대용량 데이터 생성 시작...\n');
+
+  // 15. 추가 상품 생성 (Faker 사용 - Bulk Insert)
+  console.log(`📦 추가 상품 ${BULK_DATA_CONFIG.ADDITIONAL_PRODUCTS}개 생성 중...`);
+  const categoryIds = subCategories.map((c) => c.id);
+
+  // 배치 단위로 생성
+  const totalBatches = Math.ceil(
+    BULK_DATA_CONFIG.ADDITIONAL_PRODUCTS / BULK_DATA_CONFIG.BATCH_SIZE
+  );
+  let totalProductsCreated = 0;
+
+  for (let batch = 0; batch < totalBatches; batch++) {
+    const batchSize = Math.min(
+      BULK_DATA_CONFIG.BATCH_SIZE,
+      BULK_DATA_CONFIG.ADDITIONAL_PRODUCTS - totalProductsCreated
+    );
+
+    const productsData = Array.from({ length: batchSize }, (_, i) => ({
+      companyId: company.id,
+      categoryId: categoryIds[Math.floor(Math.random() * categoryIds.length)]!,
+      name: faker.commerce.productName(),
+      price: Math.floor(faker.number.int({ min: 500, max: 50000 }) / 100) * 100,
+      image: `faker_product_${totalProductsCreated + i + 1}.png`,
+      link: faker.internet.url(),
+    }));
+
+    await prisma.products.createMany({ data: productsData });
+    totalProductsCreated += batchSize;
+
+    if ((batch + 1) % 10 === 0 || batch === totalBatches - 1) {
+      console.log(
+        `   진행: ${totalProductsCreated}/${BULK_DATA_CONFIG.ADDITIONAL_PRODUCTS} (${Math.round((totalProductsCreated / BULK_DATA_CONFIG.ADDITIONAL_PRODUCTS) * 100)}%)`
+      );
+    }
+  }
+  console.log(`✅ 추가 상품 ${BULK_DATA_CONFIG.ADDITIONAL_PRODUCTS}개 생성 완료\n`);
+
+  // 전체 상품 목록 업데이트 (DB에서 재조회)
+  console.log('📦 상품 목록 재조회 중...');
+  const allProductsUpdated = await prisma.products.findMany({ orderBy: { id: 'asc' } });
+  console.log(`✅ 총 ${allProductsUpdated.length}개 상품 조회 완료\n`);
+
+  // 16. 추가 사용자 생성 (Faker 사용 - Bulk Insert)
+  console.log(`👥 추가 사용자 ${BULK_DATA_CONFIG.ADDITIONAL_USERS}명 생성 중...`);
+  const roles: Array<'USER' | 'MANAGER'> = ['USER', 'MANAGER'];
+  const bulkUserPassword = await argon2.hash('test1234!');
+
+  const totalUserBatches = Math.ceil(
+    BULK_DATA_CONFIG.ADDITIONAL_USERS / BULK_DATA_CONFIG.BATCH_SIZE
+  );
+  let totalUsersCreated = 0;
+
+  for (let batch = 0; batch < totalUserBatches; batch++) {
+    const batchSize = Math.min(
+      BULK_DATA_CONFIG.BATCH_SIZE,
+      BULK_DATA_CONFIG.ADDITIONAL_USERS - totalUsersCreated
+    );
+
+    const usersData = Array.from({ length: batchSize }, () => {
+      const firstName = faker.person.firstName();
+      const lastName = faker.person.lastName();
+      const randomRole = roles[Math.floor(Math.random() * roles.length)];
+
+      return {
+        companyId: company.id,
+        email: faker.internet.email({ firstName, lastName }).toLowerCase(),
+        password: bulkUserPassword,
+        name: `${lastName}${firstName}`,
+        role: randomRole,
+      };
+    });
+
+    await prisma.users.createMany({ data: usersData });
+    totalUsersCreated += batchSize;
+
+    if ((batch + 1) % 10 === 0 || batch === totalUserBatches - 1) {
+      console.log(
+        `   진행: ${totalUsersCreated}/${BULK_DATA_CONFIG.ADDITIONAL_USERS} (${Math.round((totalUsersCreated / BULK_DATA_CONFIG.ADDITIONAL_USERS) * 100)}%)`
+      );
+    }
+  }
+  console.log(`✅ 추가 사용자 ${BULK_DATA_CONFIG.ADDITIONAL_USERS}명 생성 완료\n`);
+
+  // 전체 사용자 목록 재조회
+  console.log('👥 사용자 목록 재조회 중...');
+  const allUsers = await prisma.users.findMany({ orderBy: { id: 'asc' } });
+  console.log(`✅ 총 ${allUsers.length}명 사용자 조회 완료\n`);
+
+  // 17. 추가 장바구니 데이터 생성 (Bulk Insert)
+  console.log('🛍️  사용자별 장바구니 데이터 생성 중...');
+  const cartData = [];
+
+  // 기본 5명 제외한 추가 사용자들만
+  const additionalUsersFromDB = allUsers.slice(5);
+
+  for (const currentUser of additionalUsersFromDB) {
+    const itemCount = faker.number.int({
+      min: BULK_DATA_CONFIG.MIN_CART_ITEMS_PER_USER,
+      max: BULK_DATA_CONFIG.MAX_CART_ITEMS_PER_USER,
+    });
+
+    if (itemCount > 0) {
+      const selectedProducts = faker.helpers.arrayElements(allProductsUpdated, itemCount);
+
+      for (const product of selectedProducts) {
+        cartData.push({
+          userId: currentUser.id,
+          productId: product.id,
+          quantity: faker.number.int({ min: 1, max: 10 }),
+        });
+      }
+    }
+  }
+
+  // 배치로 삽입
+  const cartBatches = Math.ceil(cartData.length / BULK_DATA_CONFIG.BATCH_SIZE);
+  let totalCartItemsCreated = 0;
+
+  for (let batch = 0; batch < cartBatches; batch++) {
+    const start = batch * BULK_DATA_CONFIG.BATCH_SIZE;
+    const end = Math.min(start + BULK_DATA_CONFIG.BATCH_SIZE, cartData.length);
+    const batchData = cartData.slice(start, end);
+
+    await prisma.carts.createMany({ data: batchData });
+    totalCartItemsCreated += batchData.length;
+
+    if ((batch + 1) % 10 === 0 || batch === cartBatches - 1) {
+      console.log(
+        `   진행: ${totalCartItemsCreated}/${cartData.length} (${Math.round((totalCartItemsCreated / cartData.length) * 100)}%)`
+      );
+    }
+  }
+
+  const totalCartItems = cartData.length;
+  console.log(`✅ 추가 장바구니 ${totalCartItems}개 생성 완료\n`);
+
+  // 18. 추가 찜 목록 생성 (Bulk Insert)
+  console.log('❤️  사용자별 찜 목록 데이터 생성 중...');
+  const wishlistData = [];
+
+  for (const currentUser of additionalUsersFromDB) {
+    const itemCount = faker.number.int({
+      min: BULK_DATA_CONFIG.MIN_WISHLIST_ITEMS_PER_USER,
+      max: BULK_DATA_CONFIG.MAX_WISHLIST_ITEMS_PER_USER,
+    });
+
+    if (itemCount > 0) {
+      const selectedProducts = faker.helpers.arrayElements(allProductsUpdated, itemCount);
+
+      for (const product of selectedProducts) {
+        wishlistData.push({
+          userId: currentUser.id,
+          productId: product.id,
+        });
+      }
+    }
+  }
+
+  // 배치로 삽입 (skipDuplicates로 중복 무시)
+  const wishlistBatches = Math.ceil(wishlistData.length / BULK_DATA_CONFIG.BATCH_SIZE);
+  let totalWishlistItemsCreated = 0;
+
+  for (let batch = 0; batch < wishlistBatches; batch++) {
+    const start = batch * BULK_DATA_CONFIG.BATCH_SIZE;
+    const end = Math.min(start + BULK_DATA_CONFIG.BATCH_SIZE, wishlistData.length);
+    const batchData = wishlistData.slice(start, end);
+
+    await prisma.wishLists.createMany({ data: batchData, skipDuplicates: true });
+    totalWishlistItemsCreated += batchData.length;
+
+    if ((batch + 1) % 10 === 0 || batch === wishlistBatches - 1) {
+      console.log(
+        `   진행: ${totalWishlistItemsCreated}/${wishlistData.length} (${Math.round((totalWishlistItemsCreated / wishlistData.length) * 100)}%)`
+      );
+    }
+  }
+
+  const totalWishlistItems = wishlistData.length;
+  console.log(`✅ 추가 찜 목록 ${totalWishlistItems}개 생성 완료\n`);
+
+  // 19. 추가 구매 요청 생성 (Bulk Insert)
+  console.log(`💰 추가 구매 요청 ${BULK_DATA_CONFIG.ADDITIONAL_PURCHASE_REQUESTS}개 생성 중...`);
+  const statuses: Array<'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED'> = [
+    'PENDING',
+    'APPROVED',
+    'REJECTED',
+    'CANCELLED',
+  ];
+
+  const userUsers = allUsers.filter((u) => u.role === 'USER');
+  const managerAdminUsers = allUsers.filter((u) => u.role !== 'USER');
+
+  // Step 1: 구매 요청 데이터 준비 및 생성
+  const purchaseRequestsData = [];
+  const purchaseItemsMapping = []; // { requestIndex, items }
+
+  for (let i = 0; i < BULK_DATA_CONFIG.ADDITIONAL_PURCHASE_REQUESTS; i++) {
+    const requester = faker.helpers.arrayElement(userUsers);
+    const approver = Math.random() > 0.3 ? faker.helpers.arrayElement(managerAdminUsers) : null;
+    const status = faker.helpers.arrayElement(statuses);
+
+    // 구매 항목 1~5개 랜덤 선택
+    const itemCount = faker.number.int({ min: 1, max: 5 });
+    const selectedProducts = faker.helpers.arrayElements(allProductsUpdated, itemCount);
+
+    let totalPrice = 0;
+    const items = selectedProducts.map((product) => {
+      const quantity = faker.number.int({ min: 1, max: 10 });
+      totalPrice += product.price * quantity;
+      return { productId: product.id, quantity, priceSnapshot: product.price };
+    });
+
+    const shippingFee = Math.random() > 0.5 ? 3000 : 0;
+
+    purchaseRequestsData.push({
+      companyId: company.id,
+      requesterId: requester.id,
+      approverId: approver?.id,
+      status,
+      totalPrice,
+      shippingFee,
+      requestMessage: Math.random() > 0.3 ? faker.lorem.sentence({ min: 5, max: 15 }) : undefined,
+      rejectReason:
+        status === 'REJECTED' && Math.random() > 0.5
+          ? faker.helpers.arrayElement([
+              '예산 초과로 반려합니다.',
+              '불필요한 구매로 판단됩니다.',
+              '다음 달에 재요청 바랍니다.',
+              '유사 상품이 이미 있습니다.',
+            ])
+          : undefined,
+      createdAt: faker.date.between({
+        from: new Date('2024-01-01'),
+        to: new Date('2024-12-31'),
+      }),
+      updatedAt: faker.date.between({
+        from: new Date('2024-01-01'),
+        to: new Date('2024-12-31'),
+      }),
+    });
+
+    purchaseItemsMapping.push({ requestIndex: i, items });
+  }
+
+  // Step 2: 구매 요청 배치 생성
+  const prBatches = Math.ceil(purchaseRequestsData.length / BULK_DATA_CONFIG.BATCH_SIZE);
+  let totalPRCreated = 0;
+
+  for (let batch = 0; batch < prBatches; batch++) {
+    const start = batch * BULK_DATA_CONFIG.BATCH_SIZE;
+    const end = Math.min(start + BULK_DATA_CONFIG.BATCH_SIZE, purchaseRequestsData.length);
+    const batchData = purchaseRequestsData.slice(start, end);
+
+    await prisma.purchaseRequests.createMany({ data: batchData });
+    totalPRCreated += batchData.length;
+
+    if ((batch + 1) % 10 === 0 || batch === prBatches - 1) {
+      console.log(
+        `   구매 요청 진행: ${totalPRCreated}/${purchaseRequestsData.length} (${Math.round((totalPRCreated / purchaseRequestsData.length) * 100)}%)`
+      );
+    }
+  }
+
+  // Step 3: 생성된 구매 요청 조회 (ID 매핑)
+  console.log('   생성된 구매 요청 조회 중...');
+  const createdPurchaseRequests = await prisma.purchaseRequests.findMany({
+    where: { companyId: company.id },
+    orderBy: { createdAt: 'desc' },
+    take: BULK_DATA_CONFIG.ADDITIONAL_PURCHASE_REQUESTS,
+  });
+
+  // Step 4: 구매 항목 데이터 준비 및 생성
+  console.log('   구매 항목 생성 중...');
+  const allPurchaseItemsData = [];
+
+  for (let i = 0; i < purchaseItemsMapping.length; i++) {
+    const mapping = purchaseItemsMapping[i]!;
+    const purchaseRequest = createdPurchaseRequests[purchaseItemsMapping.length - 1 - i]!; // 역순
+
+    for (const item of mapping.items) {
+      allPurchaseItemsData.push({
+        purchaseRequestId: purchaseRequest.id,
+        productId: item.productId,
+        quantity: item.quantity,
+        priceSnapshot: item.priceSnapshot,
+      });
+    }
+  }
+
+  // Step 5: 구매 항목 배치 생성
+  const piBatches = Math.ceil(allPurchaseItemsData.length / BULK_DATA_CONFIG.BATCH_SIZE);
+  let totalPICreated = 0;
+
+  for (let batch = 0; batch < piBatches; batch++) {
+    const start = batch * BULK_DATA_CONFIG.BATCH_SIZE;
+    const end = Math.min(start + BULK_DATA_CONFIG.BATCH_SIZE, allPurchaseItemsData.length);
+    const batchData = allPurchaseItemsData.slice(start, end);
+
+    await prisma.purchaseItems.createMany({ data: batchData });
+    totalPICreated += batchData.length;
+
+    if ((batch + 1) % 10 === 0 || batch === piBatches - 1) {
+      console.log(
+        `   구매 항목 진행: ${totalPICreated}/${allPurchaseItemsData.length} (${Math.round((totalPICreated / allPurchaseItemsData.length) * 100)}%)`
+      );
+    }
+  }
+
+  console.log(`✅ 추가 구매 요청 ${BULK_DATA_CONFIG.ADDITIONAL_PURCHASE_REQUESTS}개 생성 완료\n`);
+
   console.log('🎉 시드 데이터 생성 완료!');
   console.log('==========================================');
   console.log(`📊 생성된 데이터 요약:`);
+  console.log('');
+  console.log('📌 기본 데이터:');
   console.log(`   - 회사: 1개`);
   console.log(`   - 상위 카테고리: ${mainCategories.length}개`);
   console.log(`   - 하위 카테고리: ${subCategories.length}개`);
-  console.log(`   - 상품: ${products.length}개`);
-  console.log(`   - 사용자: 4명 (ADMIN, MANAGER, USER, USER2)`);
   console.log(`   - 예산 기준: 1개`);
-  console.log(`   - 월별 예산: 12개`);
-  console.log(`   - 구매 요청: 7개 (APPROVED: 3, PENDING: 2, REJECTED: 1, CANCELLED: 1)`);
-  console.log(`   - 구매 항목: 13개`);
-  console.log(`   - 장바구니: 5개`);
+  console.log(`   - 월별 예산: 12개 (${currentYear}년)`);
+  console.log('');
+  console.log('📌 정적 데이터:');
+  console.log(`   - 상품: ${products.length}개 (수동 입력)`);
+  console.log(`   - 사용자: 5명 (ADMIN, MANAGER, USER, USER2, TEST)`);
+  console.log(`   - 구매 요청: 10개`);
+  console.log(`   - 장바구니: 9개`);
+  console.log(`   - 찜 목록: 18개`);
+  console.log('');
+  console.log('📌 대용량 데이터 (Faker):');
+  console.log(`   - 추가 상품: ${BULK_DATA_CONFIG.ADDITIONAL_PRODUCTS}개`);
+  console.log(`   - 추가 사용자: ${BULK_DATA_CONFIG.ADDITIONAL_USERS}명`);
+  console.log(`   - 추가 구매 요청: ${BULK_DATA_CONFIG.ADDITIONAL_PURCHASE_REQUESTS}개`);
+  console.log(`   - 추가 장바구니: ${totalCartItems}개`);
+  console.log(`   - 추가 찜 목록: ${totalWishlistItems}개`);
+  console.log('');
+  console.log('📌 총계:');
+  console.log(`   - 상품: ${products.length + BULK_DATA_CONFIG.ADDITIONAL_PRODUCTS}개`);
+  console.log(`   - 사용자: ${5 + BULK_DATA_CONFIG.ADDITIONAL_USERS}명`);
+  console.log(`   - 구매 요청: ${10 + BULK_DATA_CONFIG.ADDITIONAL_PURCHASE_REQUESTS}개`);
+  console.log(`   - 장바구니: ${9 + totalCartItems}개`);
+  console.log(`   - 찜 목록: ${18 + totalWishlistItems}개`);
+  console.log('==========================================');
+  console.log('');
+  console.log('👤 주요 테스트 계정 정보:');
+  console.log('   1. 관리자: admin@test.com / testA1234!');
+  console.log('   2. 매니저: manager@test.com / testM1234!');
+  console.log('   3. 일반사용자: user@test.com / testU1234!');
+  console.log('   4. 테스트계정: test@test001.com / !Q2w3e4r');
+  console.log(`   5. Faker 사용자: test1234! (총 ${BULK_DATA_CONFIG.ADDITIONAL_USERS}명)`);
   console.log('==========================================');
 }
 
