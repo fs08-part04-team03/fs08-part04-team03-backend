@@ -25,12 +25,25 @@ const getCompanyId = (req: AuthenticatedRequest) => {
   return companyId;
 };
 
+const getUserId = (req: AuthenticatedRequest) => {
+  const userId = req.user?.id;
+  if (!userId) {
+    throw new CustomError(
+      HttpStatus.UNAUTHORIZED,
+      ErrorCodes.AUTH_UNAUTHORIZED,
+      '사용자 정보가 없습니다.'
+    );
+  }
+  return userId;
+};
+
 // 상품 생성
 export const productController = {
   createProduct: async (req: AuthenticatedRequest, res: Response) => {
     const companyId = getCompanyId(req);
+    const userId = getUserId(req);
     const payload = req.body as CreateProductBody;
-    const product = await productService.createProduct(companyId, payload);
+    const product = await productService.createProduct(companyId, userId, payload);
     res
       .status(HttpStatus.CREATED)
       .json(ResponseUtil.success(product, '상품 등록이 완료되었습니다.'));
@@ -55,6 +68,29 @@ export const productController = {
           result.products,
           { page: result.page, limit: result.limit, total: result.total },
           '상품 목록을 조회했습니다.'
+        )
+      );
+  },
+
+  // 내가 등록한 상품 목록 조회
+  getMyProducts: async (req: AuthenticatedRequest, res: Response) => {
+    const companyId = getCompanyId(req);
+    const userId = getUserId(req);
+    const query: ProductListQuery = {
+      page: req.query.page ? Number(req.query.page) : undefined,
+      limit: req.query.limit ? Number(req.query.limit) : undefined,
+      categoryId: req.query.categoryId ? Number(req.query.categoryId) : undefined,
+      sort: req.query.sort as ProductSort | undefined,
+    };
+
+    const result = await productService.getProducts(companyId, query, userId);
+    res
+      .status(HttpStatus.OK)
+      .json(
+        ResponseUtil.successWithPagination(
+          result.products,
+          { page: result.page, limit: result.limit, total: result.total },
+          '내가 등록한 상품 목록을 조회했습니다.'
         )
       );
   },
