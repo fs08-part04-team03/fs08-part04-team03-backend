@@ -69,6 +69,7 @@ model companies {
   invitations      invitations[]
   products         products[]
   purchaseRequests purchaseRequests[]
+  uploads          uploads[]
   users            users[]
 
   @@map("companies")
@@ -94,6 +95,7 @@ model users {
   requestedPurchases purchaseRequests[] @relation("Requester")
   wishLists          wishLists[]
   createdProducts    products[]         @relation("UserCreatedProducts")
+  uploads            uploads[]
   companies          companies          @relation(fields: [companyId], references: [id])
 
   @@unique([companyId, email])
@@ -137,6 +139,7 @@ model products {
   carts         carts[]
   purchaseItems purchaseItems[]
   wishLists     wishLists[]
+  uploads       uploads[]
 
   @@map("products")
 }
@@ -267,6 +270,28 @@ model wishLists {
 
   @@unique([userId, productId])
   @@map("wish_lists")
+}
+
+// 업로드된 파일
+model uploads {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  userId       String   @db.Uuid
+  companyId    String   @db.Uuid
+  productId    Int? // 상품 이미지인 경우 연결 (nullable)
+  key          String   @unique @db.VarChar(500) // S3 객체 키
+  folder       String   @db.VarChar(50) // products, users, companies, misc
+  originalName String   @db.VarChar(255)
+  size         Int // 파일 크기 (bytes)
+  mimeType     String   @db.VarChar(100)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  users     users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companies companies @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  products  products? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@map("uploads")
 }
 
 enum role {

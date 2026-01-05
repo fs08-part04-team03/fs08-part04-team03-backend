@@ -320,13 +320,3 @@
  *       500:
  *         description: 이미지 삭제 실패
  */
-
-/**
- * @swagger
- * components:
- *   securitySchemes:
- *     bearerAuth:
- *       type: http
- *       scheme: bearer
- *       bearerFormat: JWT
- */

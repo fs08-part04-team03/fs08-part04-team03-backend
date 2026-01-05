@@ -72,3 +72,34 @@ export interface GetImageQuery {
    */
   download?: string;
 }
+
+/**
+ * DB에 저장되는 업로드 정보
+ */
+export interface UploadEntity {
+  id: string;
+  userId: string;
+  companyId: string;
+  productId?: number | null;
+  key: string;
+  folder: string;
+  originalName: string;
+  size: number;
+  mimeType: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * 업로드 생성 DTO
+ */
+export interface CreateUploadDto {
+  userId: string;
+  companyId: string;
+  productId?: number | null;
+  key: string;
+  folder: UploadFolder;
+  originalName: string;
+  size: number;
+  mimeType: string;
+}
