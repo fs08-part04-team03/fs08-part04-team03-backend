@@ -70,7 +70,7 @@ export interface GetImageQuery {
   /**
    * 다운로드 모드 활성화 (true: 파일 다운로드, false: 브라우저에 표시)
    */
-  download?: string;
+  download?: 'true' | 'false' | boolean;
 }
 
 /**
@@ -82,7 +82,7 @@ export interface UploadEntity {
   companyId: string;
   productId?: number | null;
   key: string;
-  folder: string;
+  folder: UploadFolder;
   originalName: string;
   size: number;
   mimeType: string;

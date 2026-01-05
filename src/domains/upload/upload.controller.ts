@@ -39,6 +39,13 @@ export const uploadController = {
     }
 
     const productIdNumber = productId ? Number(productId) : undefined;
+    if (productIdNumber !== undefined && Number.isNaN(productIdNumber)) {
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
+        '유효하지 않은 상품 ID입니다.'
+      );
+    }
 
     const result = await uploadService.uploadImage(
       req.file,
@@ -68,6 +75,13 @@ export const uploadController = {
     }
 
     const productIdNumber = productId ? Number(productId) : undefined;
+    if (productIdNumber !== undefined && Number.isNaN(productIdNumber)) {
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
+        '유효하지 않은 상품 ID입니다.'
+      );
+    }
 
     const uploadPromises = req.files.map((file) =>
       uploadService.uploadImage(file, userId, companyId, productIdNumber, folder)
@@ -101,13 +115,9 @@ export const uploadController = {
       );
     }
 
-    // URL 디코딩
-    const decodedKey = decodeURIComponent(key);
-
-    // download 쿼리 파라미터 확인
     const isDownload = download === 'true';
 
-    const result = await uploadService.getImageUrl(decodedKey, userId, role, companyId, isDownload);
+    const result = await uploadService.getImageUrl(key, userId, role, companyId, isDownload);
     res.status(HttpStatus.OK).json(result);
   },
 
@@ -128,10 +138,7 @@ export const uploadController = {
       );
     }
 
-    // URL 디코딩
-    const decodedKey = decodeURIComponent(key);
-
-    const result = await uploadService.deleteImage(decodedKey, userId, role, companyId);
+    const result = await uploadService.deleteImage(key, userId, role, companyId);
     res.status(HttpStatus.OK).json(result);
   },
 };

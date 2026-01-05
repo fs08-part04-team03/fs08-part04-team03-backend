@@ -177,7 +177,10 @@ export const uploadService = {
       // 다운로드 모드일 경우 Content-Disposition 헤더 추가
       if (isDownload) {
         const filename = upload.originalName || key.split('/').pop() || 'download';
-        commandParams.ResponseContentDisposition = `attachment; filename="${filename}"`;
+        // ASCII 파일명과 UTF-8 인코딩된 파일명 모두 제공 (RFC 5987)
+        const asciiFilename = filename.replace(/[^\x20-\x7E]/g, '_');
+        const encodedFilename = encodeURIComponent(filename);
+        commandParams.ResponseContentDisposition = `attachment; filename="${asciiFilename}"; filename*=UTF-8''${encodedFilename}`;
       }
 
       const command = new GetObjectCommand(commandParams);
