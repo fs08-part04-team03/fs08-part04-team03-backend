@@ -377,7 +377,7 @@ export const purchaseService = {
     }
 
     // status = PENDING 조건까지 포함해서 원자적으로 승인 처리
-    const updateResult = await prisma.purchaseRequests.updateMany({
+    const updateResult = await prisma.purchaseRequests.update({
       where: {
         id: purchaseRequestId,
         companyId,
@@ -389,7 +389,46 @@ export const purchaseService = {
       },
     });
 
-    if (updateResult.count === 0) {
+    // 승인된 만큼 예산도 삭감시키기
+    const now = new Date();
+    const budget = await prisma.budgets.findFirst({
+      where: {
+        companyId,
+        year: now.getUTCFullYear(),
+        month: now.getUTCMonth() + 1,
+      },
+    });
+    if (!budget) {
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERAL_NOT_FOUND,
+        '이번 달 예산을 찾을 수 없습니다.'
+      );
+    }
+
+    // 예산 부족 시 에러 반환
+    if (budget.amount < updateResult.totalPrice + updateResult.shippingFee) {
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.BUDGET_EXCEEDED,
+        '예산이 부족하여 구매 요청을 승인할 수 없습니다.'
+      );
+    }
+
+    await prisma.budgets.update({
+      where: {
+        companyId_year_month: {
+          companyId,
+          year: now.getUTCFullYear(),
+          month: now.getUTCMonth() + 1,
+        },
+      },
+      data: {
+        amount: budget.amount - (updateResult.totalPrice + updateResult.shippingFee),
+      },
+    });
+
+    if (!updateResult) {
       // 다른 트랜잭션에서 먼저 처리된 경우
       throw new CustomError(
         HttpStatus.BAD_REQUEST,

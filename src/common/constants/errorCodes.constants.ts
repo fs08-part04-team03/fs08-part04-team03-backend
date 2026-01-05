@@ -26,6 +26,9 @@ export const ErrorCodes = {
   // 이메일 관련 (EMAIL_xxx)
   EMAIL_SENDING_FAILED: 'EMAIL_SENDING_FAILED',
 
+  // 예산 관련 (BUDGET_xxx)
+  BUDGET_EXCEEDED: 'BUDGET_EXCEEDED',
+
   // 데이터베이스 관련 (DB_xxx)
   DB_CONNECTION_FAILED: 'DB_CONNECTION_FAILED',
   DB_QUERY_FAILED: 'DB_QUERY_FAILED',
