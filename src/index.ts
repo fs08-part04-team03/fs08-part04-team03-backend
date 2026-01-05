@@ -20,6 +20,7 @@ import { cartRouter } from './domains/cart/cart.router';
 import { purchaseRouter } from './domains/purchase/purchase.router';
 import { productRouter } from './domains/product/product.router';
 import { wishlistRouter } from './domains/wishlist/wishlist.router';
+import { uploadRouter } from './domains/upload/upload.router';
 
 const app: Application = express();
 
@@ -110,6 +111,7 @@ app.use(`/api/${env.API_VERSION}/purchase`, purchaseRouter);
 app.use(`/api/${env.API_VERSION}/cart`, cartRouter);
 app.use(`/api/${env.API_VERSION}/product`, productRouter);
 app.use(`/api/${env.API_VERSION}/wishlist`, wishlistRouter);
+app.use(`/api/${env.API_VERSION}/upload`, uploadRouter);
 
 // Swagger 문서 설정
 swaggerDocs(app);

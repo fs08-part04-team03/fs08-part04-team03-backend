@@ -1,0 +1,150 @@
+@baseUrl = http://localhost:4000
+@apiVersion = v1
+
+### 로그인 (manager)
+# @name login
+POST {{baseUrl}}/api/{{apiVersion}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@test.com",
+  "password": "testA1234!"
+}
+
+> {%
+  client.global.set("token", response.body.data.accessToken);
+%}
+
+### 단일 이미지 업로드 (products 폴더) (201)
+# @name uploadSingleImage
+POST {{baseUrl}}/api/{{apiVersion}}/upload/image?folder=products
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="image"; filename="test-image.jpg"
+Content-Type: image/jpeg
+
+< ./test-image.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+> {%
+  client.global.set("imageKey", response.body.data.key);
+%}
+
+### 단일 이미지 업로드 (users 폴더) (201)
+POST {{baseUrl}}/api/{{apiVersion}}/upload/image?folder=users
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="image"; filename="profile.jpg"
+Content-Type: image/jpeg
+
+< ./test-image.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### 단일 이미지 업로드 (companies 폴더) (201)
+POST {{baseUrl}}/api/{{apiVersion}}/upload/image?folder=companies
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="image"; filename="company-logo.png"
+Content-Type: image/png
+
+< ./test-image.png
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### 단일 이미지 업로드 (기본 misc 폴더) (201)
+POST {{baseUrl}}/api/{{apiVersion}}/upload/image
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="image"; filename="misc-image.jpg"
+Content-Type: image/jpeg
+
+< ./test-image.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### 이미지 업로드 - 파일 없음 (400)
+POST {{baseUrl}}/api/{{apiVersion}}/upload/image?folder=products
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### 여러 이미지 업로드 (최대 10개) (201)
+# @name uploadMultipleImages
+POST {{baseUrl}}/api/{{apiVersion}}/upload/images?folder=products
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="images"; filename="image1.jpg"
+Content-Type: image/jpeg
+
+< ./test-image1.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="images"; filename="image2.jpg"
+Content-Type: image/jpeg
+
+< ./test-image2.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="images"; filename="image3.png"
+Content-Type: image/png
+
+< ./test-image3.png
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+> {%
+  client.global.set("multiImageKey", response.body.data[0].key);
+%}
+
+### 이미지 URL 조회 (200)
+GET {{baseUrl}}/api/{{apiVersion}}/upload/image/{{imageKey}}
+Authorization: Bearer {{token}}
+
+### 이미지 URL 조회 - URL 인코딩된 키 사용 (200)
+# 예: products/1234567890-abc123.jpg -> products%2F1234567890-abc123.jpg
+GET {{baseUrl}}/api/{{apiVersion}}/upload/image/products%2F1234567890-abc123.jpg
+Authorization: Bearer {{token}}
+
+### 이미지 URL 조회 - 다운로드 모드 (200)
+GET {{baseUrl}}/api/{{apiVersion}}/upload/image/{{imageKey}}?download=true
+Authorization: Bearer {{token}}
+
+### 이미지 URL 조회 - 존재하지 않는 키 (404)
+GET {{baseUrl}}/api/{{apiVersion}}/upload/image/nonexistent%2Fimage.jpg
+Authorization: Bearer {{token}}
+
+### 이미지 삭제 (MANAGER 이상) (200)
+DELETE {{baseUrl}}/api/{{apiVersion}}/upload/image/{{imageKey}}
+Authorization: Bearer {{token}}
+
+### 이미지 삭제 - URL 인코딩된 키 사용 (200)
+DELETE {{baseUrl}}/api/{{apiVersion}}/upload/image/products%2F1234567890-abc123.jpg
+Authorization: Bearer {{token}}
+
+### 삭제된 이미지 조회 시도 (404)
+GET {{baseUrl}}/api/{{apiVersion}}/upload/image/{{imageKey}}
+Authorization: Bearer {{token}}
+
+### 이미지 삭제 - 권한 없음 테스트 (USER로 로그인)
+# @name userLogin
+POST {{baseUrl}}/api/{{apiVersion}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@test.com",
+  "password": "test-password"
+}
+
+> {%
+  client.global.set("userToken", response.body.data.accessToken);
+%}
+
+### 이미지 삭제 시도 - USER 권한 (403)
+DELETE {{baseUrl}}/api/{{apiVersion}}/upload/image/{{multiImageKey}}
+Authorization: Bearer {{userToken}}

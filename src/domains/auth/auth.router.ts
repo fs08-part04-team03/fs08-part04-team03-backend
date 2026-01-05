@@ -29,7 +29,7 @@ router.get('/csrf', csrfProtection, (req, res) => {
 router.post('/register', authValidator.signup, authController.signup);
 router.post('/admin/register', authValidator.adminRegister, authController.adminRegister);
 router.post('/login', authValidator.login, authController.login);
-router.post('/refresh', csrfProtection, authController.refresh);
+router.post('/refresh', authController.refresh);
 router.post('/logout', authController.logout);
 router.use('/invitation', invitationRouter);
 
