@@ -87,12 +87,29 @@ export const uploadController = {
       uploadService.uploadImage(file, userId, companyId, productIdNumber, folder)
     );
 
-    const results = await Promise.all(uploadPromises);
+    const results = await Promise.allSettled(uploadPromises);
 
-    res.status(HttpStatus.CREATED).json({
+    const succeeded = results.filter((r) => r.status === 'fulfilled');
+    const failed = results.filter((r) => r.status === 'rejected');
+
+    if (failed.length > 0 && succeeded.length === 0) {
+      // 모두 실패
+      throw new CustomError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        ErrorCodes.GENERAL_INTERNAL_ERROR,
+        '모든 이미지 업로드가 실패했습니다.'
+      );
+    }
+
+    res.status(succeeded.length === req.files.length ? HttpStatus.CREATED : HttpStatus.OK).json({
       success: true,
-      data: results.map((r) => r.data),
-      message: `${req.files.length}개의 이미지 업로드가 완료되었습니다.`,
+      data: succeeded.map((r) => r.value.data),
+      message: `${succeeded.length}개의 이미지 업로드가 완료되었습니다.${
+        failed.length > 0 ? ` (${failed.length}개 실패)` : ''
+      }`,
+      ...(failed.length > 0 && {
+        warnings: failed.map((r) => (r.reason as Error)?.message || '알 수 없는 오류'),
+      }),
     });
   },
 
