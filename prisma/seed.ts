@@ -1410,17 +1410,20 @@ async function main() {
       const firstName = faker.person.firstName();
       const lastName = faker.person.lastName();
       const randomRole = roles[Math.floor(Math.random() * roles.length)];
+      const uniqueSuffix = faker.string.alphanumeric(6);
 
       return {
         companyId: company.id,
-        email: faker.internet.email({ firstName, lastName }).toLowerCase(),
+        email: faker.internet
+          .email({ firstName, lastName, provider: `test${uniqueSuffix}.com` })
+          .toLowerCase(),
         password: bulkUserPassword,
         name: `${lastName}${firstName}`,
         role: randomRole,
       };
     });
 
-    await prisma.users.createMany({ data: usersData });
+    await prisma.users.createMany({ data: usersData, skipDuplicates: true });
     totalUsersCreated += batchSize;
 
     if ((batch + 1) % 10 === 0 || batch === totalUserBatches - 1) {
@@ -1554,7 +1557,7 @@ async function main() {
     const selectedProducts = faker.helpers.arrayElements(allProductsUpdated, itemCount);
 
     let totalPrice = 0;
-    const items = selectedProducts.map((product) => {
+    const items = selectedProducts.map((product: { price: number; id: any }) => {
       const quantity = faker.number.int({ min: 1, max: 10 });
       totalPrice += product.price * quantity;
       return { productId: product.id, quantity, priceSnapshot: product.price };
@@ -1615,7 +1618,7 @@ async function main() {
   console.log('   생성된 구매 요청 조회 중...');
   const createdPurchaseRequests = await prisma.purchaseRequests.findMany({
     where: { companyId: company.id },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { id: 'desc' },
     take: BULK_DATA_CONFIG.ADDITIONAL_PURCHASE_REQUESTS,
   });
 
