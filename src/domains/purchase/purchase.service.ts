@@ -400,7 +400,7 @@ export const purchaseService = {
     });
     if (!budget) {
       throw new CustomError(
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        HttpStatus.BAD_REQUEST,
         ErrorCodes.GENERAL_NOT_FOUND,
         '이번 달 예산을 찾을 수 없습니다.'
       );

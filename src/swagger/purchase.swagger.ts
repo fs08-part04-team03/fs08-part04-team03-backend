@@ -471,12 +471,14 @@
  *       ### 승인 조건
  *       - 구매 요청이 존재해야 합니다.
  *       - 구매 요청의 상태가 PENDING이어야 합니다.
+ *       - 당월 회사 예산이 요청 금액(totalPrice + shippingFee) 이상이어야 합니다.
  *       - 요청한 사용자가 관리자(MANAGER) 권한을 가지고 있어야 합니다.
  *
  *       ### 승인 후 변경사항
  *       - `status`: PENDING → APPROVED
  *       - `approver`: 승인한 관리자 정보가 설정됩니다.
  *       - `updatedAt`: 승인 시간으로 자동 업데이트됩니다.
+ *       - `budget`: 당월 회사 예산에서 요청 금액(totalPrice + shippingFee)만큼 차감됩니다.
  *     tags: [Purchase]
  *     security:
  *       - bearerAuth: []
@@ -505,7 +507,11 @@
  *                   type: string
  *                   example: "구매 요청을 승인했습니다."
  *       400:
- *         description: 이미 처리된 구매 요청 (APPROVED, REJECTED, CANCELLED 상태)
+ *         description: |
+ *           잘못된 요청
+ *           - 이미 처리된 구매 요청 (APPROVED, REJECTED, CANCELLED 상태)
+ *           - 예산 미설정 (당월 예산이 설정되지 않은 경우)
+ *           - 예산 초과 (당월 예산이 요청 금액보다 부족한 경우)
  *         content:
  *           application/json:
  *             schema:
@@ -517,6 +523,22 @@
  *                 message:
  *                   type: string
  *                   example: "이미 처리된 구매 요청입니다."
+ *             examples:
+ *               alreadyProcessed:
+ *                 summary: 이미 처리된 구매 요청
+ *                 value:
+ *                   success: false
+ *                   message: "이미 처리된 구매 요청입니다."
+ *               budgetNotFound:
+ *                 summary: 예산 미설정
+ *                 value:
+ *                   success: false
+ *                   message: "이번 달 예산을 찾을 수 없습니다."
+ *               budgetExceeded:
+ *                 summary: 예산 초과
+ *                 value:
+ *                   success: false
+ *                   message: "예산이 부족하여 구매 요청을 승인할 수 없습니다."
  *       401:
  *         description: 인증 실패
  *       403:
