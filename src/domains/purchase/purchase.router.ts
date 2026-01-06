@@ -123,8 +123,6 @@ router.get(
   '/admin/purchaseDashboard',
   verifyAccessToken,
   requireMinRole('MANAGER'),
-  purchaseValidator.validatePurchaseDashboard,
-  validateRequest,
   purchaseController.getPurchaseDashboard
 );
 
