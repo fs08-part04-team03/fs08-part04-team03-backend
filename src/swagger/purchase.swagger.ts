@@ -846,37 +846,10 @@
  * /api/v1/purchase/admin/purchaseDashboard:
  *   get:
  *     summary: 구매 관리 대시보드 (관리자)
- *     description: 조직 전체 지출액/예산 조회 및 전체 구매 내역 리스트를 제공합니다.
+ *     description: 조직 전체 지출액/예산 조회 및 통계 정보를 제공합니다.
  *     tags: [Purchase]
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *           default: 1
- *         description: 페이지 번호
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 10
- *         description: 페이지당 항목 수
- *       - in: query
- *         name: sortBy
- *         schema:
- *           type: string
- *           enum: [createdAt, updatedAt, totalPrice]
- *           default: createdAt
- *         description: 정렬 기준
- *       - in: query
- *         name: order
- *         schema:
- *           type: string
- *           enum: [asc, desc]
- *           default: desc
- *         description: 정렬 순서
  *     responses:
  *       200:
  *         description: 대시보드 데이터 조회 성공
@@ -906,6 +879,9 @@
  *                         lastYear:
  *                           type: number
  *                           description: 지난해 지출액
+ *                         total:
+ *                           type: number
+ *                           description: 총 지출액 (전체 기간)
  *                     budget:
  *                       type: object
  *                       properties:
@@ -917,24 +893,165 @@
  *                           type: number
  *                           nullable: true
  *                           description: 남은 예산
- *                     purchaseList:
+ *                     newUsers:
  *                       type: array
+ *                       description: 이번달 신규 가입 회원 리스트
  *                       items:
- *                         $ref: '#/components/schemas/PurchaseRequest'
- *                     pagination:
- *                       type: object
- *                       properties:
- *                         page:
- *                           type: integer
- *                         limit:
- *                           type: integer
- *                         total:
- *                           type: integer
- *                         totalPages:
- *                           type: integer
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                             description: 사용자 ID
+ *                           name:
+ *                             type: string
+ *                             description: 사용자 이름
+ *                           email:
+ *                             type: string
+ *                             description: 사용자 이메일
+ *                           role:
+ *                             type: string
+ *                             enum: [USER, MANAGER, ADMIN]
+ *                             description: 사용자 권한
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                             description: 가입일
+ *                     userChanges:
+ *                       type: array
+ *                       description: 이번달 탈퇴/권한 변경 회원 리스트 (최근 50개)
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                             description: 이력 ID
+ *                           tableName:
+ *                             type: string
+ *                             description: 테이블명
+ *                           tableId:
+ *                             type: string
+ *                             description: 테이블 레코드 ID
+ *                           operationType:
+ *                             type: string
+ *                             enum: [INSERT, UPDATE, DELETE]
+ *                             description: 작업 유형
+ *                           data:
+ *                             type: object
+ *                             description: 변경 데이터
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                             description: 변경일시
+ *                     snacksList:
+ *                       type: array
+ *                       description: 이번달 요청한 간식 순위 (구매 빈도순)
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           rank:
+ *                             type: integer
+ *                             description: 순위
+ *                           name:
+ *                             type: string
+ *                             description: 상품명
+ *                           price:
+ *                             type: number
+ *                             description: 가격 (요청 시점 스냅샷)
+ *                           totalQuantity:
+ *                             type: integer
+ *                             description: 총 구매 수량
+ *                           purchaseCount:
+ *                             type: integer
+ *                             description: 구매 횟수
+ *                     monthlyExpenses:
+ *                       type: array
+ *                       description: 최근 12개월 지출 내역
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           year:
+ *                             type: integer
+ *                             description: 연도
+ *                           month:
+ *                             type: integer
+ *                             description: 월
+ *                           totalExpenses:
+ *                             type: number
+ *                             description: 해당 월 총 지출액
  *                 message:
  *                   type: string
  *                   example: "구매 관리 대시보드 정보를 조회했습니다."
+ *       401:
+ *         description: 인증 실패
+ *       403:
+ *         description: 권한 없음 (관리자만 접근 가능)
+ */
+
+/**
+ * @swagger
+ * /api/v1/purchase/admin/monthlyExpenses:
+ *   get:
+ *     summary: 최근 1년간 월별 지출 내역 조회
+ *     description: 최근 12개월간의 월별 지출 내역을 조회합니다 (승인된 구매 요청만 집계).
+ *     tags:
+ *       - Purchase
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: 최근 1년간 월별 지출 내역 조회 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     monthlyExpenses:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           year:
+ *                             type: integer
+ *                             description: 연도
+ *                             example: 2025
+ *                           month:
+ *                             type: integer
+ *                             description: 월
+ *                             example: 1
+ *                           totalExpense:
+ *                             type: number
+ *                             description: 해당 월의 총 지출액 (totalPrice + shippingFee)
+ *                             example: 150000
+ *                     period:
+ *                       type: object
+ *                       properties:
+ *                         from:
+ *                           type: object
+ *                           properties:
+ *                             year:
+ *                               type: integer
+ *                               example: 2025
+ *                             month:
+ *                               type: integer
+ *                               example: 1
+ *                         to:
+ *                           type: object
+ *                           properties:
+ *                             year:
+ *                               type: integer
+ *                               example: 2026
+ *                             month:
+ *                               type: integer
+ *                               example: 1
+ *                 message:
+ *                   type: string
+ *                   example: "최근 1년간 월별 지출 내역을 조회했습니다."
  *       401:
  *         description: 인증 실패
  *       403:

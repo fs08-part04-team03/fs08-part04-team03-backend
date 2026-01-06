@@ -123,12 +123,7 @@ const validateCancelPurchaseRequest = [
 ];
 
 // 💰 [Purchase] 구매 관리 대시보드 API
-const validatePurchaseDashboard = [
-  query('page').optional().isInt({ min: 1 }).toInt(),
-  query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
-  query('sortBy').optional().isIn(['createdAt', 'updatedAt', 'totalPrice']),
-  query('order').optional().isIn(['asc', 'desc']),
-];
+const validatePurchaseDashboard = [];
 
 export const purchaseValidator = {
   validatePurchaseList,

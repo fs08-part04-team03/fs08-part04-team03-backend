@@ -26,45 +26,24 @@ Authorization: Bearer {{token}}
 
 ###
 
-### 💰 [Purchase] 구매 관리 대시보드 API - 기본 (첫 페이지, 10개 항목)
-# 이번달/지난달/올해/작년 지출액, 이번달 예산 및 남은 예산, 승인된 구매 내역 리스트
+### 💰 [Purchase] 구매 관리 대시보드 API
+# 조직 전체 지출액/예산 조회
+# Response 데이터:
+# - expenses: { thisMonth, lastMonth, thisYear, lastYear, total }
+#   * thisMonth: 이번달 지출액
+#   * lastMonth: 지난달 지출액
+#   * thisYear: 올해 총 지출액
+#   * lastYear: 지난해 지출액
+#   * total: 총 지출액 (전체 기간)
+# - budget: { thisMonthBudget, remainingBudget }
+#   * thisMonthBudget: 이번달 예산
+#   * remainingBudget: 남은 예산
+# - newUsers: 이번달 신규 가입 회원 리스트 (id, name, email, role, createdAt)
+# - userChanges: 이번달 탈퇴/권한 변경 회원 리스트 (최근 50개, History 테이블)
+# - snacksList: 이번달 요청한 간식 순위 (rank, name, price, totalQuantity, purchaseCount)
+# - monthlyExpenses: 최근 12개월 지출 내역 (year, month, totalExpenses)
 GET http://localhost:4000/api/v1/purchase/admin/purchaseDashboard
 Authorization: Bearer {{token}}
 
 ###
 
-### 💰 [Purchase] 구매 관리 대시보드 API - 페이지네이션 (2페이지, 페이지당 5개)
-GET http://localhost:4000/api/v1/purchase/admin/purchaseDashboard?page=2&limit=5
-Authorization: Bearer {{token}}
-
-###
-
-### 💰 [Purchase] 구매 관리 대시보드 API - 생성일 기준 최신순 정렬
-GET http://localhost:4000/api/v1/purchase/admin/purchaseDashboard?sortBy=createdAt&order=desc
-Authorization: Bearer {{token}}
-
-###
-
-### 💰 [Purchase] 구매 관리 대시보드 API - 승인일 기준 최신순 정렬
-GET http://localhost:4000/api/v1/purchase/admin/purchaseDashboard?sortBy=updatedAt&order=desc
-Authorization: Bearer {{token}}
-
-###
-
-### 💰 [Purchase] 구매 관리 대시보드 API - 가격 기준 내림차순 정렬
-GET http://localhost:4000/api/v1/purchase/admin/purchaseDashboard?sortBy=totalPrice&order=desc
-Authorization: Bearer {{token}}
-
-###
-
-### 💰 [Purchase] 구매 관리 대시보드 API - 가격 기준 오름차순 정렬
-GET http://localhost:4000/api/v1/purchase/admin/purchaseDashboard?sortBy=totalPrice&order=asc
-Authorization: Bearer {{token}}
-
-###
-
-### 💰 [Purchase] 구매 관리 대시보드 API - 전체 옵션 조합
-GET http://localhost:4000/api/v1/purchase/admin/purchaseDashboard?page=1&limit=10&sortBy=createdAt&order=desc
-Authorization: Bearer {{token}}
-
-###
