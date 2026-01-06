@@ -952,11 +952,20 @@ export const purchaseService = {
     });
 
     // 8. 탈퇴/권한 변경 회원 리스트 (History 테이블 조회)
+    // 먼저 현재 회사의 사용자 ID 목록 조회
+    const companyUserIds = await prisma.users.findMany({
+      where: { companyId },
+      select: { id: true },
+    });
+
     const userChanges = await prisma.history.findMany({
       where: {
         tableName: 'users',
         operationType: {
           in: ['UPDATE', 'DELETE'],
+        },
+        tableId: {
+          in: companyUserIds.map((u) => u.id),
         },
         createdAt: {
           gte: thisMonthStart,
@@ -974,6 +983,7 @@ export const purchaseService = {
       where: {
         purchaseRequests: {
           companyId,
+          status: 'APPROVED',
           createdAt: {
             gte: thisMonthStart,
             lte: thisMonthEnd,
