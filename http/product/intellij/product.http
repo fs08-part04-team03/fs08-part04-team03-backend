@@ -171,7 +171,7 @@ Content-Disposition: form-data; name="name"
 Content-Disposition: form-data; name="image"; filename="updated.jpg"
 Content-Type: image/jpeg
 
-< ./test-images/updated.jpg
+< ./updated.jpg
 --WebKitFormBoundary--
 
 ### product 수정 - 이미지 제거 (MANAGER 이상) (200)

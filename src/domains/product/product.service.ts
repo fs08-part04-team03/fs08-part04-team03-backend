@@ -134,28 +134,32 @@ export const productService = {
         uploadedFileKey = imageKey;
       }
 
-      // Step 2: 상품 생성 (image 필드에 S3 key 저장)
-      const product = await prisma.products.create({
-        data: {
-          companyId,
-          createdById,
-          categoryId,
-          name,
-          price,
-          image: imageKey,
-          link,
-          isActive: true,
-        },
-        select: productSelect,
-      });
-
-      // Step 3: uploads 테이블의 레코드에 productId 업데이트
-      if (uploadedFileKey) {
-        await prisma.uploads.update({
-          where: { key: uploadedFileKey },
-          data: { productId: product.id },
+      // Step 2 & 3: 상품 생성 및 uploads 업데이트를 트랜잭션으로 처리
+      const product = await prisma.$transaction(async (tx) => {
+        const newProduct = await tx.products.create({
+          data: {
+            companyId,
+            createdById,
+            categoryId,
+            name,
+            price,
+            image: imageKey,
+            link,
+            isActive: true,
+          },
+          select: productSelect,
         });
-      }
+
+        // uploads 테이블의 레코드에 productId 업데이트
+        if (uploadedFileKey) {
+          await tx.uploads.update({
+            where: { key: uploadedFileKey },
+            data: { productId: newProduct.id },
+          });
+        }
+
+        return newProduct;
+      });
 
       return product;
     } catch (error) {
@@ -168,7 +172,8 @@ export const productService = {
               Key: uploadedFileKey,
             })
           );
-          await prisma.uploads.delete({
+          // deleteMany는 레코드가 없어도 예외를 발생시키지 않음
+          await prisma.uploads.deleteMany({
             where: { key: uploadedFileKey },
           });
         } catch (cleanupError) {
@@ -408,7 +413,8 @@ export const productService = {
               Key: oldImageKey,
             })
           );
-          await prisma.uploads.delete({
+          // deleteMany는 레코드가 없어도 예외를 발생시키지 않음
+          await prisma.uploads.deleteMany({
             where: { key: oldImageKey },
           });
         } catch (cleanupError) {
@@ -428,7 +434,8 @@ export const productService = {
               Key: newImageKey,
             })
           );
-          await prisma.uploads.delete({
+          // deleteMany는 레코드가 없어도 예외를 발생시키지 않음
+          await prisma.uploads.deleteMany({
             where: { key: newImageKey },
           });
         } catch (cleanupError) {
