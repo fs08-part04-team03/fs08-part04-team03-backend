@@ -408,16 +408,8 @@ export const purchaseController = {
       );
     }
 
-    // 쿼리 파라미터 처리
-    const query = {
-      page: req.query.page ? Number(req.query.page) : undefined,
-      limit: req.query.limit ? Number(req.query.limit) : undefined,
-      sortBy: req.query.sortBy as GetAllPurchasesQuery['sortBy'],
-      order: req.query.order as GetAllPurchasesQuery['order'],
-    };
-
     // 서비스 호출
-    const result = await purchaseService.getPurchaseDashboard(req.user.companyId, query);
+    const result = await purchaseService.getPurchaseDashboard(req.user.companyId);
 
     // 응답 반환
     res.status(HttpStatus.OK).json(result);

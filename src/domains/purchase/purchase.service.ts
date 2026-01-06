@@ -819,9 +819,10 @@ export const purchaseService = {
 
   // 💰 [Purchase] 구매 관리 대시보드 API
   // 조직 전체 지출액/예산 조회
-  // 데이터: 이번달 지출액, 지난달 지출액, 남은 예산, 올해 총 지출액, 지난해 지출액
+  // 데이터: 이번달 지출액, 총 지출액, 남은 예산, 올해 총 지출액, 지난해 지출액
+  // 신규회원 리스트, 탈퇴/권한 변경 회원 리스트, 1달간 요청한 간식 리스트, 매달 지출 내역
   // 전체 구매 내역 리스트
-  async getPurchaseDashboard(companyId: string, query: GetAllPurchasesQuery) {
+  async getPurchaseDashboard(companyId: string) {
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1; // 0-indexed
@@ -917,7 +918,163 @@ export const purchaseService = {
       },
     });
 
-    // 6. Prisma aggregate 결과에서 _sum 추출
+    // 6. 총 지출액 (전체 기간, APPROVED 상태만)
+    const totalExpenses = await prisma.purchaseRequests.aggregate({
+      where: {
+        companyId,
+        status: 'APPROVED',
+      },
+      _sum: {
+        totalPrice: true,
+        shippingFee: true,
+      },
+    });
+
+    // 7. 신규회원 리스트 (이번달 가입한 회원)
+    const newUsers = await prisma.users.findMany({
+      where: {
+        companyId,
+        createdAt: {
+          gte: thisMonthStart,
+          lte: thisMonthEnd,
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    // 8. 탈퇴/권한 변경 회원 리스트 (History 테이블 조회)
+    // 먼저 현재 회사의 사용자 ID 목록 조회
+    const companyUserIds = await prisma.users.findMany({
+      where: { companyId },
+      select: { id: true },
+    });
+
+    const userChanges = await prisma.history.findMany({
+      where: {
+        tableName: 'users',
+        operationType: {
+          in: ['UPDATE', 'DELETE'],
+        },
+        tableId: {
+          in: companyUserIds.map((u) => u.id),
+        },
+        createdAt: {
+          gte: thisMonthStart,
+          lte: thisMonthEnd,
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: 50, // 최근 50개만
+    });
+
+    // 9. 이번달 요청한 간식 리스트 (구매 빈도순 순위)
+    const monthlySnacks = await prisma.purchaseItems.findMany({
+      where: {
+        purchaseRequests: {
+          companyId,
+          status: 'APPROVED',
+          createdAt: {
+            gte: thisMonthStart,
+            lte: thisMonthEnd,
+          },
+        },
+      },
+      select: {
+        products: {
+          select: {
+            name: true,
+          },
+        },
+        priceSnapshot: true,
+        quantity: true,
+      },
+    });
+
+    // 간식별로 집계하여 순위 생성
+    const snacksMap = new Map<
+      string,
+      { name: string; price: number; totalQuantity: number; purchaseCount: number }
+    >();
+
+    monthlySnacks.forEach((item) => {
+      const key = item.products.name;
+      if (snacksMap.has(key)) {
+        const existing = snacksMap.get(key)!;
+        existing.totalQuantity += item.quantity;
+        existing.purchaseCount += 1;
+      } else {
+        snacksMap.set(key, {
+          name: item.products.name,
+          price: item.priceSnapshot,
+          totalQuantity: item.quantity,
+          purchaseCount: 1,
+        });
+      }
+    });
+
+    // 구매 횟수 기준으로 정렬하여 순위 부여
+    const snacksList = Array.from(snacksMap.values())
+      .sort((a, b) => {
+        // 구매 횟수로 먼저 정렬, 같으면 총 구매 수량으로 정렬
+        if (b.purchaseCount !== a.purchaseCount) {
+          return b.purchaseCount - a.purchaseCount;
+        }
+        return b.totalQuantity - a.totalQuantity;
+      })
+      .map((item, index) => ({
+        rank: index + 1,
+        name: item.name,
+        price: item.price,
+        totalQuantity: item.totalQuantity,
+        purchaseCount: item.purchaseCount,
+      }));
+
+    // 10. 매달 지출 내역 (최근 12개월)
+    const monthlyExpenses = await Promise.all(
+      Array.from({ length: 12 }, async (_, i) => {
+        const targetDate = new Date(currentYear, currentMonth - 1 - i, 1);
+        const year = targetDate.getFullYear();
+        const month = targetDate.getMonth() + 1;
+        const monthStart = new Date(year, month - 1, 1);
+        const monthEnd = new Date(year, month, 0, 23, 59, 59, 999);
+
+        const expenses = await prisma.purchaseRequests.aggregate({
+          where: {
+            companyId,
+            status: 'APPROVED',
+            updatedAt: {
+              gte: monthStart,
+              lte: monthEnd,
+            },
+          },
+          _sum: {
+            totalPrice: true,
+            shippingFee: true,
+          },
+        });
+
+        // eslint-disable-next-line no-underscore-dangle
+        const sum = expenses._sum;
+        return {
+          year,
+          month,
+          totalExpenses: (sum.totalPrice || 0) + (sum.shippingFee || 0),
+        };
+      })
+    );
+
+    // 11. Prisma aggregate 결과에서 _sum 추출
     // eslint-disable-next-line no-underscore-dangle
     const thisMonthSum = thisMonthExpenses._sum;
     // eslint-disable-next-line no-underscore-dangle
@@ -926,91 +1083,31 @@ export const purchaseService = {
     const thisYearSum = thisYearExpenses._sum;
     // eslint-disable-next-line no-underscore-dangle
     const lastYearSum = lastYearExpenses._sum;
+    // eslint-disable-next-line no-underscore-dangle
+    const totalSum = totalExpenses._sum;
 
-    // 7. 남은 예산 계산 (totalPrice + shippingFee를 예산에서 차감)
+    // 12. 남은 예산 계산 (totalPrice + shippingFee를 예산에서 차감)
     const thisMonthTotalExpenses = (thisMonthSum.totalPrice || 0) + (thisMonthSum.shippingFee || 0);
     const remainingBudget = thisMonthBudget
       ? thisMonthBudget.amount - thisMonthTotalExpenses
       : null;
 
-    // 8. 전체 구매 내역 리스트 (페이지네이션)
-    const page = query.page || 1;
-    const limit = query.limit || 10;
-    const sortBy = query.sortBy || 'createdAt';
-    const order = query.order || 'desc';
-    const skip = (page - 1) * limit;
-
-    const totalItems = await prisma.purchaseRequests.count({
-      where: {
-        companyId,
-        status: 'APPROVED',
-      },
-    });
-
-    const purchaseList = await prisma.purchaseRequests.findMany({
-      select: {
-        id: true,
-        createdAt: true,
-        updatedAt: true,
-        totalPrice: true,
-        shippingFee: true,
-        status: true,
-        purchaseItems: {
-          select: {
-            quantity: true,
-            priceSnapshot: true,
-            products: {
-              select: {
-                name: true,
-                image: true,
-              },
-            },
-          },
-        },
-        requester: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        approver: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-      },
-      where: {
-        companyId,
-        status: 'APPROVED',
-      },
-      orderBy: {
-        [sortBy]: order,
-      },
-      skip,
-      take: limit,
-    });
-    const totalPages = Math.ceil(totalItems / limit);
     const data = {
       expenses: {
         thisMonth: (thisMonthSum.totalPrice || 0) + (thisMonthSum.shippingFee || 0),
         lastMonth: (lastMonthSum.totalPrice || 0) + (lastMonthSum.shippingFee || 0),
         thisYear: (thisYearSum.totalPrice || 0) + (thisYearSum.shippingFee || 0),
         lastYear: (lastYearSum.totalPrice || 0) + (lastYearSum.shippingFee || 0),
+        total: (totalSum.totalPrice || 0) + (totalSum.shippingFee || 0), // 총 지출액 추가
       },
       budget: {
         thisMonthBudget: thisMonthBudget?.amount || null,
         remainingBudget,
       },
-      purchaseList,
-      pagination: {
-        page,
-        limit,
-        total: totalItems,
-        totalPages,
-      },
+      newUsers, // 신규회원 리스트
+      userChanges, // 탈퇴/권한 변경 회원 리스트
+      snacksList, // 1달간 요청한 간식 리스트
+      monthlyExpenses: monthlyExpenses.reverse(), // 매달 지출 내역 (오래된 순으로 정렬)
     };
 
     return ResponseUtil.success(data, '구매 관리 대시보드 정보를 조회했습니다.');

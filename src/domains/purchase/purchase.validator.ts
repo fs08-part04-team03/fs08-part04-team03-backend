@@ -1,7 +1,7 @@
-import { query, body, param } from 'express-validator';
+import { query, body, param, ValidationChain } from 'express-validator';
 
 // 💰 [Purchase] 전체 구매 내역 목록 API (관리자)
-const validatePurchaseList = [
+const validatePurchaseList: ValidationChain[] = [
   query('page').optional().isInt({ min: 1 }).toInt(),
   query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
   query('sortBy').optional().isIn(['createdAt', 'updatedAt', 'totalPrice']),
@@ -9,7 +9,7 @@ const validatePurchaseList = [
 ];
 
 // 💰 [Purchase] 즉시 구매 API (관리자)
-const validatePurchaseNow = [
+const validatePurchaseNow: ValidationChain[] = [
   body('shippingFee')
     .notEmpty()
     .withMessage('배송비는 필수입니다.')
@@ -29,7 +29,7 @@ const validatePurchaseNow = [
 ];
 
 // 💰 [Purchase] 내 구매 내역 조회 API
-const validateGetMyPurchase = [
+const validateGetMyPurchase: ValidationChain[] = [
   query('page').optional().isInt({ min: 1 }).toInt(),
   query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
   query('sortBy').optional().isIn(['createdAt', 'updatedAt', 'totalPrice']),
@@ -37,7 +37,7 @@ const validateGetMyPurchase = [
 ];
 
 // 💰 [Purchase] 내 구매 상세 조회 API
-const validateGetMyPurchaseDetail = [
+const validateGetMyPurchaseDetail: ValidationChain[] = [
   param('id')
     .notEmpty()
     .withMessage('구매 요청 ID는 필수입니다.')
@@ -47,7 +47,7 @@ const validateGetMyPurchaseDetail = [
 ];
 
 // 💰 [Purchase] 구매 요청 관리/조회 API (관리자)
-const validateManagePurchaseRequests = [
+const validateManagePurchaseRequests: ValidationChain[] = [
   query('status').optional().isIn(['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED']),
   query('page').optional().isInt({ min: 1 }).toInt(),
   query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
@@ -56,12 +56,12 @@ const validateManagePurchaseRequests = [
 ];
 
 // 💰 [Purchase] 구매 요청 승인 API (관리자)
-const validateApprovePurchaseRequest = [
+const validateApprovePurchaseRequest: ValidationChain[] = [
   body('message').optional().isString().withMessage('메시지는 문자열이어야 합니다.'),
 ];
 
 // 💰 [Purchase] 구매 요청 반려 API (관리자)
-const validateRejectPurchaseRequest = [
+const validateRejectPurchaseRequest: ValidationChain[] = [
   body('reason')
     .notEmpty()
     .withMessage('반려 사유는 필수입니다.')
@@ -72,7 +72,7 @@ const validateRejectPurchaseRequest = [
 ];
 
 // 💰 [Purchase] 구매 요청 API
-const validateRequestPurchase = [
+const validateRequestPurchase: ValidationChain[] = [
   body('shippingFee')
     .notEmpty()
     .withMessage('배송비는 필수입니다.')
@@ -113,21 +113,13 @@ const validateRequestPurchase = [
 ];
 
 // 💰 [Purchase] 구매 요청 취소 API
-const validateCancelPurchaseRequest = [
+const validateCancelPurchaseRequest: ValidationChain[] = [
   param('id')
     .notEmpty()
     .withMessage('구매 요청 ID는 필수입니다.')
     .bail()
     .isUUID()
     .withMessage('구매 요청 ID는 유효한 UUID 형식이어야 합니다.'),
-];
-
-// 💰 [Purchase] 구매 관리 대시보드 API
-const validatePurchaseDashboard = [
-  query('page').optional().isInt({ min: 1 }).toInt(),
-  query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
-  query('sortBy').optional().isIn(['createdAt', 'updatedAt', 'totalPrice']),
-  query('order').optional().isIn(['asc', 'desc']),
 ];
 
 export const purchaseValidator = {
@@ -140,5 +132,4 @@ export const purchaseValidator = {
   validateRejectPurchaseRequest,
   validateRequestPurchase,
   validateCancelPurchaseRequest,
-  validatePurchaseDashboard,
 };
