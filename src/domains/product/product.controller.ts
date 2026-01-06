@@ -43,7 +43,9 @@ export const productController = {
     const companyId = getCompanyId(req);
     const userId = getUserId(req);
     const payload = req.body as CreateProductBody;
-    const product = await productService.createProduct(companyId, userId, payload);
+    const { file } = req;
+
+    const product = await productService.createProduct(companyId, userId, payload, file);
     res
       .status(HttpStatus.CREATED)
       .json(ResponseUtil.success(product, '상품 등록이 완료되었습니다.'));
@@ -106,10 +108,20 @@ export const productController = {
   // 상품 수정
   updateProduct: async (req: AuthenticatedRequest, res: Response) => {
     const companyId = getCompanyId(req);
+    const userId = getUserId(req);
     const productId = Number(req.params.id);
     const payload = req.body as UpdateProductBody;
+    const { file } = req;
+    const removeImage = req.query.removeImage === 'true';
 
-    const product = await productService.updateProduct(companyId, productId, payload);
+    const product = await productService.updateProduct(
+      companyId,
+      userId,
+      productId,
+      payload,
+      file,
+      removeImage
+    );
     res.status(HttpStatus.OK).json(ResponseUtil.success(product, '상품이 수정되었습니다.'));
   },
 

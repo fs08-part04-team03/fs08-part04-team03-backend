@@ -36,37 +36,64 @@ Content-Type: application/json
   "link": "https://example.com/products/http-test-invalid"
 }
 
-### product A  생성 (201)
+### product A 생성 (이미지 없음) (201)
 # @name createProductA
 POST {{baseUrl}}/api/{{apiVersion}}/product
 Authorization: Bearer {{token}}
-Content-Type: application/json
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
-{
-  "categoryId": {{categoryId}},
-  "name": "버터링",
-  "price": 2500,
-  "link": "https://example.com/products/http-test-a",
-  "image": "http_test_a.png"
-}
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="categoryId"
+
+{{categoryId}}
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="name"
+
+버터링
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="price"
+
+2500
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="link"
+
+https://example.com/products/http-test-a
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
 
 ###
 # productAId 추출
 @productAId = {{createProductA.response.body.$.data.id}}
 
-### product B  생성 (201)
+### product B 생성 (이미지 포함) (201)
 # @name createProductB
+# 참고: 실제 이미지 파일을 업로드하려면 REST Client 확장의 파일 업로드 기능을 사용하거나
+# curl 명령어를 사용하세요: curl -F "image=@/path/to/image.jpg" -F "categoryId=101" ...
 POST {{baseUrl}}/api/{{apiVersion}}/product
 Authorization: Bearer {{token}}
-Content-Type: application/json
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
-{
-  "categoryId": {{categoryId}},
-  "name": "알새우칩",
-  "price": 1800,
-  "link": "https://example.com/products/http-test-b",
-  "image": "http_test_b.png"
-}
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="categoryId"
+
+{{categoryId}}
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="name"
+
+알새우칩
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="price"
+
+1800
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="link"
+
+https://example.com/products/http-test-b
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="image"; filename="test.jpg"
+Content-Type: image/jpeg
+
+< ./test-images/sample.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
 
 ###
 # productBId 추출
@@ -114,15 +141,47 @@ Content-Type: application/json
 GET {{baseUrl}}/api/{{apiVersion}}/product?categoryId={{categoryId}}&sort=sales&limit=100
 Authorization: Bearer {{token}}
 
-### product 수정 (MANAGER 이상) (200)
+### product 수정 - 필드만 수정 (MANAGER 이상) (200)
 PATCH {{baseUrl}}/api/{{apiVersion}}/product/{{productBId}}
 Authorization: Bearer {{token}}
-Content-Type: application/json
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
-{
-  "name": "알새우칩_수정본",
-  "price": 3456
-}
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="name"
+
+알새우칩_수정본
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="price"
+
+3456
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### product 수정 - 이미지 추가/교체 (MANAGER 이상) (200)
+PATCH {{baseUrl}}/api/{{apiVersion}}/product/{{productBId}}
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="name"
+
+알새우칩_이미지추가
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="image"; filename="updated.jpg"
+Content-Type: image/jpeg
+
+< ./test-images/updated.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### product 수정 - 이미지 제거 (MANAGER 이상) (200)
+PATCH {{baseUrl}}/api/{{apiVersion}}/product/{{productBId}}?removeImage=true
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="name"
+
+알새우칩_이미지제거
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
 
 ### product 삭제 (MANAGER 이상) (200)
 DELETE {{baseUrl}}/api/{{apiVersion}}/product/{{productAId}}

@@ -23,7 +23,6 @@ const validateCreateProduct = [
     .isInt({ min: 0 })
     .withMessage('price는 0 이상의 정수여야 합니다.')
     .toInt(),
-  body('image').optional({ nullable: true }).isString().trim(),
   body('link')
     .notEmpty()
     .withMessage('link는 필수 항목입니다.')
@@ -53,16 +52,15 @@ const validateGetProductDetail = [
 // 상품 수정 요청 바디 검증
 const validateUpdateProduct = [
   param('id').notEmpty().isInt({ min: 1 }).toInt(),
-  body().custom((value: unknown) => {
-    const hasAny =
+  body().custom((value: unknown, { req }) => {
+    const hasBodyField =
       typeof value === 'object' &&
       value !== null &&
-      ('categoryId' in value ||
-        'name' in value ||
-        'price' in value ||
-        'image' in value ||
-        'link' in value);
-    if (!hasAny) {
+      ('categoryId' in value || 'name' in value || 'price' in value || 'link' in value);
+    const hasFile = req.file !== undefined;
+    const hasRemoveImage = req.query?.removeImage === 'true';
+
+    if (!hasBodyField && !hasFile && !hasRemoveImage) {
       throw new Error('수정할 필드가 최소 1개는 필요합니다.');
     }
     return true;
@@ -84,7 +82,6 @@ const validateUpdateProduct = [
     .isInt({ min: 0 })
     .withMessage('price는 0 이상의 정수여야 합니다.')
     .toInt(),
-  body('image').optional({ nullable: true }).isString().trim(),
   body('link')
     .optional()
     .isString()

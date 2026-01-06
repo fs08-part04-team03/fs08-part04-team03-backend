@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { verifyAccessToken } from '../../common/middlewares/auth.middleware';
 import { requireMinRole } from '../../common/middlewares/role.middleware';
 import { validateRequest } from '../../common/middlewares/validator.middleware';
+import { uploadSingleImage } from '../upload/upload.middleware';
 import { productValidator } from './product.validator';
 import { productController } from './product.controller';
 
@@ -12,6 +13,7 @@ router.post(
   '/',
   verifyAccessToken,
   requireMinRole('USER'),
+  uploadSingleImage,
   productValidator.validateCreateProduct,
   validateRequest,
   productController.createProduct
@@ -52,6 +54,7 @@ router.patch(
   '/:id',
   verifyAccessToken,
   requireMinRole('MANAGER'),
+  uploadSingleImage,
   productValidator.validateUpdateProduct,
   validateRequest,
   productController.updateProduct
