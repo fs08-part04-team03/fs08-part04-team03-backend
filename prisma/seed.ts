@@ -1557,7 +1557,7 @@ async function main() {
     const selectedProducts = faker.helpers.arrayElements(allProductsUpdated, itemCount);
 
     let totalPrice = 0;
-    const items = selectedProducts.map((product: { price: number; id: any }) => {
+    const items = selectedProducts.map((product: { price: number; id: number }) => {
       const quantity = faker.number.int({ min: 1, max: 10 });
       totalPrice += product.price * quantity;
       return { productId: product.id, quantity, priceSnapshot: product.price };

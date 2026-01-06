@@ -98,4 +98,10 @@ export const env = {
   EMAIL_PORT: int('EMAIL_PORT', 587),
   EMAIL_USER: str('EMAIL_USER', 'example@example.com'),
   EMAIL_PASS: str('EMAIL_PASS', 'password'),
+
+  // AWS S3 설정
+  AWS_REGION: str('AWS_REGION', 'ap-northeast-2'),
+  AWS_ACCESS_KEY_ID: str('AWS_ACCESS_KEY_ID'),
+  AWS_SECRET_ACCESS_KEY: str('AWS_SECRET_ACCESS_KEY'),
+  AWS_S3_BUCKET_NAME: str('AWS_S3_BUCKET_NAME'),
 } as const;
