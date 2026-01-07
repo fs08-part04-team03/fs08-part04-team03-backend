@@ -46,6 +46,16 @@ const validateGetMyPurchaseDetail: ValidationChain[] = [
     .withMessage('구매 요청 ID는 유효한 UUID 형식이어야 합니다.'),
 ];
 
+// 💰 [Purchase] 구매 요청 상세 조회 API (관리자)
+const validateGetPurchaseRequestDetail: ValidationChain[] = [
+  param('id')
+    .notEmpty()
+    .withMessage('구매 요청 ID는 필수입니다.')
+    .bail()
+    .isUUID()
+    .withMessage('구매 요청 ID는 유효한 UUID 형식이어야 합니다.'),
+];
+
 // 💰 [Purchase] 구매 요청 관리/조회 API (관리자)
 const validateManagePurchaseRequests: ValidationChain[] = [
   query('status').optional().isIn(['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED']),
@@ -127,6 +137,7 @@ export const purchaseValidator = {
   validatePurchaseNow,
   validateGetMyPurchase,
   validateGetMyPurchaseDetail,
+  validateGetPurchaseRequestDetail,
   validateManagePurchaseRequests,
   validateApprovePurchaseRequest,
   validateRejectPurchaseRequest,

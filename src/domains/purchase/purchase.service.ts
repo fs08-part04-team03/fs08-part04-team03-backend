@@ -279,6 +279,102 @@ export const purchaseService = {
     return ResponseUtil.success(purchaseDetail, '내 구매 상세 내역을 조회했습니다.');
   },
 
+  // 💰 [Purchase] 구매 요청 상세 조회 API (관리자)
+  async getPurchaseRequestDetail(companyId: string, purchaseRequestId: string) {
+    // 구매 요청 상세 조회 (관리자는 모든 구매 요청 조회 가능)
+    const purchaseDetail = await prisma.purchaseRequests.findFirst({
+      where: {
+        id: purchaseRequestId,
+        companyId,
+      },
+      select: {
+        id: true,
+        createdAt: true, // 요청일
+        updatedAt: true, // 승인/반려일
+        totalPrice: true, // 가격
+        shippingFee: true, // 배송비
+        status: true, // 상태
+        requestMessage: true, // 요청 비고
+        rejectReason: true, // 반려 사유
+        purchaseItems: {
+          // 상품 정보
+          select: {
+            id: true,
+            quantity: true,
+            priceSnapshot: true,
+            products: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+                link: true,
+              },
+            },
+          },
+        },
+        requester: {
+          // 요청인 정보
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        approver: {
+          // 승인자/반려자 정보
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    // 존재하지 않으면 404 에러 반환
+    if (!purchaseDetail) {
+      throw new CustomError(
+        HttpStatus.NOT_FOUND,
+        ErrorCodes.PURCHASE_NOT_FOUND,
+        '구매 요청을 찾을 수 없습니다.'
+      );
+    }
+
+    // approvedAt 계산: status가 APPROVED일 때만 updatedAt 사용
+    const approvedAt = purchaseDetail.status === 'APPROVED' ? purchaseDetail.updatedAt : null;
+
+    // 상품 금액 합계 계산 (배송비 제외)
+    const itemsTotalPrice = purchaseDetail.totalPrice;
+
+    // 최종 금액 계산 (상품 + 배송비)
+    const finalTotalPrice = purchaseDetail.totalPrice + purchaseDetail.shippingFee;
+
+    // 각 구매 항목에 itemTotal 추가
+    const purchaseItems = purchaseDetail.purchaseItems.map((item) => ({
+      ...item,
+      itemTotal: item.quantity * item.priceSnapshot,
+    }));
+
+    // 응답 데이터 재구성
+    const response = {
+      id: purchaseDetail.id,
+      createdAt: purchaseDetail.createdAt,
+      updatedAt: purchaseDetail.updatedAt,
+      approvedAt,
+      itemsTotalPrice,
+      shippingFee: purchaseDetail.shippingFee,
+      finalTotalPrice,
+      status: purchaseDetail.status,
+      requestMessage: purchaseDetail.requestMessage,
+      rejectReason: purchaseDetail.rejectReason,
+      purchaseItems,
+      requester: purchaseDetail.requester,
+      approver: purchaseDetail.approver,
+    };
+
+    return ResponseUtil.success(response, '구매 요청 상세 내역을 조회했습니다.');
+  },
+
   // 💰 [Purchase] 구매 요청 확인 API (관리자)
   async managePurchaseRequests(
     companyId: string,

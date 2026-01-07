@@ -49,6 +49,16 @@ router.get(
   purchaseController.getMyPurchaseDetail
 );
 
+// 💰 [Purchase] 구매 요청 상세 조회 API (관리자)
+router.get(
+  '/admin/getPurchaseRequestDetail/:id',
+  verifyAccessToken,
+  requireMinRole('MANAGER'),
+  purchaseValidator.validateGetPurchaseRequestDetail,
+  validateRequest,
+  purchaseController.getPurchaseRequestDetail
+);
+
 // 💰 [Purchase] 구매 요청 관리/조회 API (관리자)
 router.get(
   '/admin/managePurchaseRequests',
