@@ -1,8 +1,12 @@
 import { purchaseStatus, type Prisma } from '@prisma/client';
+import { DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { prisma } from '../../common/database/prisma.client';
 import { CustomError } from '../../common/utils/error.util';
 import { HttpStatus } from '../../common/constants/httpStatus.constants';
 import { ErrorCodes } from '../../common/constants/errorCodes.constants';
+import { s3Client, S3_BUCKET_NAME, PRESIGNED_URL_EXPIRES_IN } from '../../config/s3.config';
+import { uploadService } from '../upload/upload.service';
 import type {
   CreateProductBody,
   ProductListQuery,
@@ -20,6 +24,22 @@ const productSelect = {
   isActive: true,
   createdAt: true,
   updatedAt: true,
+};
+
+// Presigned URL 생성 헬퍼 함수
+const getPresignedUrlForProduct = async (imageKey: string | null): Promise<string | null> => {
+  if (!imageKey) return null;
+
+  try {
+    return await getSignedUrl(
+      s3Client,
+      new GetObjectCommand({ Bucket: S3_BUCKET_NAME, Key: imageKey }),
+      { expiresIn: PRESIGNED_URL_EXPIRES_IN }
+    );
+  } catch (error) {
+    console.error('Failed to generate presigned URL:', error);
+    return null;
+  }
 };
 
 // 정렬 기준 (기본값: createdAt 내림차순)
@@ -75,8 +95,13 @@ const salesCounts = async (
 
 export const productService = {
   // 상품 생성 (생성 시 isActive는 항상 true)
-  async createProduct(companyId: string, createdById: string, payload: CreateProductBody) {
-    const { categoryId, name, price, image, link } = payload;
+  async createProduct(
+    companyId: string,
+    createdById: string,
+    payload: CreateProductBody,
+    file?: Express.Multer.File
+  ) {
+    const { categoryId, name, price, link } = payload;
 
     // 카테고리 존재 확인
     const category = await prisma.categoies.findUnique({
@@ -92,21 +117,71 @@ export const productService = {
       );
     }
 
-    const product = await prisma.products.create({
-      data: {
-        companyId,
-        createdById,
-        categoryId,
-        name,
-        price,
-        image,
-        link,
-        isActive: true,
-      },
-      select: productSelect,
-    });
+    let imageKey: string | null = null;
+    let uploadedFileKey: string | null = null;
 
-    return product;
+    try {
+      // Step 1: 이미지 파일이 있으면 S3에 업로드
+      if (file) {
+        const uploadResult = await uploadService.uploadImage(
+          file,
+          createdById,
+          companyId,
+          undefined, // productId는 아직 생성되지 않음
+          'products'
+        );
+        imageKey = uploadResult.data.key;
+        uploadedFileKey = imageKey;
+      }
+
+      // Step 2 & 3: 상품 생성 및 uploads 업데이트를 트랜잭션으로 처리
+      const product = await prisma.$transaction(async (tx) => {
+        const newProduct = await tx.products.create({
+          data: {
+            companyId,
+            createdById,
+            categoryId,
+            name,
+            price,
+            image: imageKey,
+            link,
+            isActive: true,
+          },
+          select: productSelect,
+        });
+
+        // uploads 테이블의 레코드에 productId 업데이트
+        if (uploadedFileKey) {
+          await tx.uploads.update({
+            where: { key: uploadedFileKey },
+            data: { productId: newProduct.id },
+          });
+        }
+
+        return newProduct;
+      });
+
+      return product;
+    } catch (error) {
+      // Cleanup: 상품 생성 실패 시 업로드된 이미지 삭제
+      if (uploadedFileKey) {
+        try {
+          await s3Client.send(
+            new DeleteObjectCommand({
+              Bucket: S3_BUCKET_NAME,
+              Key: uploadedFileKey,
+            })
+          );
+          // deleteMany는 레코드가 없어도 예외를 발생시키지 않음
+          await prisma.uploads.deleteMany({
+            where: { key: uploadedFileKey },
+          });
+        } catch (cleanupError) {
+          console.error('Failed to cleanup uploaded file:', cleanupError);
+        }
+      }
+      throw error;
+    }
   },
 
   // 상품 목록 조회 (페이징, 카테고리 필터, 정렬)
@@ -178,7 +253,15 @@ export const productService = {
         salesCount: salesMap.get(product.id) ?? 0,
       }));
 
-      return { products: pagedWithSales, page, limit, total };
+      // Presigned URL 생성
+      const productsWithUrls = await Promise.all(
+        pagedWithSales.map(async (product) => ({
+          ...product,
+          imageUrl: await getPresignedUrlForProduct(product.image),
+        }))
+      );
+
+      return { products: productsWithUrls, page, limit, total };
     }
 
     const products = await prisma.products.findMany({
@@ -190,7 +273,16 @@ export const productService = {
     });
 
     const productsWithSales = await salesCounts(companyId, products);
-    return { products: productsWithSales, page, limit, total };
+
+    // Presigned URL 생성
+    const productsWithUrls = await Promise.all(
+      productsWithSales.map(async (product) => ({
+        ...product,
+        imageUrl: await getPresignedUrlForProduct(product.image),
+      }))
+    );
+
+    return { products: productsWithUrls, page, limit, total };
   },
 
   // 상품 상세 조회
@@ -226,14 +318,25 @@ export const productService = {
     const sum = sales[sumKey];
     const salesCount = sum?.quantity ?? 0;
 
-    return { ...product, salesCount };
+    // Presigned URL 생성
+    const imageUrl = await getPresignedUrlForProduct(product.image);
+
+    return { ...product, salesCount, imageUrl };
   },
 
   // 상품 수정
-  async updateProduct(companyId: string, productId: number, payload: UpdateProductBody) {
+  async updateProduct(
+    companyId: string,
+    userId: string,
+    productId: number,
+    payload: UpdateProductBody,
+    file?: Express.Multer.File,
+    removeImage?: boolean
+  ) {
+    // 상품 존재 확인 (현재 image key 조회)
     const existing = await prisma.products.findFirst({
       where: { id: productId, companyId },
-      select: { id: true },
+      select: { id: true, image: true },
     });
 
     if (!existing) {
@@ -244,6 +347,7 @@ export const productService = {
       );
     }
 
+    // 카테고리 변경 시 존재 확인
     if (payload.categoryId !== undefined) {
       const category = await prisma.categoies.findUnique({
         where: { id: payload.categoryId },
@@ -258,23 +362,88 @@ export const productService = {
       }
     }
 
-    const data: Prisma.productsUpdateInput = {};
+    let newImageKey: string | null = null;
+    const oldImageKey = existing.image;
 
-    if (payload.categoryId !== undefined) {
-      data.categoies = { connect: { id: payload.categoryId } };
+    try {
+      // 새 이미지 파일이 있으면 S3에 업로드
+      if (file) {
+        const uploadResult = await uploadService.uploadImage(
+          file,
+          userId,
+          companyId,
+          productId,
+          'products'
+        );
+        newImageKey = uploadResult.data.key;
+      }
+
+      // 업데이트 데이터 구성
+      const data: Prisma.productsUpdateInput = {};
+
+      if (payload.categoryId !== undefined) {
+        data.categoies = { connect: { id: payload.categoryId } };
+      }
+      if (payload.name !== undefined) data.name = payload.name;
+      if (payload.price !== undefined) data.price = payload.price;
+      if (payload.link !== undefined) data.link = payload.link;
+
+      // 이미지 처리
+      if (newImageKey) {
+        // 새 이미지로 교체
+        data.image = newImageKey;
+      } else if (removeImage) {
+        // 명시적 이미지 제거
+        data.image = null;
+      }
+
+      // 상품 업데이트
+      const updated = await prisma.products.update({
+        where: { id: productId },
+        data,
+        select: productSelect,
+      });
+
+      // 기존 이미지 삭제 (새 이미지 업로드 또는 명시적 제거 시)
+      if ((newImageKey || removeImage) && oldImageKey) {
+        try {
+          await s3Client.send(
+            new DeleteObjectCommand({
+              Bucket: S3_BUCKET_NAME,
+              Key: oldImageKey,
+            })
+          );
+          // deleteMany는 레코드가 없어도 예외를 발생시키지 않음
+          await prisma.uploads.deleteMany({
+            where: { key: oldImageKey },
+          });
+        } catch (cleanupError) {
+          // 로그만 남기고 진행 (상품 업데이트는 성공)
+          console.error('Failed to cleanup old image:', cleanupError);
+        }
+      }
+
+      return updated;
+    } catch (error) {
+      // Cleanup: 상품 업데이트 실패 시 새로 업로드된 이미지 삭제
+      if (newImageKey && newImageKey !== oldImageKey) {
+        try {
+          await s3Client.send(
+            new DeleteObjectCommand({
+              Bucket: S3_BUCKET_NAME,
+              Key: newImageKey,
+            })
+          );
+          // deleteMany는 레코드가 없어도 예외를 발생시키지 않음
+          await prisma.uploads.deleteMany({
+            where: { key: newImageKey },
+          });
+        } catch (cleanupError) {
+          console.error('Failed to cleanup new image:', cleanupError);
+        }
+      }
+      throw error;
     }
-    if (payload.name !== undefined) data.name = payload.name;
-    if (payload.price !== undefined) data.price = payload.price;
-    if (payload.image !== undefined) data.image = payload.image; // null 허용
-    if (payload.link !== undefined) data.link = payload.link;
-
-    const updated = await prisma.products.update({
-      where: { id: productId },
-      data,
-      select: productSelect,
-    });
-
-    return updated;
   },
 
   // 상품 삭제 (논리 삭제: isActive를 false로 변경)

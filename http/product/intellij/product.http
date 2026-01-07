@@ -9,7 +9,7 @@ Content-Type: application/json
 
 {
   "email": "manager@test.com",
-  "password": "test-password"
+  "password": "testM1234!"
 }
 
 > {%
@@ -37,38 +37,64 @@ Content-Type: application/json
   "link": "https://example.com/products/http-test-invalid"
 }
 
-### product A 생성 (201)
+### product A 생성 (이미지 없음) (201)
 # @name createProductA
 POST {{baseUrl}}/api/{{apiVersion}}/product
 Authorization: Bearer {{token}}
-Content-Type: application/json
+Content-Type: multipart/form-data; boundary=WebKitFormBoundary
 
-{
-  "categoryId": {{categoryId}},
-  "name": "버터링",
-  "price": 2500,
-  "link": "https://example.com/products/http-test-a",
-  "image": "http_test_a.png"
-}
+--WebKitFormBoundary
+Content-Disposition: form-data; name="categoryId"
+
+{{categoryId}}
+--WebKitFormBoundary
+Content-Disposition: form-data; name="name"
+
+버터링
+--WebKitFormBoundary
+Content-Disposition: form-data; name="price"
+
+2500
+--WebKitFormBoundary
+Content-Disposition: form-data; name="link"
+
+https://example.com/products/http-test-a
+--WebKitFormBoundary--
 
 > {%
   // 생성된 productA id 저장
   client.global.set("productAId", response.body.data.id);
 %}
 
-### product B 생성 (201)
+### product B 생성 (이미지 포함) (201)
 # @name createProductB
+# 참고: 실제 이미지 파일을 업로드하려면 아래와 같이 < 연산자를 사용하세요
 POST {{baseUrl}}/api/{{apiVersion}}/product
 Authorization: Bearer {{token}}
-Content-Type: application/json
+Content-Type: multipart/form-data; boundary=WebKitFormBoundary
 
-{
-  "categoryId": {{categoryId}},
-  "name": "알새우칩",
-  "price": 1800,
-  "link": "https://example.com/products/http-test-b",
-  "image": "http_test_b.png"
-}
+--WebKitFormBoundary
+Content-Disposition: form-data; name="categoryId"
+
+{{categoryId}}
+--WebKitFormBoundary
+Content-Disposition: form-data; name="name"
+
+알새우칩
+--WebKitFormBoundary
+Content-Disposition: form-data; name="price"
+
+1800
+--WebKitFormBoundary
+Content-Disposition: form-data; name="link"
+
+https://example.com/products/http-test-b
+--WebKitFormBoundary
+Content-Disposition: form-data; name="image"; filename="test.jpg"
+Content-Type: image/jpeg
+
+< ./test.jpg
+--WebKitFormBoundary--
 
 > {%
   // 생성된 productB id 저장
@@ -117,15 +143,47 @@ Content-Type: application/json
 GET {{baseUrl}}/api/{{apiVersion}}/product?categoryId={{categoryId}}&sort=sales&limit=100
 Authorization: Bearer {{token}}
 
-### product 수정 (MANAGER 이상) (200)
+### product 수정 - 필드만 수정 (MANAGER 이상) (200)
 PATCH {{baseUrl}}/api/{{apiVersion}}/product/{{productBId}}
 Authorization: Bearer {{token}}
-Content-Type: application/json
+Content-Type: multipart/form-data; boundary=WebKitFormBoundary
 
-{
-  "name": "알새우칩_수정본",
-  "price": 3456
-}
+--WebKitFormBoundary
+Content-Disposition: form-data; name="name"
+
+알새우칩_수정본
+--WebKitFormBoundary
+Content-Disposition: form-data; name="price"
+
+3456
+--WebKitFormBoundary--
+
+### product 수정 - 이미지 추가/교체 (MANAGER 이상) (200)
+PATCH {{baseUrl}}/api/{{apiVersion}}/product/{{productBId}}
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=WebKitFormBoundary
+
+--WebKitFormBoundary
+Content-Disposition: form-data; name="name"
+
+알새우칩_이미지추가
+--WebKitFormBoundary
+Content-Disposition: form-data; name="image"; filename="updated.jpg"
+Content-Type: image/jpeg
+
+< ./updated.jpg
+--WebKitFormBoundary--
+
+### product 수정 - 이미지 제거 (MANAGER 이상) (200)
+PATCH {{baseUrl}}/api/{{apiVersion}}/product/{{productBId}}?removeImage=true
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=WebKitFormBoundary
+
+--WebKitFormBoundary
+Content-Disposition: form-data; name="name"
+
+알새우칩_이미지제거
+--WebKitFormBoundary--
 
 ### product 삭제 (MANAGER 이상) (200)
 DELETE {{baseUrl}}/api/{{apiVersion}}/product/{{productAId}}
