@@ -23,6 +23,7 @@ export type UpdateProductBody = {
 export type ProductListQuery = {
   page?: number;
   limit?: number;
+  q?: string;
   categoryId?: number;
   sort?: ProductSort;
 };

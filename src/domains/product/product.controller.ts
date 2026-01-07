@@ -54,10 +54,22 @@ export const productController = {
   // 상품 목록 조회
   getProducts: async (req: AuthenticatedRequest, res: Response) => {
     const companyId = getCompanyId(req);
-    // 쿼리 파라미터 (페이지네이션, 카테고리, 정렬)
+    const rawQ = req.query.q;
+    let q: string | undefined;
+    if (Array.isArray(rawQ)) {
+      const [first] = rawQ;
+      if (typeof first === 'string') {
+        q = first;
+      }
+    } else if (typeof rawQ === 'string') {
+      q = rawQ;
+    }
+
+    // 쿼리 파라미터 (페이지네이션, 카테고리, 정렬, 검색어)
     const query: ProductListQuery = {
       page: req.query.page ? Number(req.query.page) : undefined,
       limit: req.query.limit ? Number(req.query.limit) : undefined,
+      q,
       categoryId: req.query.categoryId ? Number(req.query.categoryId) : undefined,
       sort: req.query.sort as ProductSort | undefined,
     };
@@ -78,9 +90,23 @@ export const productController = {
   getMyProducts: async (req: AuthenticatedRequest, res: Response) => {
     const companyId = getCompanyId(req);
     const userId = getUserId(req);
+    const rawQ = req.query.q;
+    let q: string | undefined;
+
+    if (Array.isArray(rawQ)) {
+      const [first] = rawQ;
+      if (typeof first === 'string') {
+        q = first;
+      }
+    } else if (typeof rawQ === 'string') {
+      q = rawQ;
+    }
+
+    // 쿼리 파라미터 (페이지네이션, 카테고리, 정렬, 검색어)
     const query: ProductListQuery = {
       page: req.query.page ? Number(req.query.page) : undefined,
       limit: req.query.limit ? Number(req.query.limit) : undefined,
+      q,
       categoryId: req.query.categoryId ? Number(req.query.categoryId) : undefined,
       sort: req.query.sort as ProductSort | undefined,
     };
