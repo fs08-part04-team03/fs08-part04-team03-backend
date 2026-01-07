@@ -173,6 +173,13 @@
  *           type: integer
  *           minimum: 1
  *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *           minLength: 1
+ *           maxLength: 50
+ *         description: 상품 이름으로 부분 검색
+ *       - in: query
  *         name: sort
  *         schema:
  *           type: string
@@ -251,6 +258,13 @@
  *         schema:
  *           type: integer
  *           minimum: 1
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *           minLength: 1
+ *           maxLength: 50
+ *         description: 상품 이름으로 부분 검색
  *       - in: query
  *         name: sort
  *         schema:

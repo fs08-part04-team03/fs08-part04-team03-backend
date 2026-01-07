@@ -191,10 +191,11 @@ export const productService = {
     const sort = query.sort ?? defaultSort;
     const skip = (page - 1) * limit;
 
-    // 회사/카테고리 필터
-    const where = {
+    // 검색/필터 조건
+    const where: Prisma.productsWhereInput = {
       companyId,
       ...(query.categoryId ? { categoryId: query.categoryId } : {}),
+      ...(query.q ? { name: { contains: query.q, mode: 'insensitive' } } : {}),
       isActive: true,
       ...(createdById ? { createdById } : {}),
     };
