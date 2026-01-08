@@ -129,47 +129,50 @@ export const notificationService = {
   async markRead(receiverId: string, rawNotificationId: string) {
     const notificationId = parseNotificationId(rawNotificationId);
 
-    const updateResult = await prisma.notifications.updateMany({
-      where: {
-        id: notificationId,
-        receiverId,
-      },
-      data: {
-        isRead: true,
-      },
+    // transaction으로 안전하게 처리
+    return prisma.$transaction(async (tx) => {
+      const updateResult = await tx.notifications.updateMany({
+        where: {
+          id: notificationId,
+          receiverId,
+        },
+        data: {
+          isRead: true,
+        },
+      });
+
+      if (updateResult.count === 0) {
+        throw new CustomError(
+          HttpStatus.NOT_FOUND,
+          ErrorCodes.NOTIFICATION_NOT_FOUND,
+          '알림을 찾을 수 없습니다.'
+        );
+      }
+
+      const updated = await tx.notifications.findUnique({
+        where: {
+          id: notificationId,
+        },
+        select: {
+          id: true,
+          content: true,
+          targetType: true,
+          targetId: true,
+          isRead: true,
+          createdAt: true,
+        },
+      });
+
+      if (!updated) {
+        throw new CustomError(
+          HttpStatus.NOT_FOUND,
+          ErrorCodes.NOTIFICATION_NOT_FOUND,
+          '알림을 찾을 수 없습니다.'
+        );
+      }
+
+      return serializeNotification(updated);
     });
-
-    if (updateResult.count === 0) {
-      throw new CustomError(
-        HttpStatus.NOT_FOUND,
-        ErrorCodes.NOTIFICATION_NOT_FOUND,
-        '알림을 찾을 수 없습니다.'
-      );
-    }
-
-    const updated = await prisma.notifications.findUnique({
-      where: {
-        id: notificationId,
-      },
-      select: {
-        id: true,
-        content: true,
-        targetType: true,
-        targetId: true,
-        isRead: true,
-        createdAt: true,
-      },
-    });
-
-    if (!updated) {
-      throw new CustomError(
-        HttpStatus.NOT_FOUND,
-        ErrorCodes.NOTIFICATION_NOT_FOUND,
-        '알림을 찾을 수 없습니다.'
-      );
-    }
-
-    return serializeNotification(updated);
   },
 
   // 알림 생성/푸시 외부 호출용
