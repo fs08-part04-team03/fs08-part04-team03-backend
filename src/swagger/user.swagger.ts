@@ -90,7 +90,7 @@
  *         companyName: { type: string, minLength: 1, maxLength: 255 }
  *         newPassword: { type: string, minLength: 8, maxLength: 30 }
  *         newPasswordConfirm: { type: string, minLength: 8, maxLength: 30 }
- *       description: companyName 또는 newPassword 중 하나 이상 필수
+ *       description: companyName, newPassword, 또는 image 중 하나 이상 필수 (image는 multipart/form-data 엔드포인트에서만 사용)
  *     UpdateRoleBody:
  *       type: object
  *       required: [role]
