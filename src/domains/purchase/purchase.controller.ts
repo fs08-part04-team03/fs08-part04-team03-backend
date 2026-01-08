@@ -166,6 +166,37 @@ export const purchaseController = {
     res.status(HttpStatus.OK).json(result);
   },
 
+  // 💰 [Purchase] 구매 요청 상세 조회 API (관리자)
+  getPurchaseRequestDetail: async (req: AuthenticatedRequest, res: Response) => {
+    // 사용자 정보가 없는 경우
+    if (!req.user) {
+      throw new CustomError(
+        HttpStatus.UNAUTHORIZED,
+        ErrorCodes.AUTH_UNAUTHORIZED,
+        '사용자 정보가 없습니다.'
+      );
+    }
+
+    // 구매 요청 ID가 없는 경우
+    const purchaseRequestId = req.params.id;
+    if (!purchaseRequestId) {
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
+        '구매 요청 ID가 필요합니다.'
+      );
+    }
+
+    // 서비스 호출
+    const result = await purchaseService.getPurchaseRequestDetail(
+      req.user.companyId,
+      purchaseRequestId
+    );
+
+    // 응답 반환
+    res.status(HttpStatus.OK).json(result);
+  },
+
   // 💰 [Purchase] 구매 요청 조회 API (관리자)
   managePurchaseRequests: async (req: AuthenticatedRequest, res: Response) => {
     // 사용자 정보가 없는 경우

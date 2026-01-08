@@ -379,9 +379,168 @@
 
 /**
  * @swagger
+ * /api/v1/purchase/admin/getPurchaseRequestDetail/{purchaseRequestId}:
+ *   get:
+ *     summary: 구매 요청 상세 조회 (관리자)
+ *     description: |
+ *       관리자가 모든 구매 요청의 상세 내역을 조회할 수 있습니다.
+ *
+ *       ### 조회 가능한 정보
+ *       - 구매 요청 기본 정보 (ID, 요청일, 승인/반려일, 승인일, 상품 금액, 배송비, 최종 금액, 상태)
+ *       - 요청 메시지 및 반려 사유
+ *       - 구매 항목 목록 (상품명, 수량, 가격 스냅샷, 항목 소계, 이미지, 링크)
+ *       - 요청인 정보 (이름, 이메일)
+ *       - 승인자/반려자 정보 (이름, 이메일)
+ *     tags: [Purchase]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: purchaseRequestId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: 구매 요청 ID
+ *     responses:
+ *       200:
+ *         description: 구매 요청 상세 조회 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                       description: 구매 요청 ID
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                       description: 요청일
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *                       description: 수정일
+ *                     approvedAt:
+ *                       type: string
+ *                       format: date-time
+ *                       nullable: true
+ *                       description: 승인일 (APPROVED 상태일 때만)
+ *                     itemsTotalPrice:
+ *                       type: number
+ *                       description: 상품 금액 합계 (배송비 제외)
+ *                     shippingFee:
+ *                       type: number
+ *                       description: 배송비
+ *                     finalTotalPrice:
+ *                       type: number
+ *                       description: 최종 금액 (상품 + 배송비)
+ *                     status:
+ *                       type: string
+ *                       enum: [PENDING, APPROVED, REJECTED, CANCELLED]
+ *                       description: 구매 요청 상태
+ *                     requestMessage:
+ *                       type: string
+ *                       nullable: true
+ *                       description: 요청 메시지
+ *                     rejectReason:
+ *                       type: string
+ *                       nullable: true
+ *                       description: 반려 사유
+ *                     purchaseItems:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                             format: uuid
+ *                             description: 구매 항목 ID
+ *                           quantity:
+ *                             type: integer
+ *                             description: 수량
+ *                           priceSnapshot:
+ *                             type: number
+ *                             description: 구매 시점 가격
+ *                           itemTotal:
+ *                             type: number
+ *                             description: 항목 소계 (수량 × 단가)
+ *                           products:
+ *                             type: object
+ *                             properties:
+ *                               id:
+ *                                 type: integer
+ *                                 description: 상품 ID
+ *                               name:
+ *                                 type: string
+ *                                 description: 상품명
+ *                               image:
+ *                                 type: string
+ *                                 description: 상품 이미지 URL
+ *                               link:
+ *                                 type: string
+ *                                 description: 상품 링크
+ *                     requester:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           format: uuid
+ *                           description: 요청자 ID
+ *                         name:
+ *                           type: string
+ *                           description: 요청자 이름
+ *                         email:
+ *                           type: string
+ *                           description: 요청자 이메일
+ *                     approver:
+ *                       type: object
+ *                       nullable: true
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           format: uuid
+ *                           description: 승인자 ID
+ *                         name:
+ *                           type: string
+ *                           description: 승인자 이름
+ *                         email:
+ *                           type: string
+ *                           description: 승인자 이메일
+ *                 message:
+ *                   type: string
+ *                   example: "구매 요청 상세 내역을 조회했습니다."
+ *       401:
+ *         description: 인증 실패
+ *       403:
+ *         description: 권한 없음 (관리자만 접근 가능)
+ *       404:
+ *         description: 구매 요청을 찾을 수 없음
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "구매 요청을 찾을 수 없습니다."
+ */
+
+/**
+ * @swagger
  * /api/v1/purchase/admin/managePurchaseRequests:
  *   get:
- *     summary: 구매 요청 확인 (관리자)
+ *     summary: 구매 요청 목록 조회 (관리자)
  *     tags: [Purchase]
  *     security:
  *       - bearerAuth: []
