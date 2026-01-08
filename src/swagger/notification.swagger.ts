@@ -12,7 +12,7 @@
  *     NotificationItem:
  *       type: object
  *       properties:
- *         id: { type: string, example: "42" }
+ *         id: { type: integer, example: 42 }
  *         content: { type: string, example: "새 구매 요청이 등록되었습니다." }
  *         targetType:
  *           type: string
