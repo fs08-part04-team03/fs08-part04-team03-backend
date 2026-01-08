@@ -5,6 +5,7 @@ import type { ScheduledTask } from 'node-cron';
 import { env } from './env.config';
 import { logger } from '../common/utils/logger.util';
 import { budgetService } from '../domains/budget/budget.service';
+import { notificationService } from '../domains/notification/notification.service';
 
 let budgetJob: ScheduledTask | undefined;
 
@@ -86,4 +87,35 @@ export async function stopBudgetScheduler() {
     budgetJob = undefined;
     logger.info('[budget] scheduler stopped.');
   }
+}
+
+/**
+ * 매일 00:00 UTC에 14일 지난 알림을 삭제하는 스케줄러
+ */
+
+let notificationCleanupJob: ScheduledTask | undefined;
+
+export function startNotificationCleanupScheduler() {
+  if (notificationCleanupJob) return notificationCleanupJob;
+
+  notificationCleanupJob = cron.schedule(
+    // 매일 00:00 UTC
+    '0 0 * * *',
+    // 테스트용: 10초마다 실행
+    // '*/10 * * * * *',
+    async () => {
+      try {
+        const result = await notificationService.cleanupOldNotifications(14);
+        logger.info('[notification] cleanup completed', { deleted: result.count });
+      } catch (err) {
+        logger.error(
+          '[notification] cleanup failed',
+          err instanceof Error ? { message: err.message, stack: err.stack } : err
+        );
+      }
+    },
+    { timezone: 'UTC' }
+  );
+
+  return notificationCleanupJob;
 }

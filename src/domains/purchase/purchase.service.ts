@@ -3,12 +3,14 @@ import { prisma } from '../../common/database/prisma.client';
 import { CustomError } from '../../common/utils/error.util';
 import { HttpStatus } from '../../common/constants/httpStatus.constants';
 import { ErrorCodes } from '../../common/constants/errorCodes.constants';
+import { logger } from '../../common/utils/logger.util';
 import type {
   GetAllPurchasesQuery,
   PurchaseItemRequest,
   RejectPurchaseRequestBody,
 } from './purchase.types';
 import { ResponseUtil } from '../../common/utils/response.util';
+import { notificationService } from '../notification/notification.service';
 
 export const purchaseService = {
   // 💰 [Purchase] 전체 구매 내역 목록 API (관리자)
@@ -444,6 +446,18 @@ export const purchaseService = {
       },
     });
 
+    try {
+      await notificationService.notifyPurchaseApproved(
+        purchaseRequest.requesterId,
+        purchaseRequestId
+      );
+    } catch (err) {
+      logger.warn('[notification] 구매 승인 알림 발송 실패', {
+        purchaseRequestId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+
     return ResponseUtil.success(result, '구매 요청을 승인했습니다.');
   },
 
@@ -507,6 +521,18 @@ export const purchaseService = {
         companyId,
       },
     });
+
+    try {
+      await notificationService.notifyPurchaseDenied(
+        purchaseRequest.requesterId,
+        purchaseRequestId
+      );
+    } catch (err) {
+      logger.warn('[notification] 구매 거절 알림 발송 실패', {
+        purchaseRequestId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
 
     return ResponseUtil.success(result, '구매 요청을 반려했습니다.');
   },
@@ -607,6 +633,15 @@ export const purchaseService = {
 
       return newPurchaseRequest;
     });
+
+    try {
+      await notificationService.notifyPurchaseRequested(companyId, userId, result.id);
+    } catch (err) {
+      logger.warn('[notification] 구매 요청 알림 발송 실패', {
+        purchaseRequestId: result.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
 
     return ResponseUtil.success(result, '구매 요청이 완료되었습니다.');
   },
