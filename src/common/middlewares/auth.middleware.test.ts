@@ -146,9 +146,9 @@ describe('Auth Middleware', () => {
 
     it('공백 이후의 모든 문자열이 토큰으로 취급됩니다', () => {
       // Given
-      const validToken = 'valid-token';
+      const tokenWithSpaces = 'token with spaces';
       mockRequest.headers = {
-        authorization: `Bearer ${validToken}`,
+        authorization: `Bearer ${tokenWithSpaces}`,
       };
 
       (JwtUtil.verifyAccessToken as jest.Mock).mockReturnValue(mockPayload);
@@ -157,7 +157,7 @@ describe('Auth Middleware', () => {
       verifyAccessToken(mockRequest as Request, mockResponse as Response, nextFunction);
 
       // Then
-      expect(JwtUtil.verifyAccessToken).toHaveBeenCalledWith(validToken);
+      expect(JwtUtil.verifyAccessToken).toHaveBeenCalledWith(tokenWithSpaces);
       expect(nextFunction).toHaveBeenCalledWith();
     });
   });

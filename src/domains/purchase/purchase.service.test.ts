@@ -410,13 +410,24 @@ describe('PurchaseService', () => {
 
   describe('getExpenseStatistics', () => {
     it('지출 통계를 반환해야 합니다', async () => {
-      (prisma.purchaseRequests.aggregate as jest.Mock).mockResolvedValue({ _sum: {} });
-      (prisma.budgets.findUnique as jest.Mock).mockResolvedValue(null);
-
+      (prisma.purchaseRequests.aggregate as jest.Mock).mockResolvedValue({
+        _sum: { totalPrice: 50000, shippingFee: 5000 },
+      });
+      (prisma.budgets.findUnique as jest.Mock).mockResolvedValue({
+        id: 'budget-123',
+        companyId: mockCompanyId,
+        amount: 100000,
+        year: 2026,
+        month: 1,
+      });
       const result = await purchaseService.getExpenseStatistics(mockCompanyId);
 
       expect(result.data).toHaveProperty('expenses');
       expect(result.data).toHaveProperty('budget');
+
+      // 실제 계산 결과 검증
+      expect(result.data.expenses.thisMonth).toBe(55000);
+      expect(result.data.budget.thisMonthBudget).toBe(100000);
     });
   });
 

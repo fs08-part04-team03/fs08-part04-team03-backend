@@ -96,9 +96,8 @@ describe('Validator Middleware', () => {
       // When
       try {
         validateRequest(mockRequest as Request, mockResponse as Response, nextFunction);
+        throw new Error('Expected CustomError to be thrown');
       } catch (error) {
-        // Then
-        expect(error).toBeInstanceOf(CustomError);
         const customError = error as CustomError;
         expect(customError.details).toEqual([
           {
