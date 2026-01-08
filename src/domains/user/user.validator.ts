@@ -3,9 +3,10 @@ import { validateRequest } from '../../common/middlewares/validator.middleware';
 import type { AdminProfilePatchBody, UserProfilePatchBody } from './user.types';
 
 export const userValidator = {
-  // 유저/매니저: 비밀번호 변경
+  // 유저/매니저: 비밀번호 변경 및 프로필 이미지 업로드
   patchMyProfile: [
     body('newPassword')
+      .optional()
       .isLength({
         min: 8,
         max: 30,
@@ -18,6 +19,10 @@ export const userValidator = {
         minSymbols: 1,
       }),
     body('newPasswordConfirm')
+      .if(body('newPassword').exists())
+      .exists({ checkFalsy: true })
+      .withMessage('새 비밀번호 확인은 필수입니다.')
+      .bail()
       .isString()
       .custom((val, { req }) => {
         const { newPassword } = req.body as UserProfilePatchBody;
@@ -27,7 +32,7 @@ export const userValidator = {
     validateRequest,
   ],
 
-  // 어드민: 회사명/비밀번호 변경
+  // 어드민: 회사명/비밀번호/프로필 이미지 변경
   patchAdminProfile: [
     body('companyName').optional().isString().trim().isLength({ min: 1, max: 255 }),
     body('newPassword')
@@ -54,12 +59,6 @@ export const userValidator = {
         return val === newPassword;
       })
       .withMessage('새 비밀번호와 확인값이 일치해야 합니다.'),
-    body()
-      .custom((_, { req }) => {
-        const { companyName, newPassword } = req.body as AdminProfilePatchBody;
-        return !!companyName || !!newPassword;
-      })
-      .withMessage('회사명 또는 새 비밀번호 중 하나는 반드시 포함되어야 합니다.'),
     validateRequest,
   ],
 

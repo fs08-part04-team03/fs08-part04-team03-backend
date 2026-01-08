@@ -1,9 +1,13 @@
 import argon2 from 'argon2';
 import type { Prisma } from '@prisma/client';
+import { DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { prisma } from '../../common/database/prisma.client';
 import { CustomError } from '../../common/utils/error.util';
 import { HttpStatus } from '../../common/constants/httpStatus.constants';
 import { ErrorCodes } from '../../common/constants/errorCodes.constants';
+import { uploadService } from '../upload/upload.service';
+import { s3Client, S3_BUCKET_NAME, PRESIGNED_URL_EXPIRES_IN } from '../../config/s3.config';
 import type { AdminProfilePatchBody, UserListQuery, Role } from './user.types';
 
 // 공개 가능한 필드만 선택
@@ -64,6 +68,18 @@ export const userService = {
         '비활성화된 계정입니다.'
       );
     }
+
+    let profileImagePresignedUrl: string | null = null;
+    if (user.profileImage) {
+      const command = new GetObjectCommand({
+        Bucket: S3_BUCKET_NAME,
+        Key: user.profileImage,
+      });
+      profileImagePresignedUrl = await getSignedUrl(s3Client, command, {
+        expiresIn: PRESIGNED_URL_EXPIRES_IN,
+      });
+    }
+
     return {
       id: user.id,
       companyId: user.companyId,
@@ -73,12 +89,12 @@ export const userService = {
       isActive: user.isActive,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
-      profileImage: user.profileImage,
+      profileImage: profileImagePresignedUrl,
     };
   },
 
-  // 비밀번호 변경 (유저/매니저)
-  async changeMyPassword(userId: string, newPassword: string) {
+  // 비밀번호 변경 및 프로필 이미지 업데이트 (유저/매니저)
+  async updateMyProfile(userId: string, newPassword?: string, file?: Express.Multer.File) {
     const user = await getUser(userId);
     if (!user.isActive) {
       throw new CustomError(
@@ -87,46 +103,175 @@ export const userService = {
         '비활성화된 계정입니다.'
       );
     }
-    const hash = await argon2.hash(newPassword);
-    await prisma.users.update({
-      where: { id: userId },
-      data: { password: hash, refreshToken: null },
-    });
+
+    let imageKey: string | null = null;
+    const oldImageKey = user.profileImage;
+    let hashedPassword: string | undefined;
+
+    try {
+      // 비밀번호 해싱
+      if (newPassword) {
+        hashedPassword = await argon2.hash(newPassword);
+      }
+
+      // 새 이미지 업로드
+      if (file) {
+        const uploadResult = await uploadService.uploadImage(
+          file,
+          userId,
+          user.companyId,
+          undefined,
+          'users'
+        );
+        imageKey = uploadResult.data.key;
+      }
+
+      // 프로필 업데이트
+      const updateData: Prisma.usersUpdateInput = {};
+      if (hashedPassword) {
+        updateData.password = hashedPassword;
+        updateData.refreshToken = null;
+      }
+      if (file) {
+        updateData.profileImage = imageKey;
+      }
+
+      const updatedUser = await prisma.users.update({
+        where: { id: userId },
+        data: updateData,
+        select: userSafeSelect,
+      });
+
+      // 기존 이미지 삭제 (새 이미지가 업로드된 경우에만)
+      if (file && oldImageKey) {
+        try {
+          await s3Client.send(
+            new DeleteObjectCommand({
+              Bucket: S3_BUCKET_NAME,
+              Key: oldImageKey,
+            })
+          );
+          await prisma.uploads.delete({ where: { key: oldImageKey } }).catch(() => {});
+        } catch (deleteError) {
+          console.error('기존 프로필 이미지 삭제 실패:', deleteError);
+        }
+      }
+
+      return updatedUser;
+    } catch (error) {
+      // 업로드된 새 이미지 정리
+      if (imageKey) {
+        try {
+          await s3Client.send(
+            new DeleteObjectCommand({
+              Bucket: S3_BUCKET_NAME,
+              Key: imageKey,
+            })
+          );
+          await prisma.uploads.delete({ where: { key: imageKey } }).catch(() => {});
+        } catch (cleanupError) {
+          console.error('새 이미지 정리 실패:', cleanupError);
+        }
+      }
+      throw error;
+    }
   },
 
-  // 비밀번호/회사명 변경 (관리자)
-  async adminPatchProfile(actorUserId: string, companyId: string, payload: AdminProfilePatchBody) {
+  // 비밀번호/회사명/프로필 이미지 변경 (관리자)
+  async adminPatchProfile(
+    actorUserId: string,
+    companyId: string,
+    payload: AdminProfilePatchBody,
+    file?: Express.Multer.File
+  ) {
     const actor = await ensureActiveUserInCompany(companyId, actorUserId);
 
-    // 트랜잭션 외부에서 비밀번호 해싱
+    let imageKey: string | null = null;
+    const oldImageKey = actor.profileImage;
     let hashedPassword: string | undefined;
-    if (payload.newPassword) {
-      hashedPassword = await argon2.hash(payload.newPassword);
-    }
 
-    await prisma.$transaction(async (tx) => {
-      if (payload.companyName) {
-        const company = await tx.companies.findUnique({ where: { id: companyId } });
-        if (!company) {
-          throw new CustomError(
-            HttpStatus.NOT_FOUND,
-            ErrorCodes.GENERAL_NOT_FOUND,
-            '회사를 찾을 수 없습니다.'
-          );
+    try {
+      // 트랜잭션 외부에서 비밀번호 해싱
+      if (payload.newPassword) {
+        hashedPassword = await argon2.hash(payload.newPassword);
+      }
+
+      // 새 이미지 업로드
+      if (file) {
+        const uploadResult = await uploadService.uploadImage(
+          file,
+          actorUserId,
+          companyId,
+          undefined,
+          'users'
+        );
+        imageKey = uploadResult.data.key;
+      }
+
+      await prisma.$transaction(async (tx) => {
+        if (payload.companyName) {
+          const company = await tx.companies.findUnique({ where: { id: companyId } });
+          if (!company) {
+            throw new CustomError(
+              HttpStatus.NOT_FOUND,
+              ErrorCodes.GENERAL_NOT_FOUND,
+              '회사를 찾을 수 없습니다.'
+            );
+          }
+          await tx.companies.update({
+            where: { id: companyId },
+            data: { name: payload.companyName },
+          });
         }
-        await tx.companies.update({
-          where: { id: companyId },
-          data: { name: payload.companyName },
-        });
-      }
 
-      if (hashedPassword) {
-        await tx.users.update({
-          where: { id: actor.id },
-          data: { password: hashedPassword, refreshToken: null },
-        });
+        const updateData: Prisma.usersUpdateInput = {};
+        if (hashedPassword) {
+          updateData.password = hashedPassword;
+          updateData.refreshToken = null;
+        }
+        if (file) {
+          updateData.profileImage = imageKey;
+        }
+
+        if (Object.keys(updateData).length > 0) {
+          await tx.users.update({
+            where: { id: actor.id },
+            data: updateData,
+          });
+        }
+      });
+
+      // 기존 이미지 삭제 (새 이미지가 업로드된 경우에만)
+      if (file && oldImageKey) {
+        try {
+          await s3Client.send(
+            new DeleteObjectCommand({
+              Bucket: S3_BUCKET_NAME,
+              Key: oldImageKey,
+            })
+          );
+          await prisma.uploads.delete({ where: { key: oldImageKey } }).catch(() => {});
+        } catch (deleteError) {
+          console.error('기존 프로필 이미지 삭제 실패:', deleteError);
+        }
       }
-    });
+    } catch (error) {
+      // 업로드된 새 이미지 정리
+      if (imageKey) {
+        try {
+          await s3Client.send(
+            new DeleteObjectCommand({
+              Bucket: S3_BUCKET_NAME,
+              Key: imageKey,
+            })
+          );
+          await prisma.uploads.delete({ where: { key: imageKey } }).catch(() => {});
+        } catch (cleanupError) {
+          console.error('새 이미지 정리 실패:', cleanupError);
+        }
+      }
+      throw error;
+    }
   },
 
   // 권한 변경 (관리자)
