@@ -16,7 +16,7 @@
  *         content: { type: string, example: "새 구매 요청이 등록되었습니다." }
  *         targetType:
  *           type: string
- *           enum: [PURCHASE_REQUEST, APPROVAL_NOTICE, DENIAL_NOTICE, CANCEL_NOTICE, ADMIN_MESSAGE, GENERNAL_NOTICE]
+ *           enum: [PURCHASE_REQUEST, APPROVAL_NOTICE, DENIAL_NOTICE, ADMIN_MESSAGE, GENERAL_NOTICE]
  *           example: PURCHASE_REQUEST
  *         targetId: { type: string, format: uuid, example: "b0f4fb8b-0d1a-4a6c-9f8c-3d2b0c07e9e1" }
  *         isRead: { type: boolean, example: false }
