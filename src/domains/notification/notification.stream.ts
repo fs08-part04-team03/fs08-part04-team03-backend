@@ -41,8 +41,14 @@ function send(userId: string, payload: unknown) {
   const client = clients.get(userId);
   if (!client) return false;
 
-  client.res.write(`data: ${JSON.stringify(payload)}\n\n`);
-  return true;
+  if (client.res.writableEnded || client.res.destroyed) return false;
+
+  try {
+    client.res.write(`data: ${JSON.stringify(payload)}\n\n`);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export const notificationStream = {

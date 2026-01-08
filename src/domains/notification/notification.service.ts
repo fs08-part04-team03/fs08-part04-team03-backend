@@ -65,8 +65,15 @@ async function createAndPush(
     },
   });
 
+  // 실시간 전송 실패 시 로그 기록
   const payload = serializeNotification(created);
-  notificationStream.send(receiverId, payload);
+  const delivered = notificationStream.send(receiverId, payload);
+  if (!delivered) {
+    logger.info('[notification] realtime send skipped', {
+      receiverId,
+      notificationId: payload.id,
+    });
+  }
   return payload;
 }
 
