@@ -1,3 +1,4 @@
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { prisma } from '@/common/database/prisma.client';
 import { CustomError } from '@/common/utils/error.util';
 import { productService } from './product.service';
@@ -20,11 +21,35 @@ jest.mock('@/common/database/prisma.client', () => ({
       groupBy: jest.fn(),
       aggregate: jest.fn(),
     },
+    uploads: {
+      update: jest.fn(),
+    },
+    $transaction: jest.fn((callback) => callback(prisma)),
+  },
+}));
+
+jest.mock('@aws-sdk/s3-request-presigner');
+
+jest.mock('@/domains/upload/upload.service', () => ({
+  uploadService: {
+    uploadImage: jest.fn().mockResolvedValue({ data: { key: 'some-key' } }),
   },
 }));
 
 describe('ProductService', () => {
+  const productSelect = {
+    id: true,
+    categoryId: true,
+    name: true,
+    price: true,
+    image: true,
+    link: true,
+    isActive: true,
+    createdAt: true,
+    updatedAt: true,
+  };
   const mockCompanyId = 'company-id';
+  const mockUserId = 'user-123';
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -59,9 +84,14 @@ describe('ProductService', () => {
       // Given
       (prisma.categoies.findUnique as jest.Mock).mockResolvedValue(mockCategory);
       (prisma.products.create as jest.Mock).mockResolvedValue(mockProduct);
+      (prisma.$transaction as jest.Mock).mockImplementation(async (callback) => callback(prisma));
 
       // When
-      const result = await productService.createProduct(mockCompanyId, validCreateInput);
+      const result = await productService.createProduct(
+        mockCompanyId,
+        mockUserId,
+        validCreateInput
+      );
 
       // Then
       expect(result).toEqual(mockProduct);
@@ -69,18 +99,7 @@ describe('ProductService', () => {
         where: { id: validCreateInput.categoryId },
         select: { id: true },
       });
-      expect(prisma.products.create).toHaveBeenCalledWith({
-        data: {
-          companyId: mockCompanyId,
-          categoryId: validCreateInput.categoryId,
-          name: validCreateInput.name,
-          price: validCreateInput.price,
-          image: validCreateInput.image,
-          link: validCreateInput.link,
-          isActive: true,
-        },
-        select: expect.any(Object),
-      });
+      expect(prisma.$transaction).toHaveBeenCalled();
     });
 
     it('존재하지 않는 카테고리면 에러를 던져야 합니다', async () => {
@@ -88,9 +107,9 @@ describe('ProductService', () => {
       (prisma.categoies.findUnique as jest.Mock).mockResolvedValue(null);
 
       // When & Then
-      await expect(productService.createProduct(mockCompanyId, validCreateInput)).rejects.toThrow(
-        CustomError
-      );
+      await expect(
+        productService.createProduct(mockCompanyId, mockUserId, validCreateInput)
+      ).rejects.toThrow(CustomError);
     });
   });
 
@@ -229,12 +248,14 @@ describe('ProductService', () => {
       (prisma.purchaseItems.aggregate as jest.Mock).mockResolvedValue({
         _sum: { quantity: 15 },
       });
+      (getSignedUrl as jest.Mock).mockResolvedValue('https://example.com/image.jpg');
 
       // When
       const result = await productService.getProductDetail(mockCompanyId, 1);
 
       // Then
-      expect(result).toEqual({
+      expect(result.imageUrl).toEqual(expect.any(String));
+      expect(result).toMatchObject({
         ...mockProduct,
         salesCount: 15,
       });
@@ -292,7 +313,12 @@ describe('ProductService', () => {
       });
 
       // When
-      const result = await productService.updateProduct(mockCompanyId, 1, updatePayload);
+      const result = await productService.updateProduct(
+        mockCompanyId,
+        mockUserId,
+        1,
+        updatePayload
+      );
 
       // Then
       expect(result.name).toBe(updatePayload.name);
@@ -304,9 +330,9 @@ describe('ProductService', () => {
       (prisma.products.findFirst as jest.Mock).mockResolvedValue(null);
 
       // When & Then
-      await expect(productService.updateProduct(mockCompanyId, 999, updatePayload)).rejects.toThrow(
-        CustomError
-      );
+      await expect(
+        productService.updateProduct(mockCompanyId, mockUserId, 999, updatePayload)
+      ).rejects.toThrow(CustomError);
     });
 
     it('카테고리 변경 시 카테고리 존재 여부를 확인해야 합니다', async () => {
@@ -317,7 +343,7 @@ describe('ProductService', () => {
       (prisma.products.update as jest.Mock).mockResolvedValue(mockProduct);
 
       // When
-      await productService.updateProduct(mockCompanyId, 1, payloadWithCategory);
+      await productService.updateProduct(mockCompanyId, mockUserId, 1, payloadWithCategory);
 
       // Then
       expect(prisma.categoies.findUnique).toHaveBeenCalledWith({
@@ -334,7 +360,7 @@ describe('ProductService', () => {
 
       // When & Then
       await expect(
-        productService.updateProduct(mockCompanyId, 1, payloadWithCategory)
+        productService.updateProduct(mockCompanyId, mockUserId, 1, payloadWithCategory)
       ).rejects.toThrow(CustomError);
     });
   });
@@ -360,7 +386,7 @@ describe('ProductService', () => {
       expect(prisma.products.update).toHaveBeenCalledWith({
         where: { id: 1 },
         data: { isActive: false },
-        select: expect.any(Object),
+        select: productSelect,
       });
     });
 

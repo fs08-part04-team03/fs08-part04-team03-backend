@@ -30,7 +30,7 @@ jest.mock('@/common/database/prisma.client', () => ({
     budgetCriteria: {
       create: jest.fn(),
     },
-    $transaction: jest.fn((callback) => callback(prisma)),
+    $transaction: jest.fn(),
   },
 }));
 
