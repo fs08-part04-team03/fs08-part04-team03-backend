@@ -34,26 +34,114 @@ Content-Type: application/json
 GET {{base}}/api/{{version}}/user/me
 Authorization: Bearer {{userToken}}
 
-### 내 비밀번호 변경 (USER, MANAGER)
+### 내 프로필 변경 - 비밀번호만 (USER, MANAGER)
 PATCH {{base}}/api/{{version}}/user/me/profile
 Authorization: Bearer {{userToken}}
-Content-Type: application/json
+Content-Type: multipart/form-data; boundary=WebAppBoundary
 
-{
-  "newPassword": "Newpass!1",
-  "newPasswordConfirm": "Newpass!1"
-}
+--WebAppBoundary
+Content-Disposition: form-data; name="newPassword"
 
-### 관리자 프로필 수정 (회사명/비번 둘 중 하나 이상, ADMIN)
+Newpass!1
+--WebAppBoundary
+Content-Disposition: form-data; name="newPasswordConfirm"
+
+Newpass!1
+--WebAppBoundary--
+
+### 내 프로필 변경 - 이미지만 (USER, MANAGER)
+PATCH {{base}}/api/{{version}}/user/me/profile
+Authorization: Bearer {{userToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="image"; filename="profile.jpg"
+Content-Type: image/jpeg
+
+< ./profile.jpg
+--WebAppBoundary--
+
+### 내 프로필 변경 - 비밀번호 + 이미지 (USER, MANAGER)
+PATCH {{base}}/api/{{version}}/user/me/profile
+Authorization: Bearer {{userToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="newPassword"
+
+Newpass!1
+--WebAppBoundary
+Content-Disposition: form-data; name="newPasswordConfirm"
+
+Newpass!1
+--WebAppBoundary
+Content-Disposition: form-data; name="image"; filename="profile.jpg"
+Content-Type: image/jpeg
+
+< ./profile.jpg
+--WebAppBoundary--
+
+### 관리자 프로필 수정 - 회사명만 (ADMIN)
 PATCH {{base}}/api/{{version}}/user/admin/profile
 Authorization: Bearer {{adminToken}}
-Content-Type: application/json
+Content-Type: multipart/form-data; boundary=WebAppBoundary
 
-{
-  "companyName": "New Company Name",
-  "newPassword": "AdminPass!2",
-  "newPasswordConfirm": "AdminPass!2"
-}
+--WebAppBoundary
+Content-Disposition: form-data; name="companyName"
+
+New Company Name
+--WebAppBoundary--
+
+### 관리자 프로필 수정 - 비밀번호만 (ADMIN)
+PATCH {{base}}/api/{{version}}/user/admin/profile
+Authorization: Bearer {{adminToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="newPassword"
+
+AdminPass!2
+--WebAppBoundary
+Content-Disposition: form-data; name="newPasswordConfirm"
+
+AdminPass!2
+--WebAppBoundary--
+
+### 관리자 프로필 수정 - 이미지만 (ADMIN)
+PATCH {{base}}/api/{{version}}/user/admin/profile
+Authorization: Bearer {{adminToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="image"; filename="admin-profile.jpg"
+Content-Type: image/jpeg
+
+< ./admin-profile.jpg
+--WebAppBoundary--
+
+### 관리자 프로필 수정 - 회사명 + 비밀번호 + 이미지 (ADMIN)
+PATCH {{base}}/api/{{version}}/user/admin/profile
+Authorization: Bearer {{adminToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="companyName"
+
+New Company Name
+--WebAppBoundary
+Content-Disposition: form-data; name="newPassword"
+
+AdminPass!2
+--WebAppBoundary
+Content-Disposition: form-data; name="newPasswordConfirm"
+
+AdminPass!2
+--WebAppBoundary
+Content-Disposition: form-data; name="image"; filename="admin-profile.jpg"
+Content-Type: image/jpeg
+
+< ./admin-profile.jpg
+--WebAppBoundary--
 
 ### 사용자 권한 변경 (ADMIN)
 PATCH {{base}}/api/{{version}}/user/admin/{{targetUserId}}/role
