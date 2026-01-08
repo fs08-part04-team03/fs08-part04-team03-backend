@@ -101,12 +101,13 @@ export function startNotificationCleanupScheduler() {
   notificationCleanupJob = cron.schedule(
     // 매일 00:00 UTC
     '0 0 * * *',
-    // 테스트용: 10초마다 실행
-    // '*/10 * * * * *',
+
     async () => {
       try {
-        const result = await notificationService.cleanupOldNotifications(14);
-        logger.info('[notification] cleanup completed', { deleted: result.count });
+        const result = await notificationService.cleanupOldNotifications(
+          env.NOTIFICATION_RETENTION_DAYS
+        );
+        logger.info('[notification] cleanup completed', { deleted: result });
       } catch (err) {
         logger.error(
           '[notification] cleanup failed',
