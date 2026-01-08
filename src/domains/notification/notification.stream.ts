@@ -1,5 +1,6 @@
 // SSE를 이용하기 위해 클라이언트와 서버 간의 연결을 관리하는 모듈
 import type { Response } from 'express';
+import { logger } from '../../common/utils/logger.util';
 
 // Client 연결 정보
 type ClientConnection = {
@@ -13,14 +14,33 @@ const clients = new Map<string, ClientConnection>();
 // 클라이언트 등록
 function register(userId: string, res: Response) {
   const existing = clients.get(userId);
+
+  // 단일 연결 보장: 기존 연결은 종료 후 교체
   if (existing) {
     clearInterval(existing.keepAlive);
-    existing.res.end();
+    try {
+      if (!existing.res.writableEnded && !existing.res.destroyed) {
+        existing.res.end();
+      }
+    } catch (err) {
+      logger.warn('[notification] 현재 SSE 연결 종료 중 오류', { userId, err });
+    }
     clients.delete(userId);
   }
 
+  // keep-alive로 중간 프록시 타임아웃 방지
   const keepAlive = setInterval(() => {
-    res.write(': keep-alive\n\n');
+    try {
+      if (!res.writableEnded && !res.destroyed) {
+        res.write(': keep-alive\n\n');
+      } else {
+        clearInterval(keepAlive);
+        clients.delete(userId);
+      }
+    } catch {
+      clearInterval(keepAlive);
+      clients.delete(userId);
+    }
   }, KEEP_ALIVE_MS);
 
   clients.set(userId, { res, keepAlive });
