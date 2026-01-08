@@ -210,11 +210,49 @@ export const notificationService = {
     const requesterName = requester?.name || 'User';
     const content = `${requesterName}님이 구매 요청을 보냈습니다.`;
 
-    await Promise.all(
+    // 트랜잭션으로 알림 생성
+    const created = await prisma.$transaction(
       recipients.map((receiver) =>
-        createAndPush(receiver.id, content, PURCHASE_REQUEST_TARGET_TYPE, purchaseRequestId)
+        prisma.notifications.create({
+          data: {
+            receiverId: receiver.id,
+            content,
+            targetType: PURCHASE_REQUEST_TARGET_TYPE,
+            targetId: purchaseRequestId,
+          },
+          select: {
+            id: true,
+            content: true,
+            targetType: true,
+            targetId: true,
+            isRead: true,
+            createdAt: true,
+          },
+        })
       )
     );
+
+    // 푸쉬 처리
+    recipients.forEach((receiver, index) => {
+      const notification = created[index];
+      if (!notification) {
+        logger.warn('[notification] 알림 누락', {
+          receiverId: receiver.id,
+          index,
+        });
+        return;
+      }
+
+      const payload = serializeNotification(notification);
+      const delivered = notificationStream.send(receiver.id, payload);
+
+      if (!delivered) {
+        logger.info('[notification] 실시간 전송 실패', {
+          receiverId: receiver.id,
+          notificationId: payload.id,
+        });
+      }
+    });
   },
 
   // 구매 승인 알림 발송
