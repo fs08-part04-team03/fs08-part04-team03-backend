@@ -33,6 +33,13 @@ function unregister(userId: string, res?: Response) {
   if (res && existing.res !== res) return;
 
   clearInterval(existing.keepAlive);
+  try {
+    if (!existing.res.writableEnded && !existing.res.destroyed) {
+      existing.res.end();
+    }
+  } catch {
+    // 무시
+  }
   clients.delete(userId);
 }
 
