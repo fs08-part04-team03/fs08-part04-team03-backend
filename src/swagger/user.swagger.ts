@@ -82,14 +82,14 @@
  *       type: object
  *       required: [newPassword, newPasswordConfirm]
  *       properties:
- *         newPassword: { type: string, minLength: 1, maxLength: 30 }
- *         newPasswordConfirm: { type: string, minLength: 1, maxLength: 30 }
+ *         newPassword: { type: string, minLength: 8, maxLength: 30 }
+ *         newPasswordConfirm: { type: string, minLength: 8, maxLength: 30 }
  *     AdminProfilePatchBody:
  *       type: object
  *       properties:
  *         companyName: { type: string, minLength: 1, maxLength: 255 }
- *         newPassword: { type: string, minLength: 1, maxLength: 30 }
- *         newPasswordConfirm: { type: string, minLength: 1, maxLength: 30 }
+ *         newPassword: { type: string, minLength: 8, maxLength: 30 }
+ *         newPasswordConfirm: { type: string, minLength: 8, maxLength: 30 }
  *       description: companyName 또는 newPassword 중 하나 이상 필수
  *     UpdateRoleBody:
  *       type: object
@@ -146,12 +146,12 @@
  *             properties:
  *               newPassword:
  *                 type: string
- *                 minLength: 1
+ *                 minLength: 8
  *                 maxLength: 30
  *                 description: 새 비밀번호 (선택)
  *               newPasswordConfirm:
  *                 type: string
- *                 minLength: 1
+ *                 minLength: 8
  *                 maxLength: 30
  *                 description: 새 비밀번호 확인 (newPassword와 함께 필수)
  *               image:
