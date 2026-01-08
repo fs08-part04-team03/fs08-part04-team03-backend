@@ -11,9 +11,13 @@
  *   schemas:
  *     NotificationItem:
  *       type: object
+ *       required: [id, content, targetType, targetId, isRead, createdAt]
  *       properties:
- *         id: { type: integer, example: 42 }
- *         content: { type: string, example: "새 구매 요청이 등록되었습니다." }
+ *         id:
+ *           type: string
+ *           description: BigInt ID serialized as string
+ *           example: "42"
+ *         content: { type: string, example: "홍길동님이 구매 요청을 보냈습니다." }
  *         targetType:
  *           type: string
  *           enum: [PURCHASE_REQUEST, APPROVAL_NOTICE, DENIAL_NOTICE, ADMIN_MESSAGE, GENERAL_NOTICE]
@@ -61,6 +65,7 @@
  * /api/v1/notification/stream:
  *   get:
  *     summary: 알림 SSE 스트림 연결
+ *     description: 알림 발생 시 `data: {NotificationItem JSON}` 형태로 전송됩니다.
  *     tags: [Notification]
  *     security: [{ bearerAuth: [] }]
  *     responses:
@@ -70,6 +75,7 @@
  *           text/event-stream:
  *             schema:
  *               type: string
+ *               example: "data: {\"id\":\"42\",\"content\":\"홍길동님이 구매 요청을 보냈습니다.\",\"targetType\":\"PURCHASE_REQUEST\",\"targetId\":\"b0f4fb8b-0d1a-4a6c-9f8c-3d2b0c07e9e1\",\"isRead\":false,\"createdAt\":\"2025-01-07T10:00:00.000Z\"}\n\n"
  *       '401':
  *         description: 인증 실패
  */
@@ -96,6 +102,8 @@
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/NotificationListResponse' }
+ *       '400':
+ *         description: 잘못된 요청
  *       '401':
  *         description: 인증 실패
  */
@@ -128,14 +136,16 @@
  *       - in: path
  *         name: id
  *         required: true
- *         schema: { type: integer, minimum: 1 }
- *         description: 알림 ID
+ *         schema: { type: integer, format: int64, minimum: 1 }
+ *         description: 알림 ID (BigInt)
  *     responses:
  *       '200':
  *         description: 알림 읽음 처리 성공
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/NotificationReadResponse' }
+ *       '400':
+ *         description: 잘못된 요청
  *       '401':
  *         description: 인증 실패
  *       '404':
