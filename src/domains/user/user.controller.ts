@@ -35,18 +35,40 @@ export const userController = {
     const profile = await userService.getProfile(userId);
     res.status(HttpStatus.OK).json(ResponseUtil.success(profile, '내 프로필 조회 성공'));
   },
-  // 비밀번호 변경 (유저/매니저)
+  // 프로필 변경 (비밀번호/이미지) (유저/매니저)
   patchMyProfile: async (req: AuthenticatedRequest, res: Response) => {
     const { id: userId } = requireUserContext(req);
     const { newPassword } = req.body as UserProfilePatchBody;
-    await userService.changeMyPassword(userId, newPassword);
-    res.status(HttpStatus.OK).json(ResponseUtil.success(null, '비밀번호가 변경되었습니다.'));
+    const { file } = req;
+
+    if (!newPassword && !file) {
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
+        '변경할 내용이 없습니다. (비밀번호 또는 프로필 이미지 중 하나 이상 필요)'
+      );
+    }
+
+    const updatedUser = await userService.updateMyProfile(userId, newPassword, file);
+    res
+      .status(HttpStatus.OK)
+      .json(ResponseUtil.success(updatedUser, '프로필이 업데이트되었습니다.'));
   },
-  // 비밀번호/회사명 변경 (관리자)
+  // 비밀번호/회사명/프로필 이미지 변경 (관리자)
   patchAdminProfile: async (req: AuthenticatedRequest, res: Response) => {
     const { id: userId, companyId } = requireUserContext(req);
     const payload = req.body as AdminProfilePatchBody;
-    await userService.adminPatchProfile(userId, companyId, payload);
+    const { file } = req;
+
+    if (!payload.companyName && !payload.newPassword && !file) {
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
+        '변경할 내용이 없습니다. (회사명, 비밀번호, 프로필 이미지 중 하나 이상 필요)'
+      );
+    }
+
+    await userService.adminPatchProfile(userId, companyId, payload, file);
     res
       .status(HttpStatus.OK)
       .json(ResponseUtil.success(null, '관리자 프로필이 업데이트되었습니다.'));

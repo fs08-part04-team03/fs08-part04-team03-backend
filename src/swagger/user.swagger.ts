@@ -82,15 +82,15 @@
  *       type: object
  *       required: [newPassword, newPasswordConfirm]
  *       properties:
- *         newPassword: { type: string, minLength: 1, maxLength: 30 }
- *         newPasswordConfirm: { type: string, minLength: 1, maxLength: 30 }
+ *         newPassword: { type: string, minLength: 8, maxLength: 30 }
+ *         newPasswordConfirm: { type: string, minLength: 8, maxLength: 30 }
  *     AdminProfilePatchBody:
  *       type: object
  *       properties:
  *         companyName: { type: string, minLength: 1, maxLength: 255 }
- *         newPassword: { type: string, minLength: 1, maxLength: 30 }
- *         newPasswordConfirm: { type: string, minLength: 1, maxLength: 30 }
- *       description: companyName 또는 newPassword 중 하나 이상 필수
+ *         newPassword: { type: string, minLength: 8, maxLength: 30 }
+ *         newPasswordConfirm: { type: string, minLength: 8, maxLength: 30 }
+ *       description: companyName, newPassword, 또는 image 중 하나 이상 필수 (image는 multipart/form-data 엔드포인트에서만 사용)
  *     UpdateRoleBody:
  *       type: object
  *       required: [role]
@@ -133,20 +133,50 @@
  * @openapi
  * /api/v1/user/me/profile:
  *   patch:
- *     summary: 내 비밀번호 변경 (USER/MANAGER)
+ *     summary: 내 프로필 변경 - 비밀번호/이미지 (USER/MANAGER)
+ *     description: 비밀번호 변경 또는 프로필 이미지 업로드 (또는 둘 다 가능). 최소 하나 이상의 필드 필요.
  *     tags: [User]
  *     security: [{ bearerAuth: [] }]
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
- *           schema: { $ref: '#/components/schemas/PasswordChangeBody' }
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               newPassword:
+ *                 type: string
+ *                 minLength: 8
+ *                 maxLength: 30
+ *                 description: 새 비밀번호 (선택)
+ *               newPasswordConfirm:
+ *                 type: string
+ *                 minLength: 8
+ *                 maxLength: 30
+ *                 description: 새 비밀번호 확인 (newPassword와 함께 필수)
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: 프로필 이미지 파일 (선택, 최대 5MB, jpg/jpeg/png/gif/webp)
+ *           encoding:
+ *             image:
+ *               contentType: image/jpeg, image/png, image/gif, image/webp
  *     responses:
  *       '200':
- *         description: 비밀번호 변경
+ *         description: 프로필 업데이트 성공
  *         content:
  *           application/json:
- *             schema: { $ref: '#/components/schemas/EmptySuccessResponse' }
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data: { $ref: '#/components/schemas/UserProfile' }
+ *                     message:
+ *                       type: string
+ *                       example: '프로필이 업데이트되었습니다.'
+ *       '400':
+ *         description: 잘못된 요청 (변경할 내용 없음, 지원하지 않는 파일 형식, 파일 크기 초과)
  *       '401':
  *         description: 인증 실패
  */
@@ -155,20 +185,47 @@
  * @openapi
  * /api/v1/user/admin/profile:
  *   patch:
- *     summary: 회사명/관리자 비밀번호 변경 (ADMIN)
+ *     summary: 관리자 프로필 변경 - 회사명/비밀번호/이미지 (ADMIN)
+ *     description: 회사명, 비밀번호, 프로필 이미지 변경 (최소 하나 이상 필요)
  *     tags: [User]
  *     security: [{ bearerAuth: [] }]
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
- *           schema: { $ref: '#/components/schemas/AdminProfilePatchBody' }
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               companyName:
+ *                 type: string
+ *                 minLength: 1
+ *                 maxLength: 255
+ *                 description: 회사명 (선택)
+ *               newPassword:
+ *                 type: string
+ *                 minLength: 8
+ *                 maxLength: 30
+ *                 description: 새 비밀번호 (선택)
+ *               newPasswordConfirm:
+ *                 type: string
+ *                 minLength: 8
+ *                 maxLength: 30
+ *                 description: 새 비밀번호 확인 (newPassword와 함께 필수)
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: 프로필 이미지 파일 (선택, 최대 5MB, jpg/jpeg/png/gif/webp)
+ *           encoding:
+ *             image:
+ *               contentType: image/jpeg, image/png, image/gif, image/webp
  *     responses:
  *       '200':
  *         description: 관리자 프로필 수정
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/EmptySuccessResponse' }
+ *       '400':
+ *         description: 잘못된 요청 (변경할 내용 없음, 지원하지 않는 파일 형식, 파일 크기 초과)
  *       '401':
  *         description: 인증 실패
  *       '403':
