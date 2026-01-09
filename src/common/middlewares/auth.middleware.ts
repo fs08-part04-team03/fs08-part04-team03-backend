@@ -19,7 +19,7 @@ export function verifyAccessToken(req: Request, _res: Response, next: NextFuncti
   try {
     // Authorization 헤더 유효성 검사
     const authHeader = req.headers.authorization;
-    if (!authHeader) {
+    if (!authHeader || !authHeader.trim()) {
       throw new CustomError(
         HttpStatus.UNAUTHORIZED,
         ErrorCodes.AUTH_UNAUTHORIZED,
@@ -27,9 +27,9 @@ export function verifyAccessToken(req: Request, _res: Response, next: NextFuncti
       );
     }
 
-    // Bearer 뒤에 1개 이상 공백(스페이스/탭) 허용 + 대소문자 무시
-    const match = authHeader.match(/^Bearer[\t ]+(.+)$/i);
-    if (!match) {
+    const value = authHeader.trim();
+    // Bearer insensitive 검사
+    if (value.slice(0, 6).toLowerCase() !== 'bearer') {
       throw new CustomError(
         HttpStatus.BAD_REQUEST,
         ErrorCodes.GENERAL_BAD_REQUEST,
@@ -37,7 +37,30 @@ export function verifyAccessToken(req: Request, _res: Response, next: NextFuncti
       );
     }
 
-    const token = match[1]?.trim();
+    const rest = value.slice(6);
+    // "Bearer"만 온 경우는 토큰 없음
+    if (!rest) {
+      throw new CustomError(
+        HttpStatus.UNAUTHORIZED,
+        ErrorCodes.AUTH_UNAUTHORIZED,
+        'Bearer token is missing'
+      );
+    }
+
+    // Bearer와 토큰 사이에 최소 1개 이상의 스페이스/탭이 있어야 함 (Bearer<token> 불허)
+    if (rest[0] !== ' ' && rest[0] !== '\t') {
+      throw new CustomError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERAL_BAD_REQUEST,
+        'Invalid Authorization header format'
+      );
+    }
+
+    // 선행 스페이스/탭 스킵
+    let i = 0;
+    while (i < rest.length && (rest[i] === ' ' || rest[i] === '\t')) i += 1;
+
+    const token = rest.slice(i).trim();
 
     // 공백만 있는 경우는 "토큰 없음"으로 처리
     if (!token) {
