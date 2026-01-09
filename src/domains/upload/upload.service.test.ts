@@ -1,4 +1,3 @@
-import { Readable } from 'stream';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { prisma } from '@/common/database/prisma.client';
 import { CustomError } from '@/common/utils/error.util';
@@ -58,7 +57,7 @@ describe('UploadService', () => {
     mimetype: 'image/jpeg',
     size: 1024,
     buffer: Buffer.from('test-image-data'),
-    stream: null as unknown as Readable,
+    stream: null as any,
     destination: '',
     filename: '',
     path: '',
