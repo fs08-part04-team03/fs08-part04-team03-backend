@@ -96,6 +96,7 @@ model users {
   wishLists          wishLists[]
   createdProducts    products[]         @relation("UserCreatedProducts")
   uploads            uploads[]
+  notifications      notifications[]
   companies          companies          @relation(fields: [companyId], references: [id])
 
   @@unique([companyId, email])
@@ -224,6 +225,23 @@ model purchaseItems {
   products         products         @relation(fields: [productId], references: [id])
 
   @@map("purchase_items")
+}
+
+// notifications
+model notifications {
+  id         BigInt   @id @default(autoincrement()) @db.BigInt
+  receiverId String   @db.Uuid // 알림 수신자
+  content    String   @db.Text // 알림 내용
+  // 알림 대상 + Id를 이용해 어떤 항목에 대한 알림인지 구분 -> 프론트에서 링크 처리
+  targetType String   @db.VarChar(50) // 알림 대상 타입 (예: "purchaseRequest", "approvePurchaseRequest" 등)
+  targetId   String   @db.Uuid // 알림 대상 ID
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  receiver users @relation(fields: [receiverId], references: [id])
+
+  @@index([receiverId, createdAt(sort: Desc)], map: "idx_receiver_date")
+  @@map("notifications")
 }
 
 // 초대(이메일)

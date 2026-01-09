@@ -5,7 +5,11 @@ import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import { env } from './config/env.config';
 import { corsMiddleware } from './config/cors.config';
-import { startBudgetScheduler, startHealthCheckScheduler } from './config/cron.config';
+import {
+  startBudgetScheduler,
+  startHealthCheckScheduler,
+  startNotificationCleanupScheduler,
+} from './config/cron.config';
 import { swaggerDocs } from './config/swagger.config';
 import { logger } from './common/utils/logger.util';
 import { requestLogger } from './common/middlewares/logger.middleware';
@@ -21,6 +25,7 @@ import { purchaseRouter } from './domains/purchase/purchase.router';
 import { productRouter } from './domains/product/product.router';
 import { wishlistRouter } from './domains/wishlist/wishlist.router';
 import { uploadRouter } from './domains/upload/upload.router';
+import { notificationRouter } from './domains/notification/notification.router';
 
 const app: Application = express();
 
@@ -112,12 +117,16 @@ app.use(`/api/${env.API_VERSION}/cart`, cartRouter);
 app.use(`/api/${env.API_VERSION}/product`, productRouter);
 app.use(`/api/${env.API_VERSION}/wishlist`, wishlistRouter);
 app.use(`/api/${env.API_VERSION}/upload`, uploadRouter);
+app.use(`/api/${env.API_VERSION}/notification`, notificationRouter);
 
 // Swagger 문서 설정
 swaggerDocs(app);
 
 // 예산 스케줄러 시작
 startBudgetScheduler();
+
+// 알림 정리 스케줄러 시작
+startNotificationCleanupScheduler();
 
 // 헬스 체크 스케줄러 시작
 startHealthCheckScheduler();
