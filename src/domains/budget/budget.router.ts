@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { role } from '@prisma/client';
 import { requireMinRole } from '../../common/middlewares/role.middleware';
 import { verifyAccessToken } from '../../common/middlewares/auth.middleware';
+import { verifyTenantAccess } from '../../common/middlewares/tenant.middleware';
 import { budgetController } from './budget.controller';
 import { budgetValidator } from './budget.validator';
 
@@ -11,6 +12,7 @@ const router = Router();
 router.patch(
   '/criteria',
   verifyAccessToken,
+  verifyTenantAccess,
   requireMinRole(role.ADMIN),
   budgetValidator.upsertCriteria,
   budgetController.upsertCriteria
@@ -20,6 +22,7 @@ router.patch(
 router.get(
   '/criteria',
   verifyAccessToken,
+  verifyTenantAccess,
   requireMinRole(role.ADMIN),
   budgetController.getCriteria
 );
@@ -28,6 +31,7 @@ router.get(
 router.patch(
   '/',
   verifyAccessToken,
+  verifyTenantAccess,
   requireMinRole(role.ADMIN),
   budgetValidator.upsert,
   budgetController.upsert
@@ -37,6 +41,7 @@ router.patch(
 router.get(
   '/',
   verifyAccessToken,
+  verifyTenantAccess,
   requireMinRole(role.MANAGER),
   budgetValidator.getList,
   budgetController.getList

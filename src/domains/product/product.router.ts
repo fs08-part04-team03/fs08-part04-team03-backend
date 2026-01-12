@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { role } from '@prisma/client';
 import { verifyAccessToken } from '../../common/middlewares/auth.middleware';
+import { verifyTenantAccess } from '../../common/middlewares/tenant.middleware';
 import { requireMinRole } from '../../common/middlewares/role.middleware';
 import { validateRequest } from '../../common/middlewares/validator.middleware';
 import { uploadSingleImage } from '../upload/upload.middleware';
@@ -13,6 +14,7 @@ const router = Router();
 router.post(
   '/',
   verifyAccessToken,
+  verifyTenantAccess,
   requireMinRole(role.USER),
   uploadSingleImage,
   productValidator.validateCreateProduct,
@@ -24,6 +26,7 @@ router.post(
 router.get(
   '/',
   verifyAccessToken,
+  verifyTenantAccess,
   requireMinRole(role.USER),
   productValidator.validateGetProducts,
   validateRequest,
@@ -34,6 +37,7 @@ router.get(
 router.get(
   '/my',
   verifyAccessToken,
+  verifyTenantAccess,
   requireMinRole(role.USER),
   productValidator.validateGetProducts,
   validateRequest,
@@ -44,6 +48,7 @@ router.get(
 router.get(
   '/:id',
   verifyAccessToken,
+  verifyTenantAccess,
   requireMinRole(role.USER),
   productValidator.validateGetProductDetail,
   validateRequest,
@@ -54,6 +59,7 @@ router.get(
 router.patch(
   '/:id',
   verifyAccessToken,
+  verifyTenantAccess,
   requireMinRole(role.MANAGER),
   uploadSingleImage,
   productValidator.validateUpdateProduct,
@@ -65,6 +71,7 @@ router.patch(
 router.delete(
   '/:id',
   verifyAccessToken,
+  verifyTenantAccess,
   requireMinRole(role.MANAGER),
   productValidator.validateDeleteProduct,
   validateRequest,
