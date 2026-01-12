@@ -104,18 +104,21 @@ export async function checkBudget(req: BudgetCheckRequest, _res: Response, next:
       );
     }
 
-    // 4-1. 각 상품의 현재 가격 조회
-    const product = await prisma.products.findUnique({
-      where: { id: item.productId },
+    // 4-1. 각 상품의 현재 가격 조회 (테넌트 격리: companyId 확인)
+    const product = await prisma.products.findFirst({
+      where: {
+        id: item.productId,
+        companyId, // 같은 회사의 상품만 조회
+      },
       select: { price: true },
     });
 
-    // 4-2. 상품이 존재하지 않으면 에러 발생
+    // 4-2. 상품이 존재하지 않거나 다른 회사의 상품이면 에러 발생
     if (!product) {
       throw new CustomError(
         HttpStatus.NOT_FOUND,
         ErrorCodes.GENERAL_NOT_FOUND,
-        `상품 ID ${item.productId}를 찾을 수 없습니다.`
+        `상품 ID ${item.productId}를 찾을 수 없거나 접근 권한이 없습니다.`
       );
     }
 

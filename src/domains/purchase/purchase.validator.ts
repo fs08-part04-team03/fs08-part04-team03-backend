@@ -1,4 +1,5 @@
 import { query, body, param, ValidationChain } from 'express-validator';
+import { purchaseStatus } from '@prisma/client';
 
 // 💰 [Purchase] 전체 구매 내역 목록 API (관리자)
 const validatePurchaseList: ValidationChain[] = [
@@ -58,7 +59,7 @@ const validateGetPurchaseRequestDetail: ValidationChain[] = [
 
 // 💰 [Purchase] 구매 요청 관리/조회 API (관리자)
 const validateManagePurchaseRequests: ValidationChain[] = [
-  query('status').optional().isIn(['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED']),
+  query('status').optional().isIn(Object.values(purchaseStatus)),
   query('page').optional().isInt({ min: 1 }).toInt(),
   query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
   query('sortBy').optional().isIn(['createdAt', 'updatedAt', 'totalPrice']),
