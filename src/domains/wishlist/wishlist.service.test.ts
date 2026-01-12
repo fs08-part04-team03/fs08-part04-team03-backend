@@ -1,29 +1,60 @@
-import { Prisma } from '@prisma/client';
 import { prisma } from '@/common/database/prisma.client';
 import { CustomError } from '@/common/utils/error.util';
 import { HttpStatus } from '@/common/constants/httpStatus.constants';
 import { ErrorCodes } from '@/common/constants/errorCodes.constants';
+import { Prisma } from '@prisma/client';
 import { wishlistService } from './wishlist.service';
 
 // Prisma 모킹
-jest.mock('@/common/database/prisma.client', () => ({
-  prisma: {
-    users: {
-      findUnique: jest.fn(),
+jest.mock('@/common/database/prisma.client', () => {
+  const mockUsersFind = jest.fn();
+  const mockProductsFind = jest.fn();
+  const mockProductsFindFirst = jest.fn();
+  const mockWishListsCreate = jest.fn();
+  const mockWishListsFindMany = jest.fn();
+  const mockWishListsFindUnique = jest.fn();
+  const mockWishListsFindUniqueOrThrow = jest.fn();
+  const mockWishListsDelete = jest.fn();
+  const mockWishListsCount = jest.fn();
+
+  return {
+    prisma: {
+      $transaction: (callback: (tx: unknown) => unknown) =>
+        callback({
+          users: {
+            findUnique: mockUsersFind,
+          },
+          products: {
+            findFirst: mockProductsFindFirst,
+            findUnique: mockProductsFind,
+          },
+          wishLists: {
+            create: mockWishListsCreate,
+            findMany: mockWishListsFindMany,
+            findUnique: mockWishListsFindUnique,
+            findUniqueOrThrow: mockWishListsFindUniqueOrThrow,
+            delete: mockWishListsDelete,
+            count: mockWishListsCount,
+          },
+        }),
+      users: {
+        findUnique: mockUsersFind,
+      },
+      products: {
+        findUnique: mockProductsFind,
+        findFirst: mockProductsFindFirst,
+      },
+      wishLists: {
+        create: mockWishListsCreate,
+        findMany: mockWishListsFindMany,
+        findUnique: mockWishListsFindUnique,
+        findUniqueOrThrow: mockWishListsFindUniqueOrThrow,
+        delete: mockWishListsDelete,
+        count: mockWishListsCount,
+      },
     },
-    products: {
-      findUnique: jest.fn(),
-    },
-    wishLists: {
-      create: jest.fn(),
-      findMany: jest.fn(),
-      findUnique: jest.fn(),
-      findUniqueOrThrow: jest.fn(),
-      delete: jest.fn(),
-      count: jest.fn(),
-    },
-  },
-}));
+  };
+});
 
 describe('WishlistService', () => {
   const mockUserId = 'user-123';
@@ -82,7 +113,7 @@ describe('WishlistService', () => {
       };
 
       (prisma.users.findUnique as jest.Mock).mockResolvedValue(mockUser);
-      (prisma.products.findUnique as jest.Mock).mockResolvedValue({
+      (prisma.products.findFirst as jest.Mock).mockResolvedValue({
         id: mockProductId,
         companyId: mockCompanyId,
         isActive: true,
@@ -126,7 +157,7 @@ describe('WishlistService', () => {
       });
 
       (prisma.users.findUnique as jest.Mock).mockResolvedValue(mockUser);
-      (prisma.products.findUnique as jest.Mock).mockResolvedValue({
+      (prisma.products.findFirst as jest.Mock).mockResolvedValue({
         id: mockProductId,
         companyId: mockCompanyId,
         isActive: true,
@@ -179,10 +210,28 @@ describe('WishlistService', () => {
       );
     });
 
+    it('회사에 소속되지 않은 사용자는 찜을 등록할 수 없어야 합니다', async () => {
+      // Given
+      const userWithoutCompany = { ...mockUser, companyId: null };
+      (prisma.users.findUnique as jest.Mock).mockResolvedValue(userWithoutCompany);
+
+      // When & Then
+      await expect(wishlistService.createWishlist(mockUserId, mockProductId)).rejects.toThrow(
+        CustomError
+      );
+      await expect(wishlistService.createWishlist(mockUserId, mockProductId)).rejects.toMatchObject(
+        {
+          statusCode: HttpStatus.FORBIDDEN,
+          errorCode: ErrorCodes.AUTH_FORBIDDEN,
+          message: '회사에 소속된 사용자만 찜 목록을 사용할 수 있습니다.',
+        }
+      );
+    });
+
     it('상품을 찾을 수 없으면 에러를 발생시켜야 합니다', async () => {
       // Given
       (prisma.users.findUnique as jest.Mock).mockResolvedValue(mockUser);
-      (prisma.products.findUnique as jest.Mock).mockResolvedValue(null);
+      (prisma.products.findFirst as jest.Mock).mockResolvedValue(null);
 
       // When & Then
       await expect(wishlistService.createWishlist(mockUserId, mockProductId)).rejects.toThrow(
@@ -199,7 +248,7 @@ describe('WishlistService', () => {
     it('비활성화된 상품은 찜할 수 없어야 합니다', async () => {
       // Given
       (prisma.users.findUnique as jest.Mock).mockResolvedValue(mockUser);
-      (prisma.products.findUnique as jest.Mock).mockResolvedValue({
+      (prisma.products.findFirst as jest.Mock).mockResolvedValue({
         id: mockProductId,
         companyId: mockCompanyId,
         isActive: false,
@@ -220,11 +269,8 @@ describe('WishlistService', () => {
     it('다른 회사의 상품은 찜할 수 없어야 합니다', async () => {
       // Given
       (prisma.users.findUnique as jest.Mock).mockResolvedValue(mockUser);
-      (prisma.products.findUnique as jest.Mock).mockResolvedValue({
-        id: mockProductId,
-        companyId: 'different-company',
-        isActive: true,
-      });
+      // findFirst는 companyId가 다르면 null을 반환함
+      (prisma.products.findFirst as jest.Mock).mockResolvedValue(null);
 
       // When & Then
       await expect(wishlistService.createWishlist(mockUserId, mockProductId)).rejects.toThrow(
@@ -232,9 +278,8 @@ describe('WishlistService', () => {
       );
       await expect(wishlistService.createWishlist(mockUserId, mockProductId)).rejects.toMatchObject(
         {
-          statusCode: HttpStatus.FORBIDDEN,
-          errorCode: ErrorCodes.AUTH_FORBIDDEN,
-          message: '다른 회사의 상품입니다.',
+          statusCode: HttpStatus.NOT_FOUND,
+          errorCode: ErrorCodes.GENERAL_NOT_FOUND,
         }
       );
     });
