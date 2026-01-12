@@ -6,11 +6,13 @@ import { ErrorCodes } from '../../common/constants/errorCodes.constants';
 import { ResponseUtil } from '../../common/utils/response.util';
 import { notificationService } from './notification.service';
 import { notificationStream } from './notification.stream';
-import type { NotificationListQuery } from './notification.types';
+import type { NotificationBroadcastBody, NotificationListQuery } from './notification.types';
 
 type NotificationIdParam = { id: string };
 type NotificationListRequest = AuthenticatedRequest &
   Request<unknown, unknown, unknown, NotificationListQuery>;
+type NotificationBroadcastRequest = AuthenticatedRequest &
+  Request<unknown, unknown, NotificationBroadcastBody>;
 
 const requireUserContext = (req: AuthenticatedRequest) => {
   if (!req.user) {
@@ -21,6 +23,18 @@ const requireUserContext = (req: AuthenticatedRequest) => {
     );
   }
   return req.user;
+};
+
+const requireCompanyContext = (req: AuthenticatedRequest) => {
+  const user = requireUserContext(req);
+  if (!user.companyId) {
+    throw new CustomError(
+      HttpStatus.UNAUTHORIZED,
+      ErrorCodes.AUTH_UNAUTHORIZED,
+      '회사 소속 사용자만 접근할 수 있습니다.'
+    );
+  }
+  return user.companyId;
 };
 
 export const notificationController = {
@@ -59,6 +73,17 @@ export const notificationController = {
           '알림 목록을 조회했습니다.'
         )
       );
+  },
+
+  // 회사 전체 메시지 공지
+  broadcast: async (req: NotificationBroadcastRequest, res: Response) => {
+    const companyId = requireCompanyContext(req);
+    const { content } = req.body as NotificationBroadcastBody;
+    const result = await notificationService.broadcastCompanyMessage(companyId, content);
+
+    res
+      .status(HttpStatus.CREATED)
+      .json(ResponseUtil.success(result, '회사 전체 메시지를 발송했습니다.'));
   },
 
   // 읽지 않은 알림 개수 조회

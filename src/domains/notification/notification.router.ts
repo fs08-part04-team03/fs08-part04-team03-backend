@@ -18,6 +18,15 @@ router.get(
   notificationController.list
 );
 
+// 어드민 전체 공지
+router.post(
+  '/broadcast',
+  verifyAccessToken,
+  requireMinRole('ADMIN'),
+  notificationValidator.broadcast,
+  notificationController.broadcast
+);
+
 // 읽지 않은 알림 개수 조회
 router.get(
   '/unread-count',

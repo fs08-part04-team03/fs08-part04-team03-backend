@@ -12,6 +12,11 @@ export type NotificationTargetType =
   | 'ADMIN_MESSAGE'
   | 'GENERAL_NOTICE';
 
+// 어드민 알림 바디 타입
+export type NotificationBroadcastBody = {
+  content: string;
+};
+
 // 알림 페이로드 타입
 export type NotificationPayload = {
   id: string;

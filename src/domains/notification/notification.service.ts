@@ -22,6 +22,8 @@ type NotificationRecord = {
 };
 
 const MANAGER_ROLES: role[] = [role.MANAGER, role.ADMIN];
+const BROADCAST_RECIPIENT_ROLES: role[] = [role.USER, role.MANAGER];
+const ADMIN_MESSAGE_TARGET_TYPE: NotificationTargetType = 'ADMIN_MESSAGE';
 const PURCHASE_REQUEST_TARGET_TYPE: NotificationTargetType = 'PURCHASE_REQUEST';
 const APPROVAL_NOTICE_TARGET_TYPE: NotificationTargetType = 'APPROVAL_NOTICE';
 const DENIAL_NOTICE_TARGET_TYPE: NotificationTargetType = 'DENIAL_NOTICE';
@@ -177,6 +179,78 @@ export const notificationService = {
 
   // 알림 생성/푸시 외부 호출용
   createAndPush,
+
+  // 회사 전체 메시지 공지
+  async broadcastCompanyMessage(companyId: string, content: string) {
+    // 수신자 조회 (활성화된 USER/MAANGER 대상)
+    const recipients = await prisma.users.findMany({
+      where: {
+        companyId,
+        isActive: true,
+        role: {
+          in: BROADCAST_RECIPIENT_ROLES,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    // 수신자 없으면 종료
+    if (recipients.length === 0) {
+      return { createdCount: 0, deliveredCount: 0 };
+    }
+
+    // 트랜잭션으로 알림 생성
+    const created = await prisma.$transaction(
+      recipients.map((receiver) =>
+        prisma.notifications.create({
+          data: {
+            receiverId: receiver.id,
+            content,
+            targetType: ADMIN_MESSAGE_TARGET_TYPE,
+            targetId: companyId,
+          },
+          select: {
+            id: true,
+            content: true,
+            targetType: true,
+            targetId: true,
+            isRead: true,
+            createdAt: true,
+          },
+        })
+      )
+    );
+
+    let deliveredCount = 0;
+
+    // 푸쉬 처리
+    recipients.forEach((receiver, index) => {
+      const notification = created[index];
+      if (!notification) {
+        logger.warn('[notification] 회사 전체 알림 메시지 누락', {
+          receiverId: receiver.id,
+          index,
+        });
+        return;
+      }
+
+      const payload = serializeNotification(notification);
+      const delivered = notificationStream.send(receiver.id, payload);
+
+      if (delivered) {
+        deliveredCount += 1;
+      } else {
+        logger.info('[notification] 실시간 전송 건너뜀', {
+          receiverId: receiver.id,
+          notificationId: payload.id,
+        });
+      }
+    });
+
+    return { createdCount: created.length, deliveredCount };
+  },
 
   // 구매 요청 알림 발송
   async notifyPurchaseRequested(companyId: string, requesterId: string, purchaseRequestId: string) {
