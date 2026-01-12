@@ -22,6 +22,14 @@ export const cartService = {
         );
       }
 
+      if (!user.companyId) {
+        throw new CustomError(
+          HttpStatus.FORBIDDEN,
+          ErrorCodes.AUTH_FORBIDDEN,
+          '회사에 소속된 사용자만 장바구니를 사용할 수 있습니다.'
+        );
+      }
+
       // 2. 상품 존재 여부 및 활성화 상태 확인 (테넌트 격리: companyId 확인)
       const product = await tx.products.findFirst({
         where: {
@@ -226,7 +234,29 @@ export const cartService = {
   // 🛒 [Cart] 장바구니 수량 수정 API
   updateQuantity: async (userId: string, cartItemId: string, quantity: number) => {
     const result = await prisma.$transaction(async (tx) => {
-      // 1. 장바구니 항목 존재 여부 확인
+      // 1. 사용자 정보 조회 (companyId 확인용)
+      const user = await tx.users.findUnique({
+        where: { id: userId },
+        select: { companyId: true },
+      });
+
+      if (!user) {
+        throw new CustomError(
+          HttpStatus.NOT_FOUND,
+          ErrorCodes.GENERAL_NOT_FOUND,
+          '사용자를 찾을 수 없습니다.'
+        );
+      }
+
+      if (!user.companyId) {
+        throw new CustomError(
+          HttpStatus.FORBIDDEN,
+          ErrorCodes.AUTH_FORBIDDEN,
+          '회사에 소속된 사용자만 장바구니를 사용할 수 있습니다.'
+        );
+      }
+
+      // 2. 장바구니 항목 존재 여부 확인
       const cartItem = await tx.carts.findUnique({
         where: { id: cartItemId },
         include: {
@@ -238,6 +268,7 @@ export const cartService = {
               image: true,
               link: true,
               isActive: true,
+              companyId: true,
             },
           },
         },
@@ -251,7 +282,16 @@ export const cartService = {
         );
       }
 
-      // 2. 수량 업데이트
+      // 3. 테넌트 격리: 같은 회사의 상품인지 확인
+      if (cartItem.products.companyId !== user.companyId) {
+        throw new CustomError(
+          HttpStatus.FORBIDDEN,
+          ErrorCodes.AUTH_FORBIDDEN,
+          '접근 권한이 없는 상품입니다.'
+        );
+      }
+
+      // 4. 수량 업데이트
       const updatedCartItem = await tx.carts.update({
         where: { id: cartItemId },
         data: { quantity },
@@ -303,6 +343,14 @@ export const cartService = {
           HttpStatus.NOT_FOUND,
           ErrorCodes.GENERAL_NOT_FOUND,
           '사용자를 찾을 수 없습니다.'
+        );
+      }
+
+      if (!user.companyId) {
+        throw new CustomError(
+          HttpStatus.FORBIDDEN,
+          ErrorCodes.AUTH_FORBIDDEN,
+          '회사에 소속된 사용자만 장바구니를 사용할 수 있습니다.'
         );
       }
 
@@ -365,6 +413,14 @@ export const cartService = {
           HttpStatus.NOT_FOUND,
           ErrorCodes.GENERAL_NOT_FOUND,
           '사용자를 찾을 수 없습니다.'
+        );
+      }
+
+      if (!user.companyId) {
+        throw new CustomError(
+          HttpStatus.FORBIDDEN,
+          ErrorCodes.AUTH_FORBIDDEN,
+          '회사에 소속된 사용자만 장바구니를 사용할 수 있습니다.'
         );
       }
 

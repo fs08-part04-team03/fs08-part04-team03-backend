@@ -68,6 +68,25 @@ interface CreateManyArgs {
 const basePrisma = new PrismaClient();
 
 /**
+ * 동적 모델 접근을 위한 타입
+ */
+type PrismaDelegate = {
+  findFirst: (args: { where: Record<string, unknown> }) => Promise<Record<string, unknown> | null>;
+};
+
+/**
+ * 동적 모델 접근을 위한 헬퍼 함수
+ * basePrisma에서 모델명으로 레코드를 조회합니다.
+ */
+async function findExistingRecord(
+  model: string,
+  where: Record<string, unknown>
+): Promise<Record<string, unknown> | null> {
+  const prismaModel = basePrisma[model as keyof typeof basePrisma] as unknown as PrismaDelegate;
+  return prismaModel.findFirst({ where });
+}
+
+/**
  * 테넌트 격리 Prisma Client Extension
  *
  * 모든 데이터베이스 쿼리에 자동으로 companyId 필터를 추가합니다.
@@ -182,7 +201,9 @@ export const prisma = basePrisma.$extends({
         // 주의: 이 방식은 두 번의 쿼리가 필요하므로 성능에 영향을 줄 수 있음
         // 가능하면 애플리케이션 코드에서 updateMany를 사용하거나
         // where 조건에 companyId를 명시적으로 포함하는 것을 권장
-        const existing = await query({ ...args, data: undefined } as ArgsWithWhere);
+
+        // basePrisma를 사용하여 기존 레코드 조회
+        const existing = await findExistingRecord(model, args.where ?? {});
 
         if (!existing) {
           throw new Error('Record to update not found.');
@@ -219,7 +240,9 @@ export const prisma = basePrisma.$extends({
 
         // delete는 고유 제약만 사용 가능하므로, companyId를 where에 추가할 수 없음
         // 대신 먼저 조회하여 companyId 검증 후 삭제
-        const existing = await query({ ...args, data: undefined } as ArgsWithWhere);
+
+        // basePrisma를 사용하여 기존 레코드 조회
+        const existing = await findExistingRecord(model, args.where ?? {});
 
         if (!existing) {
           throw new Error('Record to delete not found.');
@@ -254,9 +277,27 @@ export const prisma = basePrisma.$extends({
           return query(args);
         }
 
+        // upsert는 고유 제약만 사용 가능하므로, companyId를 where에 추가할 수 없는 모델이 있음
+        // 복합 고유 키에 companyId가 포함된 경우(users, budgets)만 where에 추가 가능
+        // 다른 모델은 먼저 조회하여 검증 후 실행
+
+        // 기존 레코드 조회
+        const existing = await findExistingRecord(model, args.where ?? {});
+
+        if (existing) {
+          // 레코드가 존재하면 companyId 검증
+          if (
+            typeof existing === 'object' &&
+            'companyId' in existing &&
+            existing.companyId !== context.companyId
+          ) {
+            throw new Error('Cannot upsert record from different company.');
+          }
+        }
+
+        // create 데이터에 companyId 추가
         return query({
           ...args,
-          where: { ...args.where, companyId: context.companyId },
           create: { ...args.create, companyId: context.companyId },
         });
       },

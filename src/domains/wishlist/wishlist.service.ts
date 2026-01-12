@@ -29,7 +29,6 @@ type WishlistItem = {
   product: {
     id: number;
     name: string;
-    price: number;
     image: string | null;
     link: string;
     isActive: boolean;
@@ -64,6 +63,14 @@ export const wishlistService = {
           HttpStatus.UNAUTHORIZED,
           ErrorCodes.AUTH_UNAUTHORIZED,
           '비활성화된 계정입니다.'
+        );
+      }
+
+      if (!user.companyId) {
+        throw new CustomError(
+          HttpStatus.FORBIDDEN,
+          ErrorCodes.AUTH_FORBIDDEN,
+          '회사에 소속된 사용자만 찜 목록을 사용할 수 있습니다.'
         );
       }
 
