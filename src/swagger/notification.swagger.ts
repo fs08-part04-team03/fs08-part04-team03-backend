@@ -58,6 +58,22 @@
  *               properties:
  *                 count: { type: integer, example: 4 }
  *             message: { type: string, example: "읽지 않은 알림 수를 조회했습니다." }
+ *     NotificationBroadcastRequest:
+ *       type: object
+ *       required: [content]
+ *       properties:
+ *         content: { type: string, example: "시스템 점검 안내입니다." }
+ *     NotificationBroadcastResponse:
+ *       allOf:
+ *         - $ref: '#/components/schemas/SuccessResponse'
+ *         - type: object
+ *           properties:
+ *             data:
+ *               type: object
+ *               properties:
+ *                 createdCount: { type: integer, example: 12 }
+ *                 deliveredCount: { type: integer, example: 10 }
+ *             message: { type: string, example: "전체 알림이 전송되었습니다." }
  */
 
 /**
@@ -65,7 +81,7 @@
  * /api/v1/notification/stream:
  *   get:
  *     summary: 알림 SSE 스트림 연결
- *     description: 알림 발생 시 `data: {NotificationItem JSON}` 형태로 전송됩니다.
+ *     description: "알림 발생 시 data: {NotificationItem JSON} 형태로 전송됩니다."
  *     tags: [Notification]
  *     security: [{ bearerAuth: [] }]
  *     responses:
@@ -150,4 +166,31 @@
  *         description: 인증 실패
  *       '404':
  *         description: 알림을 찾을 수 없음
+ */
+
+/**
+ * @openapi
+ * /api/v1/notification/broadcast:
+ *   post:
+ *     summary: 회사 전체 알림 발송 (관리자)
+ *     description: 동일 회사의 활성 USER/MANAGER에게 관리자 알림을 일괄 발송합니다.
+ *     tags: [Notification]
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema: { $ref: '#/components/schemas/NotificationBroadcastRequest' }
+ *     responses:
+ *       '201':
+ *         description: 전체 알림 발송 성공
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/NotificationBroadcastResponse' }
+ *       '400':
+ *         description: 잘못된 요청
+ *       '401':
+ *         description: 인증 실패
+ *       '403':
+ *         description: 권한 없음
  */
