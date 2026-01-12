@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { role } from '@prisma/client';
 import { verifyAccessToken } from '../../common/middlewares/auth.middleware';
 import { requireMinRole } from '../../common/middlewares/role.middleware';
 import { validateRequest } from '../../common/middlewares/validator.middleware';
@@ -12,7 +13,7 @@ const router = Router();
 router.post(
   '/',
   verifyAccessToken,
-  requireMinRole('USER'),
+  requireMinRole(role.USER),
   uploadSingleImage,
   productValidator.validateCreateProduct,
   validateRequest,
@@ -23,7 +24,7 @@ router.post(
 router.get(
   '/',
   verifyAccessToken,
-  requireMinRole('USER'),
+  requireMinRole(role.USER),
   productValidator.validateGetProducts,
   validateRequest,
   productController.getProducts
@@ -33,7 +34,7 @@ router.get(
 router.get(
   '/my',
   verifyAccessToken,
-  requireMinRole('USER'),
+  requireMinRole(role.USER),
   productValidator.validateGetProducts,
   validateRequest,
   productController.getMyProducts
@@ -43,7 +44,7 @@ router.get(
 router.get(
   '/:id',
   verifyAccessToken,
-  requireMinRole('USER'),
+  requireMinRole(role.USER),
   productValidator.validateGetProductDetail,
   validateRequest,
   productController.getProductDetail
@@ -53,7 +54,7 @@ router.get(
 router.patch(
   '/:id',
   verifyAccessToken,
-  requireMinRole('MANAGER'),
+  requireMinRole(role.MANAGER),
   uploadSingleImage,
   productValidator.validateUpdateProduct,
   validateRequest,
@@ -64,7 +65,7 @@ router.patch(
 router.delete(
   '/:id',
   verifyAccessToken,
-  requireMinRole('MANAGER'),
+  requireMinRole(role.MANAGER),
   productValidator.validateDeleteProduct,
   validateRequest,
   productController.deleteProduct

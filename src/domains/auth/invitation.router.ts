@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
 import type { Request, Response } from 'express';
+import { role as RoleEnum } from '@prisma/client';
 import { env } from '../../config/env.config';
 import { verifyAccessToken } from '../../common/middlewares/auth.middleware';
 import { validateRequest } from '../../common/middlewares/validator.middleware';
@@ -87,9 +88,9 @@ router.post(
   }
 );
 
-// 초대 링크 생성 (TODO: 개발용/추후 삭제 예정) //
+// 초대 링크 생성
 type AuthedRequest = Request & {
-  user: { role: 'USER' | 'MANAGER' | 'ADMIN' };
+  user: { role: RoleEnum };
 };
 router.post(
   '/create',
@@ -103,7 +104,7 @@ router.post(
       companyId: string;
       email: string;
       name: string;
-      role: 'USER' | 'MANAGER' | 'ADMIN';
+      role: RoleEnum;
     };
 
     const { token: rawToken, invitation } = await invitationAuthService.createInvitation({

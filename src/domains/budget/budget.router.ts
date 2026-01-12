@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { role } from '@prisma/client';
 import { requireMinRole } from '../../common/middlewares/role.middleware';
 import { verifyAccessToken } from '../../common/middlewares/auth.middleware';
 import { budgetController } from './budget.controller';
@@ -10,19 +11,24 @@ const router = Router();
 router.patch(
   '/criteria',
   verifyAccessToken,
-  requireMinRole('ADMIN'),
+  requireMinRole(role.ADMIN),
   budgetValidator.upsertCriteria,
   budgetController.upsertCriteria
 );
 
 // 예산 기준 조회
-router.get('/criteria', verifyAccessToken, requireMinRole('ADMIN'), budgetController.getCriteria);
+router.get(
+  '/criteria',
+  verifyAccessToken,
+  requireMinRole(role.ADMIN),
+  budgetController.getCriteria
+);
 
 // 월 예산 insert + update
 router.patch(
   '/',
   verifyAccessToken,
-  requireMinRole('ADMIN'),
+  requireMinRole(role.ADMIN),
   budgetValidator.upsert,
   budgetController.upsert
 );
@@ -31,7 +37,7 @@ router.patch(
 router.get(
   '/',
   verifyAccessToken,
-  requireMinRole('MANAGER'),
+  requireMinRole(role.MANAGER),
   budgetValidator.getList,
   budgetController.getList
 );

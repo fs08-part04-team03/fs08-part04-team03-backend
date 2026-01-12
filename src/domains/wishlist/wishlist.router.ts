@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { role } from '@prisma/client';
 import { requireMinRole } from '../../common/middlewares/role.middleware';
 import { verifyAccessToken } from '../../common/middlewares/auth.middleware';
 import { wishlistValidator } from './wishlist.validator';
@@ -10,7 +11,7 @@ const router = Router();
 router.post(
   '/:id',
   verifyAccessToken,
-  requireMinRole('USER'),
+  requireMinRole(role.USER),
   wishlistValidator.createWishlist,
   wishlistController.createWishlist
 );
@@ -19,7 +20,7 @@ router.post(
 router.get(
   '/my',
   verifyAccessToken,
-  requireMinRole('USER'),
+  requireMinRole(role.USER),
   wishlistValidator.getMyWishlist,
   wishlistController.getMyWishlist
 );
@@ -28,7 +29,7 @@ router.get(
 router.delete(
   '/:id',
   verifyAccessToken,
-  requireMinRole('USER'),
+  requireMinRole(role.USER),
   wishlistValidator.deleteWishlist,
   wishlistController.deleteWishlist
 );
