@@ -79,9 +79,9 @@ describe('Auth Middleware', () => {
       // Then
       expect(nextFunction).toHaveBeenCalledWith(
         expect.objectContaining({
-          statusCode: HttpStatus.UNAUTHORIZED,
-          errorCode: ErrorCodes.AUTH_UNAUTHORIZED,
-          message: 'Authorization header is missing',
+          statusCode: HttpStatus.BAD_REQUEST,
+          errorCode: ErrorCodes.GENERAL_BAD_REQUEST,
+          message: 'Invalid Authorization header format',
         })
       );
     });
@@ -89,7 +89,7 @@ describe('Auth Middleware', () => {
     it('토큰이 없으면 에러를 발생시켜야 합니다', () => {
       // Given
       mockRequest.headers = {
-        authorization: 'Bearer ',
+        authorization: 'Bearer  ',
       };
 
       // When
@@ -144,11 +144,32 @@ describe('Auth Middleware', () => {
       expect(nextFunction).toHaveBeenCalledWith(tokenExpiredError);
     });
 
-    it('공백 이후의 모든 문자열이 토큰으로 취급됩니다', () => {
+    it('Bearer 토큰에 공백이 포함되면 에러를 발생시켜야 합니다', () => {
       // Given
       const tokenWithSpaces = 'token with spaces';
       mockRequest.headers = {
         authorization: `Bearer ${tokenWithSpaces}`,
+      };
+
+      // When
+      verifyAccessToken(mockRequest as Request, mockResponse as Response, nextFunction);
+
+      // Then
+      expect(nextFunction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          statusCode: HttpStatus.BAD_REQUEST,
+          errorCode: ErrorCodes.GENERAL_BAD_REQUEST,
+          message: 'Bearer token must not contain whitespace',
+        })
+      );
+      expect(JwtUtil.verifyAccessToken).not.toHaveBeenCalled();
+    });
+
+    it('should allow tabs/spaces between Bearer and token', () => {
+      // Given
+      const validToken = 'valid-access-token';
+      mockRequest.headers = {
+        authorization: `Bearer\t   ${validToken}`,
       };
 
       (JwtUtil.verifyAccessToken as jest.Mock).mockReturnValue(mockPayload);
@@ -157,7 +178,7 @@ describe('Auth Middleware', () => {
       verifyAccessToken(mockRequest as Request, mockResponse as Response, nextFunction);
 
       // Then
-      expect(JwtUtil.verifyAccessToken).toHaveBeenCalledWith(tokenWithSpaces);
+      expect(JwtUtil.verifyAccessToken).toHaveBeenCalledWith(validToken);
       expect(nextFunction).toHaveBeenCalledWith();
     });
   });
