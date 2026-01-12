@@ -399,6 +399,15 @@ export const authService = {
       throw invalidCredentialsError();
     }
 
+    // 활성 계정 매칭이 1개라면 선택 없이 바로 로그인
+    if (matchedUsers.length === 1) {
+      const matchedUser = matchedUsers[0];
+      if (!matchedUser) {
+        throw invalidCredentialsError();
+      }
+      return buildLoginResult(matchedUser);
+    }
+
     // 동일 회사 중복 노출 방지용으로 companyId 기준 중복 제거
     const companyMap = new Map<string, string>();
     matchedUsers.forEach((user) => {

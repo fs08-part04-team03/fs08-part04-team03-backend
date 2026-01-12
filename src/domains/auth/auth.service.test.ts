@@ -353,6 +353,21 @@ describe('AuthService', () => {
       });
     });
 
+    it('비활성 계정이 함께 있어도 활성 계정이 하나면 바로 로그인됩니다', async () => {
+      // Given
+      const inactiveUser = { ...anotherUser, isActive: false };
+      (prisma.users.findMany as jest.Mock).mockResolvedValue([mockUser, inactiveUser]);
+      jest.spyOn(argon2, 'verify').mockResolvedValueOnce(true).mockResolvedValueOnce(true);
+      mockTokenResult();
+
+      // When
+      const result = await authService.login(validLoginInput);
+
+      // Then
+      expect(result).toHaveProperty('accessToken', 'login-access-token');
+      expect(result.user.companyId).toBe(mockUser.companyId);
+    });
+
     it('여러 회사 계정에서 비밀번호가 모두 틀리면 에러를 던져야 합니다', async () => {
       // Given
       (prisma.users.findMany as jest.Mock).mockResolvedValue([mockUser, anotherUser]);
