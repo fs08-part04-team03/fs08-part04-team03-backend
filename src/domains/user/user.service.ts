@@ -1,5 +1,6 @@
 import argon2 from 'argon2';
 import type { Prisma } from '@prisma/client';
+import { role as RoleEnum } from '@prisma/client';
 import { DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { prisma } from '../../common/database/prisma.client';
@@ -279,7 +280,7 @@ export const userService = {
     await ensureActiveUserInCompany(actorCompanyId, actorUserId);
     const user = await getUserInCompany(actorCompanyId, targetUserId);
 
-    if (user.id === actorUserId && user.role === 'ADMIN' && role !== 'ADMIN') {
+    if (user.id === actorUserId && user.role === RoleEnum.ADMIN && role !== RoleEnum.ADMIN) {
       throw new CustomError(
         HttpStatus.FORBIDDEN,
         ErrorCodes.AUTH_FORBIDDEN,

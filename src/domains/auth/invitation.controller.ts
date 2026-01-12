@@ -1,5 +1,6 @@
 // invitation Service를 호출해 초대 링크 생성(토큰을 받아옴) + 반환
 import type { Request, Response } from 'express';
+import { role as RoleEnum } from '@prisma/client';
 import { sendInvitationEmail } from '@/common/utils/email.util';
 import { env } from '../../config/env.config';
 import type { AuthenticatedRequest } from '../../common/types/common.types';
@@ -25,7 +26,7 @@ export const invitationController = {
   // email 발송 시스템에서 호출할 수 있도록 inviteUrl 반환
   create: async (req: AuthenticatedRequest, res: Response) => {
     // 관리자만 접근 가능
-    if (!req.user || req.user.role !== 'ADMIN') {
+    if (!req.user || req.user.role !== RoleEnum.ADMIN) {
       throw new CustomError(
         HttpStatus.UNAUTHORIZED,
         ErrorCodes.AUTH_UNAUTHORIZED,
