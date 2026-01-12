@@ -61,7 +61,7 @@ export const authValidator = {
       .withMessage('email 형식이 올바르지 않습니다')
       .normalizeEmail()
       .toLowerCase(),
-    passwordRule,
+    body('password').isString().withMessage('password는 필수입니다'),
     validateRequest,
   ],
 };
