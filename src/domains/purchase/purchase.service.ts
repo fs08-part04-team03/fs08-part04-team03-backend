@@ -1,4 +1,4 @@
-import { purchaseStatus, type Prisma } from '@prisma/client';
+import { purchaseStatus } from '@prisma/client';
 import { prisma } from '../../common/database/prisma.client';
 import { CustomError } from '../../common/utils/error.util';
 import { HttpStatus } from '../../common/constants/httpStatus.constants';
@@ -112,7 +112,7 @@ export const purchaseService = {
       );
     }
 
-    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const result = await prisma.$transaction(async (tx) => {
       // 2. 구매 요청 생성
       const newPurchaseRequest = await tx.purchaseRequests.create({
         data: {
@@ -473,9 +473,9 @@ export const purchaseService = {
       );
     }
 
-    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const result = await prisma.$transaction(async (tx) => {
       // status = PENDING 조건까지 포함해서 원자적으로 승인 처리
-      const updateResult = await tx.purchaseRequests.update({
+      const updateResult = await tx.purchaseRequests.updateMany({
         where: {
           id: purchaseRequestId,
           companyId,
@@ -487,7 +487,7 @@ export const purchaseService = {
         },
       });
 
-      if (!updateResult) {
+      if (updateResult.count === 0) {
         // 다른 트랜잭션에서 먼저 처리된 경우
         throw new CustomError(
           HttpStatus.BAD_REQUEST,
@@ -495,6 +495,11 @@ export const purchaseService = {
           '이미 처리된 구매 요청입니다.'
         );
       }
+
+      // updateMany는 업데이트된 레코드를 반환하지 않으므로 다시 조회
+      const updatedRequest = await tx.purchaseRequests.findUniqueOrThrow({
+        where: { id: purchaseRequestId },
+      });
 
       // 승인된 만큼 예산도 삭감시키기
       const now = new Date();
@@ -515,7 +520,7 @@ export const purchaseService = {
       }
 
       // 예산 부족 시 에러 반환
-      if (budget.amount < updateResult.totalPrice + updateResult.shippingFee) {
+      if (budget.amount < updatedRequest.totalPrice + updatedRequest.shippingFee) {
         throw new CustomError(
           HttpStatus.BAD_REQUEST,
           ErrorCodes.BUDGET_EXCEEDED,
@@ -532,11 +537,11 @@ export const purchaseService = {
           },
         },
         data: {
-          amount: budget.amount - (updateResult.totalPrice + updateResult.shippingFee),
+          amount: budget.amount - (updatedRequest.totalPrice + updatedRequest.shippingFee),
         },
       });
 
-      return updateResult;
+      return updatedRequest;
     });
 
     return ResponseUtil.success(result, '구매 요청을 승인했습니다.');
@@ -614,7 +619,7 @@ export const purchaseService = {
     items: Array<{ productId: number; quantity: number }>,
     requestMessage?: string
   ) {
-    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const result = await prisma.$transaction(async (tx) => {
       // 1. Cart 테이블에서 요청한 모든 상품이 있는지 확인
       const cartItems = await tx.carts.findMany({
         where: {

@@ -1,4 +1,3 @@
-import { Prisma } from '@prisma/client';
 import { prisma } from '../../common/database/prisma.client';
 import { CustomError } from '../../common/utils/error.util';
 import { HttpStatus } from '../../common/constants/httpStatus.constants';
@@ -8,7 +7,7 @@ import { ResponseUtil } from '../../common/utils/response.util';
 export const cartService = {
   // 🛒 [Cart] 장바구니에 상품 추가 API
   addToCart: async (userId: string, productId: number, quantity: number) => {
-    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const result = await prisma.$transaction(async (tx) => {
       // 1. 사용자의 회사 ID 확인 (먼저 조회하여 테넌트 격리에 사용)
       const user = await tx.users.findUnique({
         where: { id: userId },
@@ -226,7 +225,7 @@ export const cartService = {
 
   // 🛒 [Cart] 장바구니 수량 수정 API
   updateQuantity: async (userId: string, cartItemId: string, quantity: number) => {
-    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const result = await prisma.$transaction(async (tx) => {
       // 1. 장바구니 항목 존재 여부 확인
       const cartItem = await tx.carts.findUnique({
         where: { id: cartItemId },
@@ -292,7 +291,7 @@ export const cartService = {
 
   // 🛒 [Cart] 장바구니 삭제 API
   deleteFromCart: async (userId: string, cartItemId: string) => {
-    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    await prisma.$transaction(async (tx) => {
       // 1. 사용자 정보 조회 (companyId 확인용)
       const user = await tx.users.findUnique({
         where: { id: userId },
@@ -354,7 +353,7 @@ export const cartService = {
       );
     }
 
-    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const result = await prisma.$transaction(async (tx) => {
       // 2. 사용자 정보 조회 (companyId 확인용)
       const user = await tx.users.findUnique({
         where: { id: userId },
@@ -386,7 +385,7 @@ export const cartService = {
       if (cartItems.length !== cartItemIds.length) {
         throw new CustomError(
           HttpStatus.BAD_REQUEST,
-          ErrorCodes.GENERAL_NOT_FOUND,
+          ErrorCodes.GENERAL_BAD_REQUEST,
           '일부 장바구니 항목을 찾을 수 없거나 권한이 없습니다.'
         );
       }

@@ -1,4 +1,5 @@
 import type { NextFunction, Response } from 'express';
+import { role } from '@prisma/client';
 import { sendBudgetAlertEmail } from '../utils/email.util';
 import { CustomError } from '../utils/error.util';
 import { HttpStatus } from '../constants/httpStatus.constants';
@@ -69,7 +70,7 @@ export async function checkBudget(req: BudgetCheckRequest, _res: Response, next:
     const admins = await prisma.users.findMany({
       where: {
         companyId,
-        role: { in: ['ADMIN', 'MANAGER'] },
+        role: { in: [role.ADMIN, role.MANAGER] },
       },
       select: { email: true },
     });
@@ -160,7 +161,7 @@ export async function checkBudget(req: BudgetCheckRequest, _res: Response, next:
     const admins = await prisma.users.findMany({
       where: {
         companyId,
-        role: { in: ['ADMIN', 'MANAGER'] },
+        role: { in: [role.ADMIN, role.MANAGER] },
       },
       select: { email: true },
     });
