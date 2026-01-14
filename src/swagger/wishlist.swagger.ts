@@ -15,7 +15,8 @@
  *         id: { type: integer, example: 222 }
  *         name: { type: string, example: "간식 상품" }
  *         price: { type: integer, example: 1800 }
- *         image: { type: string, nullable: true, example: "01_snack.png" }
+ *         image: { type: string, nullable: true, example: "01_snack.png", description: "S3 키" }
+ *         imageUrl: { type: string, nullable: true, example: "https://bucket.s3.amazonaws.com/products/abc123.jpg?X-Amz-...", description: "S3 Presigned URL" }
  *         link: { type: string, example: "https://example.com/products/1001" }
  *         isActive: { type: boolean, example: true }
  *         createdAt: { type: string, format: date-time, example: "2025-12-18T06:20:49.080Z" }

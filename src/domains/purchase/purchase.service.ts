@@ -1,4 +1,6 @@
 import { purchaseStatus } from '@prisma/client';
+import { GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { prisma } from '../../common/database/prisma.client';
 import { CustomError } from '../../common/utils/error.util';
 import { HttpStatus } from '../../common/constants/httpStatus.constants';
@@ -9,6 +11,23 @@ import type {
   RejectPurchaseRequestBody,
 } from './purchase.types';
 import { ResponseUtil } from '../../common/utils/response.util';
+import { s3Client, S3_BUCKET_NAME, PRESIGNED_URL_EXPIRES_IN } from '../../config/s3.config';
+
+// Presigned URL 생성 헬퍼 함수
+const getPresignedUrlForProduct = async (imageKey: string | null): Promise<string | null> => {
+  if (!imageKey) return null;
+
+  try {
+    return await getSignedUrl(
+      s3Client,
+      new GetObjectCommand({ Bucket: S3_BUCKET_NAME, Key: imageKey }),
+      { expiresIn: PRESIGNED_URL_EXPIRES_IN }
+    );
+  } catch (error) {
+    console.error('Failed to generate presigned URL:', error);
+    return null;
+  }
+};
 
 export const purchaseService = {
   // 💰 [Purchase] 전체 구매 내역 목록 API (관리자)
@@ -276,7 +295,21 @@ export const purchaseService = {
       );
     }
 
-    return ResponseUtil.success(purchaseDetail, '내 구매 상세 내역을 조회했습니다.');
+    // purchaseItems에 imageUrl 추가
+    const purchaseItemsWithUrls = await Promise.all(
+      purchaseDetail.purchaseItems.map(async (item) => ({
+        ...item,
+        products: {
+          ...item.products,
+          imageUrl: await getPresignedUrlForProduct(item.products.image),
+        },
+      }))
+    );
+
+    return ResponseUtil.success(
+      { ...purchaseDetail, purchaseItems: purchaseItemsWithUrls },
+      '내 구매 상세 내역을 조회했습니다.'
+    );
   },
 
   // 💰 [Purchase] 구매 요청 상세 조회 API (관리자)
@@ -350,11 +383,17 @@ export const purchaseService = {
     // 최종 금액 계산 (상품 + 배송비)
     const finalTotalPrice = purchaseDetail.totalPrice + purchaseDetail.shippingFee;
 
-    // 각 구매 항목에 itemTotal 추가
-    const purchaseItems = purchaseDetail.purchaseItems.map((item) => ({
-      ...item,
-      itemTotal: item.quantity * item.priceSnapshot,
-    }));
+    // 각 구매 항목에 itemTotal과 imageUrl 추가
+    const purchaseItems = await Promise.all(
+      purchaseDetail.purchaseItems.map(async (item) => ({
+        ...item,
+        itemTotal: item.quantity * item.priceSnapshot,
+        products: {
+          ...item.products,
+          imageUrl: await getPresignedUrlForProduct(item.products.image),
+        },
+      }))
+    );
 
     // 응답 데이터 재구성
     const response = {

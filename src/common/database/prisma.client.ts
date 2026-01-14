@@ -83,6 +83,30 @@ async function findExistingRecord(
   where: Record<string, unknown>
 ): Promise<Record<string, unknown> | null> {
   const prismaModel = basePrisma[model as keyof typeof basePrisma] as unknown as PrismaDelegate;
+
+  // 복합 유니크 제약조건을 개별 필드로 변환
+  // budgets 모델의 companyId_year_month 처리
+  // eslint-disable-next-line camelcase
+  if (where.companyId_year_month && typeof where.companyId_year_month === 'object') {
+    // eslint-disable-next-line camelcase
+    const { companyId_year_month, ...rest } = where;
+    return prismaModel.findFirst({
+      // eslint-disable-next-line camelcase
+      where: { ...rest, ...companyId_year_month },
+    });
+  }
+
+  // users 모델의 companyId_email 처리
+  // eslint-disable-next-line camelcase
+  if (where.companyId_email && typeof where.companyId_email === 'object') {
+    // eslint-disable-next-line camelcase
+    const { companyId_email, ...rest } = where;
+    return prismaModel.findFirst({
+      // eslint-disable-next-line camelcase
+      where: { ...rest, ...companyId_email },
+    });
+  }
+
   return prismaModel.findFirst({ where });
 }
 

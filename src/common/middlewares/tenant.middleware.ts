@@ -20,7 +20,7 @@ import { runWithTenantContext } from '../utils/tenant-context.util';
  * @param res - Express Response 객체
  * @param next - Express NextFunction
  */
-export function verifyTenantAccess(req: Request, res: Response, next: NextFunction) {
+export function verifyTenantAccess(req: Request, _res: Response, next: NextFunction) {
   const authenticatedReq = req as AuthenticatedRequest;
 
   // 1. 인증된 사용자 정보 확인

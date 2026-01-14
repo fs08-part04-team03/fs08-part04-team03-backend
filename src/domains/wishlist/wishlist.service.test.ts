@@ -5,6 +5,18 @@ import { ErrorCodes } from '@/common/constants/errorCodes.constants';
 import { Prisma } from '@prisma/client';
 import { wishlistService } from './wishlist.service';
 
+// AWS SDK 모킹
+jest.mock('@aws-sdk/client-s3', () => ({
+  GetObjectCommand: jest.fn(),
+  S3Client: jest.fn(() => ({})),
+}));
+
+jest.mock('@aws-sdk/s3-request-presigner', () => ({
+  getSignedUrl: jest
+    .fn()
+    .mockResolvedValue('https://mock-presigned-url.s3.amazonaws.com/image.jpg'),
+}));
+
 // Prisma 모킹
 jest.mock('@/common/database/prisma.client', () => {
   const mockUsersFind = jest.fn();
