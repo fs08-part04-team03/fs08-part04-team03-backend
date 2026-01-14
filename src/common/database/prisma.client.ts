@@ -295,6 +295,11 @@ export const prisma = basePrisma.$extends({
           }
         }
 
+        // update 데이터에서 companyId 변경 시도를 차단
+        if (args.update && typeof args.update === 'object' && 'companyId' in args.update) {
+          throw new Error('Cannot change companyId in update operation.');
+        }
+
         // create 데이터에 companyId 추가
         return query({
           ...args,
