@@ -1,5 +1,6 @@
 // 초대 토큰 생성 및 검증
 import { createHash, randomUUID } from 'node:crypto';
+import { role } from '@prisma/client';
 import { prisma } from '../../common/database/prisma.client';
 import { env } from '../../config/env.config';
 import { CustomError } from '../../common/utils/error.util';
@@ -80,7 +81,7 @@ export const invitationAuthService = {
    * - invitation: 초대 메타(응답에 같이 내려주면 관리자 UI에 유용)
    */
   async createInvitation(input: CreateInvitationInput) {
-    if (input.requestedByRole !== 'ADMIN') {
+    if (input.requestedByRole !== role.ADMIN) {
       throw new CustomError(HttpStatus.FORBIDDEN, ErrorCodes.AUTH_FORBIDDEN, '관리자만 초대 가능');
     }
 

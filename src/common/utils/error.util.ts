@@ -6,19 +6,27 @@ export type SafeValidationDetail = {
   message: string;
 };
 
+// validation 외 상세 정보를 전달 가능
+export type ErrorDetails =
+  | ValidationError[]
+  | SafeValidationDetail[]
+  | Record<string, unknown>
+  | string
+  | null;
+
 // 공통 에러 클래스
 export class CustomError extends Error {
   public statusCode: number;
 
   public errorCode: string;
 
-  public details: ValidationError[] | SafeValidationDetail[] | string | null;
+  public details: ErrorDetails;
 
   constructor(
     statusCode: number,
     errorCode: string,
     message: string,
-    details: ValidationError[] | SafeValidationDetail[] | string | null = null
+    details: ErrorDetails = null
   ) {
     super(message);
     this.name = 'CustomError';

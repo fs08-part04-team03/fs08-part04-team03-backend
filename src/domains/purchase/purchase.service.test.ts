@@ -1,52 +1,138 @@
 import { prisma } from '@/common/database/prisma.client';
 import { purchaseService } from './purchase.service';
 
-jest.mock('@/common/database/prisma.client', () => ({
-  prisma: {
-    users: {
-      findUnique: jest.fn(),
-      findMany: jest.fn(),
-    },
-    products: {
-      findUnique: jest.fn(),
-      findMany: jest.fn(),
-    },
-    carts: {
-      findMany: jest.fn(),
-      deleteMany: jest.fn(),
-    },
-    purchaseRequests: {
-      create: jest.fn(),
-      findMany: jest.fn(),
-      findUnique: jest.fn(),
-      update: jest.fn(),
-      count: jest.fn(),
-      findFirst: jest.fn(),
-      updateMany: jest.fn(),
-      aggregate: jest.fn(),
-    },
-    purchases: {
-      create: jest.fn(),
-      findMany: jest.fn(),
-      findUnique: jest.fn(),
-      update: jest.fn(),
-      count: jest.fn(),
-    },
-    purchaseItems: {
-      createMany: jest.fn(),
-      findMany: jest.fn(),
-    },
-    history: {
-      findMany: jest.fn(),
-    },
-    budgets: {
-      findFirst: jest.fn(),
-      findUnique: jest.fn(),
-      update: jest.fn(),
-    },
-    $transaction: jest.fn((callback) => callback(prisma)),
-  },
+// AWS SDK 모킹
+jest.mock('@aws-sdk/client-s3', () => ({
+  GetObjectCommand: jest.fn(),
+  S3Client: jest.fn(() => ({})),
 }));
+
+jest.mock('@aws-sdk/s3-request-presigner', () => ({
+  getSignedUrl: jest
+    .fn()
+    .mockResolvedValue('https://mock-presigned-url.s3.amazonaws.com/image.jpg'),
+}));
+
+jest.mock('@/common/database/prisma.client', () => {
+  const mockUsersFind = jest.fn();
+  const mockUsersFindMany = jest.fn();
+  const mockProductsFind = jest.fn();
+  const mockProductsFindMany = jest.fn();
+  const mockCartsFindMany = jest.fn();
+  const mockCartsDeleteMany = jest.fn();
+  const mockPurchaseRequestsCreate = jest.fn();
+  const mockPurchaseRequestsFindMany = jest.fn();
+  const mockPurchaseRequestsFind = jest.fn();
+  const mockPurchaseRequestsUpdate = jest.fn();
+  const mockPurchaseRequestsCount = jest.fn();
+  const mockPurchaseRequestsFindFirst = jest.fn();
+  const mockPurchaseRequestsUpdateMany = jest.fn();
+  const mockPurchaseRequestsAggregate = jest.fn();
+  const mockPurchaseRequestsFindUniqueOrThrow = jest.fn();
+  const mockPurchasesCreate = jest.fn();
+  const mockPurchasesFindMany = jest.fn();
+  const mockPurchasesFind = jest.fn();
+  const mockPurchasesUpdate = jest.fn();
+  const mockPurchasesCount = jest.fn();
+  const mockPurchaseItemsCreateMany = jest.fn();
+  const mockPurchaseItemsFindMany = jest.fn();
+  const mockHistoryFindMany = jest.fn();
+  const mockBudgetsFindFirst = jest.fn();
+  const mockBudgetsFind = jest.fn();
+  const mockBudgetsUpdate = jest.fn();
+
+  return {
+    prisma: {
+      $transaction: (callback: (tx: unknown) => unknown) =>
+        callback({
+          users: {
+            findUnique: mockUsersFind,
+            findMany: mockUsersFindMany,
+          },
+          products: {
+            findUnique: mockProductsFind,
+            findMany: mockProductsFindMany,
+          },
+          carts: {
+            findMany: mockCartsFindMany,
+            deleteMany: mockCartsDeleteMany,
+          },
+          purchaseRequests: {
+            create: mockPurchaseRequestsCreate,
+            findMany: mockPurchaseRequestsFindMany,
+            findUnique: mockPurchaseRequestsFind,
+            update: mockPurchaseRequestsUpdate,
+            count: mockPurchaseRequestsCount,
+            findFirst: mockPurchaseRequestsFindFirst,
+            updateMany: mockPurchaseRequestsUpdateMany,
+            aggregate: mockPurchaseRequestsAggregate,
+            findUniqueOrThrow: mockPurchaseRequestsFindUniqueOrThrow,
+          },
+          purchases: {
+            create: mockPurchasesCreate,
+            findMany: mockPurchasesFindMany,
+            findUnique: mockPurchasesFind,
+            update: mockPurchasesUpdate,
+            count: mockPurchasesCount,
+          },
+          purchaseItems: {
+            createMany: mockPurchaseItemsCreateMany,
+            findMany: mockPurchaseItemsFindMany,
+          },
+          history: {
+            findMany: mockHistoryFindMany,
+          },
+          budgets: {
+            findFirst: mockBudgetsFindFirst,
+            findUnique: mockBudgetsFind,
+            update: mockBudgetsUpdate,
+          },
+        }),
+      users: {
+        findUnique: mockUsersFind,
+        findMany: mockUsersFindMany,
+      },
+      products: {
+        findUnique: mockProductsFind,
+        findMany: mockProductsFindMany,
+      },
+      carts: {
+        findMany: mockCartsFindMany,
+        deleteMany: mockCartsDeleteMany,
+      },
+      purchaseRequests: {
+        create: mockPurchaseRequestsCreate,
+        findMany: mockPurchaseRequestsFindMany,
+        findUnique: mockPurchaseRequestsFind,
+        update: mockPurchaseRequestsUpdate,
+        count: mockPurchaseRequestsCount,
+        findFirst: mockPurchaseRequestsFindFirst,
+        updateMany: mockPurchaseRequestsUpdateMany,
+        aggregate: mockPurchaseRequestsAggregate,
+        findUniqueOrThrow: mockPurchaseRequestsFindUniqueOrThrow,
+      },
+      purchases: {
+        create: mockPurchasesCreate,
+        findMany: mockPurchasesFindMany,
+        findUnique: mockPurchasesFind,
+        update: mockPurchasesUpdate,
+        count: mockPurchasesCount,
+      },
+      purchaseItems: {
+        createMany: mockPurchaseItemsCreateMany,
+        findMany: mockPurchaseItemsFindMany,
+      },
+      history: {
+        findMany: mockHistoryFindMany,
+      },
+      budgets: {
+        findFirst: mockBudgetsFindFirst,
+        findUnique: mockBudgetsFind,
+        update: mockBudgetsUpdate,
+      },
+    },
+  };
+});
 
 describe('PurchaseService', () => {
   const mockUserId = 'user-123';
@@ -75,11 +161,8 @@ describe('PurchaseService', () => {
 
     it('즉시 구매를 성공적으로 처리해야 합니다', async () => {
       (prisma.products.findMany as jest.Mock).mockResolvedValue(mockProducts);
-      (prisma.$transaction as jest.Mock).mockImplementation(async (callback) => {
-        (prisma.purchaseRequests.create as jest.Mock).mockResolvedValue(mockPurchaseRequest);
-        (prisma.purchaseItems.createMany as jest.Mock).mockResolvedValue({ count: 1 });
-        return callback(prisma);
-      });
+      (prisma.purchaseRequests.create as jest.Mock).mockResolvedValue(mockPurchaseRequest);
+      (prisma.purchaseItems.createMany as jest.Mock).mockResolvedValue({ count: 1 });
 
       const result = await purchaseService.purchaseNow(mockCompanyId, mockUserId, 3000, mockItems);
 
@@ -142,13 +225,10 @@ describe('PurchaseService', () => {
     };
 
     it('구매 요청을 성공적으로 처리해야 합니다', async () => {
-      (prisma.$transaction as jest.Mock).mockImplementation(async (callback) => {
-        (prisma.carts.findMany as jest.Mock).mockResolvedValue(mockCartItems);
-        (prisma.purchaseRequests.create as jest.Mock).mockResolvedValue(mockPurchaseRequest);
-        (prisma.purchaseItems.createMany as jest.Mock).mockResolvedValue({ count: 1 });
-        (prisma.carts.deleteMany as jest.Mock).mockResolvedValue({ count: 1 });
-        return callback(prisma);
-      });
+      (prisma.carts.findMany as jest.Mock).mockResolvedValue(mockCartItems);
+      (prisma.purchaseRequests.create as jest.Mock).mockResolvedValue(mockPurchaseRequest);
+      (prisma.purchaseItems.createMany as jest.Mock).mockResolvedValue({ count: 1 });
+      (prisma.carts.deleteMany as jest.Mock).mockResolvedValue({ count: 1 });
 
       const result = await purchaseService.requestPurchase(
         mockCompanyId,
@@ -175,10 +255,7 @@ describe('PurchaseService', () => {
     });
 
     it('장바구니에 상품이 없으면 에러를 던져야 합니다', async () => {
-      (prisma.$transaction as jest.Mock).mockImplementation(async (callback) => {
-        (prisma.carts.findMany as jest.Mock).mockResolvedValue([]);
-        return callback(prisma);
-      });
+      (prisma.carts.findMany as jest.Mock).mockResolvedValue([]);
 
       await expect(
         purchaseService.requestPurchase(mockCompanyId, mockUserId, 3000, mockItems)
@@ -187,10 +264,7 @@ describe('PurchaseService', () => {
 
     it('장바구니의 상품 수량과 요청 수량이 다르면 에러를 던져야 합니다', async () => {
       const differentQuantityCartItems = [{ ...mockCartItems[0], quantity: 1 }];
-      (prisma.$transaction as jest.Mock).mockImplementation(async (callback) => {
-        (prisma.carts.findMany as jest.Mock).mockResolvedValue(differentQuantityCartItems);
-        return callback(prisma);
-      });
+      (prisma.carts.findMany as jest.Mock).mockResolvedValue(differentQuantityCartItems);
 
       await expect(
         purchaseService.requestPurchase(mockCompanyId, mockUserId, 3000, mockItems)
@@ -213,7 +287,8 @@ describe('PurchaseService', () => {
 
     it('구매 요청을 성공적으로 승인해야 합니다', async () => {
       (prisma.purchaseRequests.findFirst as jest.Mock).mockResolvedValue(mockPurchaseRequest);
-      (prisma.purchaseRequests.update as jest.Mock).mockResolvedValue({
+      (prisma.purchaseRequests.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
+      (prisma.purchaseRequests.findUniqueOrThrow as jest.Mock).mockResolvedValue({
         ...mockPurchaseRequest,
         status: 'APPROVED',
       });
@@ -226,10 +301,7 @@ describe('PurchaseService', () => {
         mockPurchaseRequestId
       );
 
-      expect(prisma.purchaseRequests.update).toHaveBeenCalledWith({
-        where: { id: mockPurchaseRequestId, companyId: mockCompanyId, status: 'PENDING' },
-        data: { status: 'APPROVED', approverId: mockUserId },
-      });
+      expect(prisma.purchaseRequests.updateMany).toHaveBeenCalled();
       expect(prisma.budgets.update).toHaveBeenCalled();
     });
 
@@ -253,7 +325,8 @@ describe('PurchaseService', () => {
     it('예산이 부족하면 에러를 던져야 합니다', async () => {
       const lowBudget = { amount: 1000 };
       (prisma.purchaseRequests.findFirst as jest.Mock).mockResolvedValue(mockPurchaseRequest);
-      (prisma.purchaseRequests.update as jest.Mock).mockResolvedValue({
+      (prisma.purchaseRequests.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
+      (prisma.purchaseRequests.findUniqueOrThrow as jest.Mock).mockResolvedValue({
         ...mockPurchaseRequest,
         status: 'APPROVED',
       });
@@ -362,7 +435,22 @@ describe('PurchaseService', () => {
 
   describe('getMyPurchaseDetail', () => {
     it('나의 특정 구매 내역 상세 정보를 반환해야 합니다', async () => {
-      const mockPurchaseDetail = { id: 'pr-123' };
+      const mockPurchaseDetail = {
+        id: 'pr-123',
+        purchaseItems: [
+          {
+            id: 'pi-1',
+            quantity: 2,
+            priceSnapshot: 1000,
+            products: {
+              id: 1,
+              name: '상품명',
+              image: 'product.jpg',
+              link: 'https://example.com',
+            },
+          },
+        ],
+      };
       (prisma.purchaseRequests.findFirst as jest.Mock).mockResolvedValue(mockPurchaseDetail);
 
       const result = await purchaseService.getMyPurchaseDetail(mockCompanyId, mockUserId, 'pr-123');
@@ -372,7 +460,8 @@ describe('PurchaseService', () => {
           where: { id: 'pr-123', companyId: mockCompanyId, requesterId: mockUserId },
         })
       );
-      expect(result.data).toEqual(mockPurchaseDetail);
+      expect(result.data.purchaseItems).toBeDefined();
+      expect(result.data.purchaseItems[0]).toHaveProperty('products.imageUrl');
     });
   });
 

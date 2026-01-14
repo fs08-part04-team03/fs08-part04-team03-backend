@@ -1,4 +1,5 @@
 import { body, param } from 'express-validator';
+import { role } from '@prisma/client';
 import { validateRequest } from '../../common/middlewares/validator.middleware';
 
 export const invitationValidator = {
@@ -15,8 +16,8 @@ export const invitationValidator = {
       .isLength({ min: 1, max: 255 })
       .withMessage('name은 1~255자여야 합니다.'),
     body('role')
-      .isIn(['USER', 'MANAGER', 'ADMIN'])
-      .withMessage('role은 USER, MANAGER, ADMIN 중 하나여야 합니다.'),
+      .isIn(Object.values(role))
+      .withMessage(`role은 ${Object.values(role).join(', ')} 중 하나여야 합니다.`),
     validateRequest,
   ],
 

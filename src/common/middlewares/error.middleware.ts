@@ -5,9 +5,8 @@ import {
   PrismaClientValidationError,
   PrismaClientInitializationError,
 } from '@prisma/client/runtime/library'; // Prisma 에러 타입들 (에러가 발생하여 직접 import)
-import type { ValidationError } from 'express-validator';
 import { env } from '../../config/env.config';
-import { CustomError, SafeValidationDetail } from '../utils/error.util';
+import { CustomError, type ErrorDetails } from '../utils/error.util';
 import { logger } from '../utils/logger.util';
 import { HttpStatus } from '../constants/httpStatus.constants';
 import { ErrorCodes } from '../constants/errorCodes.constants';
@@ -17,7 +16,7 @@ type ErrorResponse = {
   message: string;
   statusCode: number;
   errorCode: string;
-  details: ValidationError[] | SafeValidationDetail[] | string | null;
+  details: ErrorDetails;
 };
 
 function prismaTargetDetails(target: unknown): ErrorResponse['details'] {

@@ -1,4 +1,5 @@
 import { body, param, query } from 'express-validator';
+import { role } from '@prisma/client';
 import { validateRequest } from '../../common/middlewares/validator.middleware';
 import type { AdminProfilePatchBody, UserProfilePatchBody } from './user.types';
 
@@ -63,11 +64,7 @@ export const userValidator = {
   ],
 
   // 권한 변경
-  updateRole: [
-    param('id').isUUID(),
-    body('role').isIn(['USER', 'MANAGER', 'ADMIN']),
-    validateRequest,
-  ],
+  updateRole: [param('id').isUUID(), body('role').isIn(Object.values(role)), validateRequest],
 
   // 활성/비활성 변경
   updateStatus: [param('id').isUUID(), body('isActive').isBoolean().toBoolean(), validateRequest],
@@ -75,7 +72,7 @@ export const userValidator = {
   // 회사 소속 사용자 목록 조회/검색
   getUsers: [
     query('q').optional().isString().trim().isLength({ min: 1, max: 255 }),
-    query('role').optional().isIn(['USER', 'MANAGER', 'ADMIN']),
+    query('role').optional().isIn(Object.values(role)),
     query('isActive').default(true).isBoolean().toBoolean(),
     query('page').optional().isInt({ min: 1 }).toInt(),
     query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),

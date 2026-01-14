@@ -42,6 +42,7 @@ type LoginRequest = Request<
   {
     email: string;
     password: string;
+    companyId?: string;
   },
   unknown
 >;
@@ -147,12 +148,13 @@ export const authController = {
       .json(ResponseUtil.success({ user, company, accessToken }, '어드민 회원가입 완료'));
   },
 
-  // 로그인
+  // 로그인 (회사 선택 포함)
   login: async (req: LoginRequest, res: Response) => {
-    const { email, password } = req.body;
+    const { email, password, companyId } = req.body;
     const { accessToken, refreshToken, user } = await authService.login({
       email,
       password,
+      companyId,
     });
 
     const { exp } = JwtUtil.verifyRefreshToken(refreshToken);

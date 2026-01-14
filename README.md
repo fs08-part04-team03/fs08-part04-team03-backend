@@ -291,14 +291,50 @@ prisma/
 
 ## 🔐 보안 기능
 
+### 인증 및 권한
+
 - **인증**: JWT 기반 Access & Refresh Token
 - **암호화**: Argon2를 이용한 비밀번호 해싱
+- **역할 기반 접근 제어**: USER, MANAGER, ADMIN 역할별 권한 관리
+- **Prisma Enum 활용**: 하드코딩 제거로 타입 안전성 향상
+
+### 네트워크 보안
+
 - **HTTPS**: 프로덕션 환경에서 HTTPS 강제 리다이렉트
 - **HSTS**: HTTP Strict Transport Security 헤더
 - **CSP**: Content Security Policy
 - **CSRF**: CSRF 토큰 검증
 - **Rate Limiting**: API 요청 속도 제한
 - **Helmet**: 보안 헤더 자동 설정
+
+### 데이터 보안 및 테넌트 격리
+
+#### 멀티 테넌트 아키텍처
+
+- **회사별 데이터 격리**: 모든 데이터베이스 쿼리에 자동으로 companyId 필터 적용
+- **Prisma Client Extension**: 테넌트 컨텍스트 기반 자동 필터링
+- **교차 테넌트 접근 차단**: 다른 회사의 데이터 접근 완전 차단
+
+#### 보안 검증 강화
+
+- **companyId 필수 검증**: 회사에 소속되지 않은 사용자의 데이터 접근 차단
+- **고유 제약 조건 준수**: findUnique, update, delete 작업 시 Prisma 고유 제약 조건 준수
+- **원자성 보장**: $transaction을 활용한 데이터 일관성 보장
+- **조회 후 검증**: update/delete 작업 전 레코드 존재 및 소유권 검증
+
+#### 구현 세부사항
+
+```typescript
+// 자동 테넌트 격리 적용
+const products = await prisma.products.findMany({});
+// → WHERE companyId = 'context.companyId' 자동 추가
+
+// user.companyId null 체크
+if (!user.companyId) {
+  throw new CustomError('회사에 소속된 사용자만 접근 가능합니다.');
+}
+```
+
 - **입력 검증**: express-validator를 통한 입력 검증
 
 ## 📋 데이터베이스 스키마

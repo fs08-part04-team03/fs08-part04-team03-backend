@@ -237,6 +237,20 @@
  * /api/v1/user/admin/{id}/role:
  *   patch:
  *     summary: 사용자 권한 변경 (ADMIN)
+ *     description: |
+ *       같은 회사 소속 사용자의 권한을 변경합니다.
+ *
+ *       **주요 기능:**
+ *       - 사용자 권한 변경 (USER, MANAGER, ADMIN)
+ *       - 같은 회사 사용자만 변경 가능 (테넌트 격리)
+ *
+ *       **제한 사항:**
+ *       - 관리자가 자신의 ADMIN 권한은 변경할 수 없음
+ *       - 다른 회사 사용자의 권한은 변경 불가
+ *
+ *       **보안 검증:**
+ *       - 대상 사용자의 companyId와 관리자의 companyId 일치 확인
+ *       - 자기 자신의 ADMIN 권한 변경 차단
  *     tags: [User]
  *     security: [{ bearerAuth: [] }]
  *     parameters:
@@ -266,6 +280,21 @@
  * /api/v1/user/admin/{id}/status:
  *   patch:
  *     summary: 사용자 활성/비활성 전환 (ADMIN)
+ *     description: |
+ *       같은 회사 소속 사용자의 활성화 상태를 변경합니다.
+ *
+ *       **주요 기능:**
+ *       - 사용자 계정 활성화/비활성화
+ *       - 같은 회사 사용자만 변경 가능 (테넌트 격리)
+ *       - 비활성화 시 refreshToken 자동 삭제
+ *
+ *       **제한 사항:**
+ *       - 관리자가 자신의 활성화 상태는 변경할 수 없음
+ *       - 다른 회사 사용자의 상태는 변경 불가
+ *
+ *       **보안 검증:**
+ *       - 대상 사용자의 companyId와 관리자의 companyId 일치 확인
+ *       - 자기 자신의 상태 변경 차단
  *     tags: [User]
  *     security: [{ bearerAuth: [] }]
  *     parameters:
@@ -295,6 +324,18 @@
  * /api/v1/user:
  *   get:
  *     summary: 회사 소속 사용자 목록 조회/검색 (ADMIN)
+ *     description: |
+ *       같은 회사에 소속된 사용자 목록을 조회합니다.
+ *
+ *       **주요 기능:**
+ *       - 같은 회사 사용자만 조회 가능 (테넌트 격리)
+ *       - 역할(role), 활성화 상태(isActive)로 필터링
+ *       - 이메일/이름으로 검색 (대소문자 무시)
+ *       - 페이지네이션 지원
+ *
+ *       **보안 검증:**
+ *       - 관리자 본인의 companyId로 자동 필터링
+ *       - 다른 회사 사용자는 조회 불가
  *     tags: [User]
  *     security: [{ bearerAuth: [] }]
  *     parameters:

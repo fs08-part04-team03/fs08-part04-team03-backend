@@ -74,9 +74,20 @@
  *   post:
  *     summary: 상품 등록
  *     description: |
- *       상품을 등록합니다. 생성 시 isActive는 항상 true로 저장됩니다.
- *       이미지 파일을 포함하여 multipart/form-data로 전송해야 합니다.
- *       이미지는 S3에 업로드되며, 최대 5MB, jpg/jpeg/png/gif/webp 형식만 허용됩니다.
+ *       새로운 상품을 등록합니다.
+ *
+ *       **주요 기능:**
+ *       - 자신의 회사에 상품 등록 (자동으로 companyId 연결)
+ *       - 생성 시 isActive는 항상 true로 저장
+ *       - 이미지는 S3에 업로드 (최대 5MB)
+ *       - 지원 이미지 형식: jpg/jpeg/png/gif/webp
+ *
+ *       **보안 검증:**
+ *       - 사용자의 companyId로 자동 저장
+ *       - 다른 회사에는 상품 등록 불가
+ *
+ *       **요청 형식:**
+ *       - multipart/form-data로 전송 필요
  *     tags: [Product]
  *     security:
  *       - bearerAuth: []
@@ -145,11 +156,21 @@
  *     summary: 상품 목록 조회
  *     description: |
  *       상품 목록을 조회합니다.
+ *
+ *       **주요 기능:**
+ *       - 같은 회사의 상품만 조회 가능 (테넌트 격리)
  *       - categoryId로 카테고리 필터링
  *       - sort로 정렬 (latest, sales, priceAsc, priceDesc)
- *       - isActive=false 상품은 목록에서 제외됩니다.
- *       - **응답에 imageUrl 포함**: 각 상품마다 S3 Presigned URL이 자동으로 생성되어 반환됩니다. (1시간 유효)
- *       - salesCount 포함: 각 상품의 승인된 구매 수량 합계가 포함됩니다.
+ *       - isActive=false 상품은 목록에서 제외
+ *       - salesCount 포함: 각 상품의 승인된 구매 수량 합계
+ *
+ *       **응답 정보:**
+ *       - imageUrl: S3 Presigned URL 자동 생성 (1시간 유효)
+ *       - 페이지네이션 지원
+ *
+ *       **보안 검증:**
+ *       - 사용자의 companyId로 자동 필터링
+ *       - 다른 회사의 상품은 조회 불가
  *     tags: [Product]
  *     security:
  *       - bearerAuth: []
@@ -377,10 +398,20 @@
  *   patch:
  *     summary: 상품 수정 (MANAGER 이상)
  *     description: |
- *       상품 정보를 수정합니다. multipart/form-data로 전송해야 합니다.
+ *       상품 정보를 수정합니다.
+ *
+ *       **주요 기능:**
+ *       - 같은 회사의 상품만 수정 가능 (테넌트 격리)
  *       - 새 이미지 업로드: image 파일 첨부
  *       - 이미지 제거: removeImage=true 쿼리 파라미터
  *       - 이미지 유지: 파일 없이 다른 필드만 수정
+ *
+ *       **보안 검증:**
+ *       - 상품의 companyId와 사용자의 companyId 일치 확인
+ *       - 다른 회사의 상품은 수정 불가
+ *
+ *       **요청 형식:**
+ *       - multipart/form-data로 전송 필요
  *     tags: [Product]
  *     security:
  *       - bearerAuth: []
@@ -457,7 +488,17 @@
  * /api/v1/product/{id}:
  *   delete:
  *     summary: 상품 삭제 (MANAGER 이상)
- *     description: 상품을 논리 삭제(isActive=false) 처리합니다.
+ *     description: |
+ *       상품을 논리 삭제(isActive=false) 처리합니다.
+ *
+ *       **주요 기능:**
+ *       - 같은 회사의 상품만 삭제 가능 (테넌트 격리)
+ *       - 논리 삭제 (isActive=false)로 처리
+ *       - 실제 데이터는 유지되어 구매 이력 보존
+ *
+ *       **보안 검증:**
+ *       - 상품의 companyId와 사용자의 companyId 일치 확인
+ *       - 다른 회사의 상품은 삭제 불가
  *     tags: [Product]
  *     security:
  *       - bearerAuth: []

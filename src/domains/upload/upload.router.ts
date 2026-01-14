@@ -1,5 +1,7 @@
 import { Router } from 'express';
+import { role } from '@prisma/client';
 import { verifyAccessToken } from '../../common/middlewares/auth.middleware';
+import { verifyTenantAccess } from '../../common/middlewares/tenant.middleware';
 import { requireMinRole } from '../../common/middlewares/role.middleware';
 import { uploadController } from './upload.controller';
 import { uploadSingleImage, uploadMultipleImages } from './upload.middleware';
@@ -17,7 +19,8 @@ const router = Router();
 router.post(
   '/image',
   verifyAccessToken,
-  requireMinRole('USER'),
+  verifyTenantAccess,
+  requireMinRole(role.USER),
   uploadSingleImage,
   uploadController.uploadImage
 );
@@ -33,7 +36,8 @@ router.post(
 router.post(
   '/images',
   verifyAccessToken,
-  requireMinRole('USER'),
+  verifyTenantAccess,
+  requireMinRole(role.USER),
   uploadMultipleImages,
   uploadController.uploadMultipleImages
 );
@@ -45,7 +49,13 @@ router.post(
  * - USER 이상 권한 필요
  * - URL 파라미터: key (S3 객체 키, URL 인코딩 필요)
  */
-router.get('/image/:key', verifyAccessToken, requireMinRole('USER'), uploadController.getImageUrl);
+router.get(
+  '/image/:key',
+  verifyAccessToken,
+  verifyTenantAccess,
+  requireMinRole(role.USER),
+  uploadController.getImageUrl
+);
 
 /**
  * 이미지 삭제
@@ -57,7 +67,8 @@ router.get('/image/:key', verifyAccessToken, requireMinRole('USER'), uploadContr
 router.delete(
   '/image/:key',
   verifyAccessToken,
-  requireMinRole('MANAGER'),
+  verifyTenantAccess,
+  requireMinRole(role.MANAGER),
   uploadController.deleteImage
 );
 
