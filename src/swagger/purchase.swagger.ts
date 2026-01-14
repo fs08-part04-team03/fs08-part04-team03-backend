@@ -32,7 +32,11 @@
  *               description: 상품명
  *             image:
  *               type: string
- *               description: 상품 이미지 URL
+ *               description: 상품 이미지 S3 키
+ *             imageUrl:
+ *               type: string
+ *               nullable: true
+ *               description: 상품 이미지 Presigned URL
  *             link:
  *               type: string
  *               description: 상품 링크

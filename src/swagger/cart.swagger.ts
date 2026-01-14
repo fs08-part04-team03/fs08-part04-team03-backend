@@ -89,11 +89,17 @@
  *                         price:
  *                           type: integer
  *                           example: 1800
- *                         image:
- *                           type: string
- *                           nullable: true
- *                           example: "01_농심_새우깡.png"
- *                         link:
+                         image:
+                           type: string
+                           nullable: true
+                           example: "01_농심_새우깡.png"
+                           description: S3 키
+                         imageUrl:
+                           type: string
+                           nullable: true
+                           example: "https://bucket.s3.amazonaws.com/products/abc123.jpg?X-Amz-..."
+                           description: S3 Presigned URL
+                         link:
  *                           type: string
  *                           example: "https://example.com/products/1001"
  *                         isActive:
@@ -322,6 +328,12 @@
  *                           type: string
  *                           nullable: true
  *                           example: "01_농심_새우깡.png"
+ *                           description: S3 키
+ *                         imageUrl:
+ *                           type: string
+ *                           nullable: true
+ *                           example: "https://bucket.s3.amazonaws.com/products/abc123.jpg?X-Amz-..."
+ *                           description: S3 Presigned URL
  *                         link:
  *                           type: string
  *                           example: "https://example.com/products/1001"
