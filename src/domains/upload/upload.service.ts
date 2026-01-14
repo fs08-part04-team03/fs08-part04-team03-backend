@@ -1,5 +1,6 @@
 import { PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { role } from '@prisma/client';
 import {
   s3Client,
   S3_BUCKET_NAME,
@@ -154,7 +155,7 @@ export const uploadService = {
       // 접근 제어: 파일 소유자 또는 같은 회사의 MANAGER 이상만 접근 가능
       const isOwner = upload.userId === userId;
       const isSameCompany = upload.companyId === userCompanyId;
-      const isManagerOrAbove = userRole === 'MANAGER' || userRole === 'ADMIN';
+      const isManagerOrAbove = userRole === role.MANAGER || userRole === role.ADMIN;
 
       if (!isOwner && !(isSameCompany && isManagerOrAbove)) {
         throw new CustomError(
@@ -240,7 +241,7 @@ export const uploadService = {
       // 접근 제어: 파일 소유자 또는 같은 회사의 MANAGER 이상만 삭제 가능
       const isOwner = upload.userId === userId;
       const isSameCompany = upload.companyId === userCompanyId;
-      const isManagerOrAbove = userRole === 'MANAGER' || userRole === 'ADMIN';
+      const isManagerOrAbove = userRole === role.MANAGER || userRole === role.ADMIN;
 
       if (!isOwner && !(isSameCompany && isManagerOrAbove)) {
         throw new CustomError(

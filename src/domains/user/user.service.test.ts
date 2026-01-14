@@ -11,21 +11,42 @@ jest.mock('argon2', () => ({
 }));
 
 // Prisma 모킹
-jest.mock('@/common/database/prisma.client', () => ({
-  prisma: {
+jest.mock('@/common/database/prisma.client', () => {
+  const mockUsersFind = jest.fn();
+  const mockUsersFindMany = jest.fn();
+  const mockUsersUpdate = jest.fn();
+  const mockUsersCount = jest.fn();
+  const mockCompaniesFind = jest.fn();
+  const mockCompaniesUpdate = jest.fn();
+
+  const mockPrisma = {
     users: {
-      findUnique: jest.fn(),
-      findMany: jest.fn(),
-      update: jest.fn(),
-      count: jest.fn(),
+      findUnique: mockUsersFind,
+      findMany: mockUsersFindMany,
+      update: mockUsersUpdate,
+      count: mockUsersCount,
     },
     companies: {
-      findUnique: jest.fn(),
-      update: jest.fn(),
+      findUnique: mockCompaniesFind,
+      update: mockCompaniesUpdate,
     },
-    $transaction: jest.fn((callback) => callback(prisma)),
-  },
-}));
+    $transaction: (callback: (tx: unknown) => unknown) =>
+      callback({
+        users: {
+          findUnique: mockUsersFind,
+          findMany: mockUsersFindMany,
+          update: mockUsersUpdate,
+          count: mockUsersCount,
+        },
+        companies: {
+          findUnique: mockCompaniesFind,
+          update: mockCompaniesUpdate,
+        },
+      }),
+  };
+
+  return { prisma: mockPrisma };
+});
 
 describe('UserService', () => {
   const userSafeSelect = {
@@ -106,7 +127,7 @@ describe('UserService', () => {
     });
   });
 
-  describe('changeMyPassword', () => {
+  describe('updateMyProfile', () => {
     it('비밀번호를 변경해야 합니다', async () => {
       // Given
       const newPassword = 'newPassword123!';
@@ -120,14 +141,16 @@ describe('UserService', () => {
       });
 
       // When
-      await userService.changeMyPassword(mockUserId, newPassword);
+      await userService.updateMyProfile(mockUserId, newPassword);
 
       // Then
       expect(argon2.hash).toHaveBeenCalledWith(newPassword);
-      expect(prisma.users.update).toHaveBeenCalledWith({
-        where: { id: mockUserId },
-        data: { password: hashedPassword, refreshToken: null },
-      });
+      expect(prisma.users.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: mockUserId },
+          data: { password: hashedPassword, refreshToken: null },
+        })
+      );
     });
 
     it('비활성화된 사용자는 비밀번호를 변경할 수 없어야 합니다', async () => {
@@ -136,10 +159,10 @@ describe('UserService', () => {
       (prisma.users.findUnique as jest.Mock).mockResolvedValue(inactiveUser);
 
       // When & Then
-      await expect(userService.changeMyPassword(mockUserId, 'newPassword')).rejects.toThrow(
+      await expect(userService.updateMyProfile(mockUserId, 'newPassword')).rejects.toThrow(
         CustomError
       );
-      await expect(userService.changeMyPassword(mockUserId, 'newPassword')).rejects.toMatchObject({
+      await expect(userService.updateMyProfile(mockUserId, 'newPassword')).rejects.toMatchObject({
         statusCode: HttpStatus.UNAUTHORIZED,
         errorCode: ErrorCodes.AUTH_UNAUTHORIZED,
       });
@@ -163,18 +186,12 @@ describe('UserService', () => {
         updatedAt: new Date(),
       };
 
-      const mockTx = {
-        companies: {
-          findUnique: jest.fn().mockResolvedValue(mockCompany),
-          update: jest.fn().mockResolvedValue({ ...mockCompany, name: '새 회사명' }),
-        },
-        users: {
-          update: jest.fn(),
-        },
-      };
-
       (prisma.users.findUnique as jest.Mock).mockResolvedValue(mockAdmin);
-      (prisma.$transaction as jest.Mock).mockImplementation(async (callback) => callback(mockTx));
+      (prisma.companies.findUnique as jest.Mock).mockResolvedValue(mockCompany);
+      (prisma.companies.update as jest.Mock).mockResolvedValue({
+        ...mockCompany,
+        name: '새 회사명',
+      });
 
       // When
       await userService.adminPatchProfile(mockAdminId, mockCompanyId, {
@@ -182,7 +199,7 @@ describe('UserService', () => {
       });
 
       // Then
-      expect(mockTx.companies.update).toHaveBeenCalledWith({
+      expect(prisma.companies.update).toHaveBeenCalledWith({
         where: { id: mockCompanyId },
         data: { name: '새 회사명' },
       });
@@ -193,29 +210,19 @@ describe('UserService', () => {
       const newPassword = 'newPassword123!';
       const hashedPassword = 'hashed-new-password';
 
-      const mockTx = {
-        companies: {
-          findUnique: jest.fn(),
-          update: jest.fn(),
-        },
-        users: {
-          update: jest.fn().mockResolvedValue({
-            ...mockAdmin,
-            password: hashedPassword,
-          }),
-        },
-      };
-
       (prisma.users.findUnique as jest.Mock).mockResolvedValue(mockAdmin);
       (argon2.hash as jest.Mock).mockResolvedValue(hashedPassword);
-      (prisma.$transaction as jest.Mock).mockImplementation(async (callback) => callback(mockTx));
+      (prisma.users.update as jest.Mock).mockResolvedValue({
+        ...mockAdmin,
+        password: hashedPassword,
+      });
 
       // When
       await userService.adminPatchProfile(mockAdminId, mockCompanyId, { newPassword });
 
       // Then
       expect(argon2.hash).toHaveBeenCalledWith(newPassword);
-      expect(mockTx.users.update).toHaveBeenCalledWith({
+      expect(prisma.users.update).toHaveBeenCalledWith({
         where: { id: mockAdminId },
         data: { password: hashedPassword, refreshToken: null },
       });
@@ -232,22 +239,17 @@ describe('UserService', () => {
         updatedAt: new Date(),
       };
 
-      const mockTx = {
-        companies: {
-          findUnique: jest.fn().mockResolvedValue(mockCompany),
-          update: jest.fn().mockResolvedValue({ ...mockCompany, name: '새 회사명' }),
-        },
-        users: {
-          update: jest.fn().mockResolvedValue({
-            ...mockAdmin,
-            password: hashedPassword,
-          }),
-        },
-      };
-
       (prisma.users.findUnique as jest.Mock).mockResolvedValue(mockAdmin);
+      (prisma.companies.findUnique as jest.Mock).mockResolvedValue(mockCompany);
+      (prisma.companies.update as jest.Mock).mockResolvedValue({
+        ...mockCompany,
+        name: '새 회사명',
+      });
       (argon2.hash as jest.Mock).mockResolvedValue(hashedPassword);
-      (prisma.$transaction as jest.Mock).mockImplementation(async (callback) => callback(mockTx));
+      (prisma.users.update as jest.Mock).mockResolvedValue({
+        ...mockAdmin,
+        password: hashedPassword,
+      });
 
       // When
       await userService.adminPatchProfile(mockAdminId, mockCompanyId, {
@@ -256,8 +258,8 @@ describe('UserService', () => {
       });
 
       // Then
-      expect(mockTx.companies.update).toHaveBeenCalled();
-      expect(mockTx.users.update).toHaveBeenCalled();
+      expect(prisma.companies.update).toHaveBeenCalled();
+      expect(prisma.users.update).toHaveBeenCalled();
     });
 
     it('비활성화된 관리자는 프로필을 변경할 수 없어야 합니다', async () => {

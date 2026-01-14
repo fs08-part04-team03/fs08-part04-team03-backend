@@ -1,4 +1,5 @@
 import jwt, { SignOptions } from 'jsonwebtoken';
+import { role } from '@prisma/client';
 import { jwtConfig } from '../../config/jwt.config';
 import { ErrorCodes } from '../constants/errorCodes.constants';
 import { HttpStatus } from '../constants/httpStatus.constants';
@@ -7,6 +8,7 @@ import type { AuthTokenPayload } from '../types/common.types';
 
 type AccessPayload = Omit<AuthTokenPayload, 'iat' | 'exp'>;
 type RefreshPayload = { id: string; jti: string };
+const validRoles = new Set(Object.values(role));
 
 export class JwtUtil {
   // access token 페이로드 생성
@@ -15,7 +17,7 @@ export class JwtUtil {
     companyId: string;
     email: string;
     role: AuthTokenPayload['role'];
-  }): { id: string; companyId: string; email: string; role: 'USER' | 'MANAGER' | 'ADMIN' } {
+  }): AccessPayload {
     return {
       id: user.id,
       companyId: user.companyId,
@@ -50,7 +52,7 @@ export class JwtUtil {
         typeof decoded.id === 'string' &&
         typeof decoded.companyId === 'string' &&
         typeof decoded.email === 'string' &&
-        ['USER', 'MANAGER', 'ADMIN'].includes(decoded.role as string)
+        validRoles.has(decoded.role as role)
       ) {
         return decoded as AuthTokenPayload;
       }

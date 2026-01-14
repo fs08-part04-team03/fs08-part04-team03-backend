@@ -5,26 +5,59 @@ import { ErrorCodes } from '@/common/constants/errorCodes.constants';
 import { cartService } from './cart.service';
 
 // Prisma 모킹
-jest.mock('@/common/database/prisma.client', () => ({
-  prisma: {
-    products: {
-      findUnique: jest.fn(),
+jest.mock('@/common/database/prisma.client', () => {
+  const mockUsersFind = jest.fn();
+  const mockProductsFind = jest.fn();
+  const mockProductsFindFirst = jest.fn();
+  const mockCartsFind = jest.fn();
+  const mockCartsCreate = jest.fn();
+  const mockCartsUpdate = jest.fn();
+  const mockCartsDelete = jest.fn();
+  const mockCartsDeleteMany = jest.fn();
+  const mockCartsFindMany = jest.fn();
+  const mockCartsCount = jest.fn();
+
+  return {
+    prisma: {
+      $transaction: (callback: (tx: unknown) => unknown) =>
+        callback({
+          users: {
+            findUnique: mockUsersFind,
+          },
+          products: {
+            findFirst: mockProductsFindFirst,
+          },
+          carts: {
+            findFirst: mockCartsFind,
+            findMany: mockCartsFindMany,
+            findUnique: mockCartsFind,
+            create: mockCartsCreate,
+            update: mockCartsUpdate,
+            delete: mockCartsDelete,
+            deleteMany: mockCartsDeleteMany,
+            count: mockCartsCount,
+          },
+        }),
+      products: {
+        findUnique: mockProductsFind,
+        findFirst: mockProductsFindFirst,
+      },
+      users: {
+        findUnique: mockUsersFind,
+      },
+      carts: {
+        findFirst: mockCartsFind,
+        findMany: mockCartsFindMany,
+        findUnique: mockCartsFind,
+        create: mockCartsCreate,
+        update: mockCartsUpdate,
+        delete: mockCartsDelete,
+        deleteMany: mockCartsDeleteMany,
+        count: mockCartsCount,
+      },
     },
-    users: {
-      findUnique: jest.fn(),
-    },
-    carts: {
-      findFirst: jest.fn(),
-      findMany: jest.fn(),
-      findUnique: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      deleteMany: jest.fn(),
-      count: jest.fn(),
-    },
-  },
-}));
+  };
+});
 
 describe('CartService', () => {
   const productSelect = {
@@ -74,8 +107,8 @@ describe('CartService', () => {
         products: mockProduct,
       };
 
-      (prisma.products.findUnique as jest.Mock).mockResolvedValue(mockProduct);
       (prisma.users.findUnique as jest.Mock).mockResolvedValue(mockUser);
+      (prisma.products.findFirst as jest.Mock).mockResolvedValue(mockProduct);
       (prisma.carts.findFirst as jest.Mock).mockResolvedValue(null);
       (prisma.carts.create as jest.Mock).mockResolvedValue(mockCartItem);
 
@@ -117,8 +150,8 @@ describe('CartService', () => {
         products: mockProduct,
       };
 
-      (prisma.products.findUnique as jest.Mock).mockResolvedValue(mockProduct);
       (prisma.users.findUnique as jest.Mock).mockResolvedValue(mockUser);
+      (prisma.products.findFirst as jest.Mock).mockResolvedValue(mockProduct);
       (prisma.carts.findFirst as jest.Mock).mockResolvedValue(existingCartItem);
       (prisma.carts.update as jest.Mock).mockResolvedValue(updatedCartItem);
 
@@ -156,7 +189,8 @@ describe('CartService', () => {
     it('비활성화된 상품일 경우 에러를 발생시켜야 합니다', async () => {
       // Given
       const inactiveProduct = { ...mockProduct, isActive: false };
-      (prisma.products.findUnique as jest.Mock).mockResolvedValue(inactiveProduct);
+      (prisma.users.findUnique as jest.Mock).mockResolvedValue(mockUser);
+      (prisma.products.findFirst as jest.Mock).mockResolvedValue(inactiveProduct);
 
       // When & Then
       await expect(cartService.addToCart(mockUserId, mockProductId, 1)).rejects.toThrow(
@@ -170,7 +204,6 @@ describe('CartService', () => {
 
     it('사용자를 찾을 수 없을 경우 에러를 발생시켜야 합니다', async () => {
       // Given
-      (prisma.products.findUnique as jest.Mock).mockResolvedValue(mockProduct);
       (prisma.users.findUnique as jest.Mock).mockResolvedValue(null);
 
       // When & Then
@@ -184,20 +217,34 @@ describe('CartService', () => {
       });
     });
 
-    it('다른 회사의 상품일 경우 에러를 발생시켜야 합니다', async () => {
+    it('회사에 소속되지 않은 사용자일 경우 에러를 발생시켜야 합니다', async () => {
       // Given
-      const differentCompanyProduct = { ...mockProduct, companyId: 'different-company' };
-      (prisma.products.findUnique as jest.Mock).mockResolvedValue(differentCompanyProduct);
-      (prisma.users.findUnique as jest.Mock).mockResolvedValue(mockUser);
+      const userWithoutCompany = { ...mockUser, companyId: null };
+      (prisma.users.findUnique as jest.Mock).mockResolvedValue(userWithoutCompany);
 
       // When & Then
       await expect(cartService.addToCart(mockUserId, mockProductId, 1)).rejects.toThrow(
         CustomError
       );
       await expect(cartService.addToCart(mockUserId, mockProductId, 1)).rejects.toMatchObject({
-        statusCode: HttpStatus.BAD_REQUEST,
-        errorCode: ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
-        message: '다른 회사의 상품은 장바구니에 추가할 수 없습니다.',
+        statusCode: HttpStatus.FORBIDDEN,
+        errorCode: ErrorCodes.AUTH_FORBIDDEN,
+        message: '회사에 소속된 사용자만 장바구니를 사용할 수 있습니다.',
+      });
+    });
+
+    it('다른 회사의 상품일 경우 에러를 발생시켜야 합니다', async () => {
+      // Given
+      (prisma.users.findUnique as jest.Mock).mockResolvedValue(mockUser);
+      (prisma.products.findFirst as jest.Mock).mockResolvedValue(null);
+
+      // When & Then
+      await expect(cartService.addToCart(mockUserId, mockProductId, 1)).rejects.toThrow(
+        CustomError
+      );
+      await expect(cartService.addToCart(mockUserId, mockProductId, 1)).rejects.toMatchObject({
+        statusCode: HttpStatus.NOT_FOUND,
+        errorCode: ErrorCodes.GENERAL_NOT_FOUND,
       });
     });
   });
@@ -274,6 +321,14 @@ describe('CartService', () => {
       image: 'image1.jpg',
       link: 'https://example.com/1',
       isActive: true,
+      companyId: mockCompanyId,
+    };
+
+    const mockUser = {
+      id: mockUserId,
+      companyId: mockCompanyId,
+      email: 'test@example.com',
+      name: '테스트 유저',
     };
 
     it('장바구니 수량을 수정해야 합니다', async () => {
@@ -293,6 +348,7 @@ describe('CartService', () => {
         updatedAt: new Date(),
       };
 
+      (prisma.users.findUnique as jest.Mock).mockResolvedValue(mockUser);
       (prisma.carts.findUnique as jest.Mock).mockResolvedValue(mockCartItem);
       (prisma.carts.update as jest.Mock).mockResolvedValue({
         ...updatedCartItem,
@@ -318,6 +374,7 @@ describe('CartService', () => {
 
     it('존재하지 않는 장바구니 항목일 경우 에러를 발생시켜야 합니다', async () => {
       // Given
+      (prisma.users.findUnique as jest.Mock).mockResolvedValue(mockUser);
       (prisma.carts.findUnique as jest.Mock).mockResolvedValue(null);
 
       // When & Then
@@ -342,6 +399,7 @@ describe('CartService', () => {
         products: mockProduct,
       };
 
+      (prisma.users.findUnique as jest.Mock).mockResolvedValue(mockUser);
       (prisma.carts.findUnique as jest.Mock).mockResolvedValue(mockCartItem);
 
       // When & Then
@@ -353,6 +411,10 @@ describe('CartService', () => {
 
   describe('deleteFromCart', () => {
     const mockCartItemId = 'cart-1';
+    const mockUser = {
+      id: mockUserId,
+      companyId: mockCompanyId,
+    };
 
     it('장바구니 항목을 삭제해야 합니다', async () => {
       // Given
@@ -362,8 +424,12 @@ describe('CartService', () => {
         productId: 1,
         quantity: 3,
         updatedAt: new Date(),
+        products: {
+          companyId: mockCompanyId,
+        },
       };
 
+      (prisma.users.findUnique as jest.Mock).mockResolvedValue(mockUser);
       (prisma.carts.findUnique as jest.Mock).mockResolvedValue(mockCartItem);
       (prisma.carts.delete as jest.Mock).mockResolvedValue(mockCartItem);
 
@@ -380,6 +446,7 @@ describe('CartService', () => {
 
     it('존재하지 않는 장바구니 항목일 경우 에러를 발생시켜야 합니다', async () => {
       // Given
+      (prisma.users.findUnique as jest.Mock).mockResolvedValue(mockUser);
       (prisma.carts.findUnique as jest.Mock).mockResolvedValue(null);
 
       // When & Then
@@ -396,8 +463,12 @@ describe('CartService', () => {
         productId: 1,
         quantity: 3,
         updatedAt: new Date(),
+        products: {
+          companyId: mockCompanyId,
+        },
       };
 
+      (prisma.users.findUnique as jest.Mock).mockResolvedValue(mockUser);
       (prisma.carts.findUnique as jest.Mock).mockResolvedValue(mockCartItem);
 
       // When & Then
@@ -408,6 +479,11 @@ describe('CartService', () => {
   });
 
   describe('deleteMultipleFromCart', () => {
+    const mockUser = {
+      id: mockUserId,
+      companyId: mockCompanyId,
+    };
+
     it('여러 장바구니 항목을 삭제해야 합니다', async () => {
       // Given
       const cartItemIds = ['cart-1', 'cart-2', 'cart-3'];
@@ -417,8 +493,12 @@ describe('CartService', () => {
         productId: 1,
         quantity: 1,
         updatedAt: new Date(),
+        products: {
+          companyId: mockCompanyId,
+        },
       }));
 
+      (prisma.users.findUnique as jest.Mock).mockResolvedValue(mockUser);
       (prisma.carts.findMany as jest.Mock).mockResolvedValue(mockCartItems);
       (prisma.carts.deleteMany as jest.Mock).mockResolvedValue({ count: 3 });
 
@@ -462,6 +542,9 @@ describe('CartService', () => {
           productId: 1,
           quantity: 1,
           updatedAt: new Date(),
+          products: {
+            companyId: mockCompanyId,
+          },
         },
         {
           id: 'cart-2',
@@ -469,9 +552,13 @@ describe('CartService', () => {
           productId: 2,
           quantity: 1,
           updatedAt: new Date(),
+          products: {
+            companyId: mockCompanyId,
+          },
         },
       ]; // cart-3 누락
 
+      (prisma.users.findUnique as jest.Mock).mockResolvedValue(mockUser);
       (prisma.carts.findMany as jest.Mock).mockResolvedValue(mockCartItems);
 
       // When & Then
@@ -482,7 +569,7 @@ describe('CartService', () => {
         cartService.deleteMultipleFromCart(mockUserId, cartItemIds)
       ).rejects.toMatchObject({
         statusCode: HttpStatus.BAD_REQUEST,
-        errorCode: ErrorCodes.GENERAL_NOT_FOUND,
+        errorCode: ErrorCodes.GENERAL_BAD_REQUEST,
       });
     });
   });

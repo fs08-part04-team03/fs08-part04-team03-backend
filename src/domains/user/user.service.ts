@@ -1,5 +1,6 @@
 import argon2 from 'argon2';
 import type { Prisma } from '@prisma/client';
+import { role as RoleEnum } from '@prisma/client';
 import { DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { prisma } from '../../common/database/prisma.client';
@@ -34,6 +35,13 @@ async function getUser(userId: string) {
 // 같은 회사 여부 확인
 async function getUserInCompany(companyId: string, userId: string) {
   const user = await getUser(userId);
+  if (!user.companyId) {
+    throw new CustomError(
+      HttpStatus.FORBIDDEN,
+      ErrorCodes.AUTH_FORBIDDEN,
+      '회사에 소속되지 않은 사용자입니다.'
+    );
+  }
   if (user.companyId !== companyId) {
     throw new CustomError(
       HttpStatus.FORBIDDEN,
@@ -279,7 +287,7 @@ export const userService = {
     await ensureActiveUserInCompany(actorCompanyId, actorUserId);
     const user = await getUserInCompany(actorCompanyId, targetUserId);
 
-    if (user.id === actorUserId && user.role === 'ADMIN' && role !== 'ADMIN') {
+    if (user.id === actorUserId && user.role === RoleEnum.ADMIN && role !== RoleEnum.ADMIN) {
       throw new CustomError(
         HttpStatus.FORBIDDEN,
         ErrorCodes.AUTH_FORBIDDEN,

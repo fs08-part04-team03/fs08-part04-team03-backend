@@ -26,7 +26,8 @@ type AdminRegisterInput = {
   profileImage?: string | null;
 };
 
-type LoginInput = { email: string; password: string };
+// 로그인 입력 타입 (회사 선택 포함)
+type LoginInput = { email: string; password: string; companyId?: string };
 
 // 초대장 사용 가능 여부 검사
 function assertInvitationUsable(invitation: {
@@ -250,60 +251,178 @@ export const authService = {
     });
   },
 
-  // 로그인
-  async login({ email, password }: LoginInput) {
+  // 로그인 (회사 선택 포함)
+  // 1) companyId가 있으면 해당 회사 계정으로만 검증
+  // 2) companyId가 없고 단일 계정이면 기존 로그인
+  // 3) 다중 계정이면 비밀번호 검증 후 회사 목록 반환(보안상 검증 전 노출 금지)
+  // 로그인 처리에 필요한 최소 필드만 선택
+  async login({ email, password, companyId }: LoginInput) {
     const normalizedEmail = email.trim().toLowerCase();
-    const user = await prisma.users.findFirst({ where: { email: normalizedEmail } });
+    const loginSelect = {
+      id: true,
+      companyId: true,
+      email: true,
+      name: true,
+      role: true,
+      password: true,
+      isActive: true,
+      profileImage: true,
+      companies: { select: { name: true } },
+    };
 
-    const ok = user && (await argon2.verify(user.password, password));
-    // 1) 로그인 정보 오류 (이메일 혹은 비밀번호 불일치)
-    if (!ok || !user) {
-      throw new CustomError(
+    // 계정 존재 여부를 숨기기 위해 동일한 인증 실패 메시지로 통일
+    const invalidCredentialsError = () =>
+      new CustomError(
         HttpStatus.UNAUTHORIZED,
         ErrorCodes.AUTH_INVALID_CREDENTIALS,
         '이메일 혹은 비밀번호가 틀렸습니다.'
       );
-    }
 
-    // 2) 비활성 계정
-    if (!user.isActive) {
-      throw new CustomError(
-        HttpStatus.UNAUTHORIZED,
-        ErrorCodes.AUTH_UNAUTHORIZED,
-        '비활성화된 계정입니다.'
-      );
-    }
-
-    // 3) access 토큰 발급 (companyId 포함)
-    const accessToken = JwtUtil.generateAccessToken(
-      JwtUtil.buildAccessPayload({
-        companyId: user.companyId,
-        id: user.id,
-        email: user.email,
-        role: user.role,
-      })
-    );
-
-    // 4) refresh 토큰 발급 및 해시 저장
-    const refreshToken = JwtUtil.generateRefreshToken({
-      id: user.id,
-      jti: randomUUID(),
-    });
-    const refreshTokenHash = await argon2.hash(refreshToken);
-    await prisma.users.update({ where: { id: user.id }, data: { refreshToken: refreshTokenHash } });
-
-    return {
-      user: {
-        id: user.id,
-        companyId: user.companyId,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        profileImage: user.profileImage,
-      },
-      accessToken,
-      refreshToken,
+    // 비활성 계정 차단 (단일 계정/선택 계정 공통)
+    const ensureActiveUser = (user: { isActive: boolean }) => {
+      if (!user.isActive) {
+        throw new CustomError(
+          HttpStatus.UNAUTHORIZED,
+          ErrorCodes.AUTH_UNAUTHORIZED,
+          '비활성화된 계정입니다.'
+        );
+      }
     };
+
+    // 인증 성공 시 토큰 발급 및 사용자 응답 구성
+    const buildLoginResult = async (user: {
+      id: string;
+      companyId: string;
+      email: string;
+      name: string;
+      role: role;
+      profileImage: string | null;
+    }) => {
+      const accessToken = JwtUtil.generateAccessToken(
+        JwtUtil.buildAccessPayload({
+          companyId: user.companyId,
+          id: user.id,
+          email: user.email,
+          role: user.role,
+        })
+      );
+
+      const refreshToken = JwtUtil.generateRefreshToken({
+        id: user.id,
+        jti: randomUUID(),
+      });
+      const refreshTokenHash = await argon2.hash(refreshToken);
+      await prisma.users.update({
+        where: { id: user.id },
+        data: { refreshToken: refreshTokenHash },
+      });
+
+      return {
+        user: {
+          id: user.id,
+          companyId: user.companyId,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          profileImage: user.profileImage,
+        },
+        accessToken,
+        refreshToken,
+      };
+    };
+
+    // 회사 선택이 이미 된 경우 해당 회사로 바로 로그인
+    if (companyId) {
+      const user = await prisma.users.findFirst({
+        where: { email: normalizedEmail, companyId },
+        select: loginSelect,
+      });
+
+      if (!user) {
+        throw invalidCredentialsError();
+      }
+
+      const ok = await argon2.verify(user.password, password);
+      if (!ok) {
+        throw invalidCredentialsError();
+      }
+
+      ensureActiveUser(user);
+      return buildLoginResult(user);
+    }
+
+    // 회사 미선택이면 동일 이메일 계정을 모두 조회
+    const users = await prisma.users.findMany({
+      where: { email: normalizedEmail },
+      select: loginSelect,
+    });
+
+    if (users.length === 0) {
+      throw invalidCredentialsError();
+    }
+
+    // 단일 계정이면 그냥 로그인
+    if (users.length === 1) {
+      const user = users[0];
+      if (!user) {
+        throw invalidCredentialsError();
+      }
+      const ok = await argon2.verify(user.password, password);
+      if (!ok) {
+        throw invalidCredentialsError();
+      }
+      ensureActiveUser(user);
+      return buildLoginResult(user);
+    }
+
+    // 다중 계정이면 비밀번호 검증 후 활성 계정만 목록에 포함
+    const verificationResults = await Promise.all(
+      users.map(async (user) => ({
+        user,
+        ok: await argon2.verify(user.password, password),
+      }))
+    );
+    const matchedUsers = verificationResults
+      .filter(({ ok }) => ok)
+      .filter(({ user }) => user.isActive)
+      .map(({ user }) => user);
+    const hasInactiveMatch = verificationResults.some(({ ok, user }) => ok && !user.isActive);
+
+    if (matchedUsers.length === 0) {
+      if (hasInactiveMatch) {
+        throw new CustomError(
+          HttpStatus.UNAUTHORIZED,
+          ErrorCodes.AUTH_UNAUTHORIZED,
+          '비활성화된 계정입니다.'
+        );
+      }
+      throw invalidCredentialsError();
+    }
+
+    // 활성 계정 매칭이 1개라면 선택 없이 바로 로그인
+    if (matchedUsers.length === 1) {
+      const matchedUser = matchedUsers[0];
+      if (!matchedUser) {
+        throw invalidCredentialsError();
+      }
+      return buildLoginResult(matchedUser);
+    }
+
+    // 동일 회사 중복 노출 방지용으로 companyId 기준 중복 제거
+    const companyMap = new Map<string, string>();
+    matchedUsers.forEach((user) => {
+      companyMap.set(user.companyId, user.companies.name);
+    });
+
+    const companies = Array.from(companyMap, ([id, name]) => ({ id, name }));
+
+    // 비밀번호 검증 후에만 회사 목록을 제공
+    throw new CustomError(
+      HttpStatus.CONFLICT,
+      ErrorCodes.AUTH_COMPANY_SELECTION_REQUIRED,
+      '회사 선택이 필요합니다.',
+      { requiresCompanySelection: true, companies }
+    );
   },
 
   // refresh
