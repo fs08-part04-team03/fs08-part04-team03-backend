@@ -110,7 +110,7 @@ const refreshCookieOptions = (maxAgeMs: number): CookieOptions => {
     httpOnly: true, // 개발 환경에서도 httpOnly 적용
     secure: env.COOKIE_SECURE,
     sameSite: env.COOKIE_SAME_SITE,
-    domain: env.COOKIE_DOMAIN || undefined, // 빈 문자열이면 undefined
+    domain: env.COOKIE_DOMAIN, // 빈 문자열이면 undefined
     path: env.COOKIE_PATH,
     maxAge: maxAgeMs,
   };
