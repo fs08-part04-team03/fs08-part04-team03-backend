@@ -1,8 +1,27 @@
+import { GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { prisma } from '../../common/database/prisma.client';
 import { CustomError } from '../../common/utils/error.util';
 import { HttpStatus } from '../../common/constants/httpStatus.constants';
 import { ErrorCodes } from '../../common/constants/errorCodes.constants';
 import { ResponseUtil } from '../../common/utils/response.util';
+import { s3Client, S3_BUCKET_NAME, PRESIGNED_URL_EXPIRES_IN } from '../../config/s3.config';
+
+// Presigned URL 생성 헬퍼 함수
+const getPresignedUrlForProduct = async (imageKey: string | null): Promise<string | null> => {
+  if (!imageKey) return null;
+
+  try {
+    return await getSignedUrl(
+      s3Client,
+      new GetObjectCommand({ Bucket: S3_BUCKET_NAME, Key: imageKey }),
+      { expiresIn: PRESIGNED_URL_EXPIRES_IN }
+    );
+  } catch (error) {
+    console.error('Failed to generate presigned URL:', error);
+    return null;
+  }
+};
 
 export const cartService = {
   // 🛒 [Cart] 장바구니에 상품 추가 API
@@ -123,6 +142,7 @@ export const cartService = {
           name: cartItem.products.name,
           price: cartItem.products.price,
           image: cartItem.products.image,
+          imageUrl: await getPresignedUrlForProduct(cartItem.products.image),
           link: cartItem.products.link,
           isActive: cartItem.products.isActive,
         },
@@ -172,24 +192,27 @@ export const cartService = {
     });
 
     // 각 아이템에 소계 추가
-    const itemsWithSubtotal = cartItems.map((item) => {
-      const subtotal = item.products.price * item.quantity;
-      return {
-        id: item.id,
-        quantity: item.quantity,
-        updatedAt: item.updatedAt,
-        product: {
-          id: item.products.id,
-          name: item.products.name,
-          price: item.products.price,
-          image: item.products.image,
-          link: item.products.link,
-          isActive: item.products.isActive,
-          createdAt: item.products.createdAt,
-        },
-        subtotal, // 아이템별 소계 (가격 × 수량)
-      };
-    });
+    const itemsWithSubtotal = await Promise.all(
+      cartItems.map(async (item) => {
+        const subtotal = item.products.price * item.quantity;
+        return {
+          id: item.id,
+          quantity: item.quantity,
+          updatedAt: item.updatedAt,
+          product: {
+            id: item.products.id,
+            name: item.products.name,
+            price: item.products.price,
+            image: item.products.image,
+            imageUrl: await getPresignedUrlForProduct(item.products.image),
+            link: item.products.link,
+            isActive: item.products.isActive,
+            createdAt: item.products.createdAt,
+          },
+          subtotal, // 아이템별 소계 (가격 × 수량)
+        };
+      })
+    );
 
     // 현재 페이지의 총 금액 계산
     const currentPageTotalPrice = itemsWithSubtotal.reduce((sum, item) => sum + item.subtotal, 0);
@@ -319,6 +342,7 @@ export const cartService = {
           name: updatedCartItem.products.name,
           price: updatedCartItem.products.price,
           image: updatedCartItem.products.image,
+          imageUrl: await getPresignedUrlForProduct(updatedCartItem.products.image),
           link: updatedCartItem.products.link,
           isActive: updatedCartItem.products.isActive,
         },

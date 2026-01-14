@@ -1,10 +1,29 @@
 import { Prisma } from '@prisma/client';
+import { GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { prisma } from '../../common/database/prisma.client';
 import { CustomError } from '../../common/utils/error.util';
 import { HttpStatus } from '../../common/constants/httpStatus.constants';
 import { ErrorCodes } from '../../common/constants/errorCodes.constants';
+import { s3Client, S3_BUCKET_NAME, PRESIGNED_URL_EXPIRES_IN } from '../../config/s3.config';
 
 type WishlistSort = 'asc' | 'desc';
+
+// Presigned URL 생성 헬퍼 함수
+const getPresignedUrlForProduct = async (imageKey: string | null): Promise<string | null> => {
+  if (!imageKey) return null;
+
+  try {
+    return await getSignedUrl(
+      s3Client,
+      new GetObjectCommand({ Bucket: S3_BUCKET_NAME, Key: imageKey }),
+      { expiresIn: PRESIGNED_URL_EXPIRES_IN }
+    );
+  } catch (error) {
+    console.error('Failed to generate presigned URL:', error);
+    return null;
+  }
+};
 
 // 상품 선택 필드
 const productSelect = {
@@ -30,6 +49,7 @@ type WishlistItem = {
     id: number;
     name: string;
     image: string | null;
+    imageUrl: string | null;
     link: string;
     isActive: boolean;
     createdAt: Date;
@@ -37,11 +57,14 @@ type WishlistItem = {
 };
 
 // 찜 목록 아이템 변환 함수
-function toWishlistItem(row: WishlistRow): WishlistItem {
+async function toWishlistItem(row: WishlistRow): Promise<WishlistItem> {
   return {
     id: row.id,
     createdAt: row.createdAt,
-    product: row.products,
+    product: {
+      ...row.products,
+      imageUrl: await getPresignedUrlForProduct(row.products.image),
+    },
   };
 }
 
@@ -104,7 +127,7 @@ export const wishlistService = {
           data: { userId, productId },
           include: { products: { select: productSelect } },
         });
-        return { item: toWishlistItem(created), isNew: true };
+        return { item: await toWishlistItem(created), isNew: true };
       } catch (error) {
         // Unique constraint violation - fetch existing
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -112,7 +135,7 @@ export const wishlistService = {
             where: { userId_productId: { userId, productId } },
             include: { products: { select: productSelect } },
           });
-          return { item: toWishlistItem(existing), isNew: false };
+          return { item: await toWishlistItem(existing), isNew: false };
         }
         throw error;
       }
@@ -157,7 +180,7 @@ export const wishlistService = {
       ]);
 
       return {
-        items: rows.map(toWishlistItem),
+        items: await Promise.all(rows.map((row) => toWishlistItem(row))),
         pagination: { page, limit, total },
       };
     });
