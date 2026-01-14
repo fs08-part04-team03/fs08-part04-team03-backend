@@ -1,6 +1,18 @@
 import { prisma } from '@/common/database/prisma.client';
 import { purchaseService } from './purchase.service';
 
+// AWS SDK 모킹
+jest.mock('@aws-sdk/client-s3', () => ({
+  GetObjectCommand: jest.fn(),
+  S3Client: jest.fn(() => ({})),
+}));
+
+jest.mock('@aws-sdk/s3-request-presigner', () => ({
+  getSignedUrl: jest
+    .fn()
+    .mockResolvedValue('https://mock-presigned-url.s3.amazonaws.com/image.jpg'),
+}));
+
 jest.mock('@/common/database/prisma.client', () => {
   const mockUsersFind = jest.fn();
   const mockUsersFindMany = jest.fn();
@@ -423,7 +435,22 @@ describe('PurchaseService', () => {
 
   describe('getMyPurchaseDetail', () => {
     it('나의 특정 구매 내역 상세 정보를 반환해야 합니다', async () => {
-      const mockPurchaseDetail = { id: 'pr-123' };
+      const mockPurchaseDetail = {
+        id: 'pr-123',
+        purchaseItems: [
+          {
+            id: 'pi-1',
+            quantity: 2,
+            priceSnapshot: 1000,
+            products: {
+              id: 1,
+              name: '상품명',
+              image: 'product.jpg',
+              link: 'https://example.com',
+            },
+          },
+        ],
+      };
       (prisma.purchaseRequests.findFirst as jest.Mock).mockResolvedValue(mockPurchaseDetail);
 
       const result = await purchaseService.getMyPurchaseDetail(mockCompanyId, mockUserId, 'pr-123');
@@ -433,7 +460,8 @@ describe('PurchaseService', () => {
           where: { id: 'pr-123', companyId: mockCompanyId, requesterId: mockUserId },
         })
       );
-      expect(result.data).toEqual(mockPurchaseDetail);
+      expect(result.data.purchaseItems).toBeDefined();
+      expect(result.data.purchaseItems[0]).toHaveProperty('products.imageUrl');
     });
   });
 
