@@ -313,7 +313,12 @@ export const prisma = basePrisma.$extends({
           return query(args);
         }
 
-        if (args.data && typeof args.data === 'object' && !('companyId' in args.data)) {
+        if (args.data && typeof args.data === 'object') {
+          // 기존 companyId가 있으면 컨텍스트와 일치하는지 검증
+          if ('companyId' in args.data && args.data.companyId !== context.companyId) {
+            throw new Error('Cannot create record for different company.');
+          }
+          // companyId가 없거나 일치하면 컨텍스트의 companyId로 설정
           return query({
             ...args,
             data: { ...args.data, companyId: context.companyId },
@@ -333,7 +338,12 @@ export const prisma = basePrisma.$extends({
           return query({
             ...args,
             data: args.data.map((item: Record<string, unknown>) => {
-              if (typeof item === 'object' && item !== null && !('companyId' in item)) {
+              if (typeof item === 'object' && item !== null) {
+                // 기존 companyId가 있으면 컨텍스트와 일치하는지 검증
+                if ('companyId' in item && item.companyId !== context.companyId) {
+                  throw new Error('Cannot create record for different company.');
+                }
+                // companyId가 없거나 일치하면 컨텍스트의 companyId로 설정
                 return { ...item, companyId: context.companyId };
               }
               return item;
