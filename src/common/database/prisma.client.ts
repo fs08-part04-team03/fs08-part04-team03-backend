@@ -217,6 +217,11 @@ export const prisma = basePrisma.$extends({
           throw new Error('Cannot update record from different company.');
         }
 
+        // update 데이터에서 companyId 변경 시도를 차단
+        if (args.data && typeof args.data === 'object' && 'companyId' in args.data) {
+          throw new Error('Cannot change companyId in update operation.');
+        }
+
         return query(args);
       },
 
@@ -224,6 +229,11 @@ export const prisma = basePrisma.$extends({
         const context = getTenantContext();
         if (!context || !TENANT_MODELS.includes(model as TenantModel)) {
           return query(args);
+        }
+
+        // update 데이터에서 companyId 변경 시도를 차단
+        if (args.data && typeof args.data === 'object' && 'companyId' in args.data) {
+          throw new Error('Cannot change companyId in update operation.');
         }
 
         return query({
