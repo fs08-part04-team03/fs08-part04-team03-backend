@@ -115,8 +115,7 @@ router.post(
       requestedByRole: authReq.user.role,
     });
 
-    const webAppBaseUrl =
-      env.NODE_ENV === 'development' ? 'http://localhost:4000' : env.WEB_APP_BASE_URL;
+    const webAppBaseUrl = env.WEB_APP_BASE_URL;
     const url = new URL('/invite', webAppBaseUrl);
     url.searchParams.set('token', rawToken);
 

@@ -94,14 +94,25 @@ function extractTokenFromInviteUrl(inviteUrl: string): string {
 }
 
 // refresh token cookie 옵션
-const refreshCookieOptions = (maxAgeMs: number): CookieOptions => ({
-  httpOnly: true,
-  secure: env.COOKIE_SECURE,
-  sameSite: env.COOKIE_SAME_SITE,
-  domain: env.COOKIE_DOMAIN,
-  path: env.COOKIE_PATH,
-  maxAge: maxAgeMs,
-});
+let refreshCookieOptions = undefined;
+if (env.NODE_ENV === 'production') {
+  refreshCookieOptions = (maxAgeMs: number): CookieOptions => ({
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none',
+    domain: undefined,
+    path: '/',
+    maxAge: maxAgeMs,
+  });
+} else {
+  refreshCookieOptions = (maxAgeMs: number): CookieOptions => ({
+    secure: env.COOKIE_SECURE,
+    sameSite: env.COOKIE_SAME_SITE,
+    domain: env.COOKIE_DOMAIN,
+    path: env.COOKIE_PATH,
+    maxAge: maxAgeMs,
+  });
+}
 
 export const authController = {
   // 회원가입
