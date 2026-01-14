@@ -29,6 +29,17 @@ function str(name: string, defaultValue?: string): string {
   return raw;
 }
 
+function optionalStr(name: string, defaultValue?: string): string | undefined {
+  const raw = process.env[name];
+  if (raw == null) {
+    return defaultValue;
+  }
+  if (raw === '') {
+    return undefined; // 빈 문자열은 undefined로 처리
+  }
+  return raw;
+}
+
 function secret(name: string, minLength: number = 32): string {
   const value = str(name);
   if (value.length < minLength) {
@@ -72,7 +83,7 @@ export const env = {
   JWT_REFRESH_EXPIRY: str('JWT_REFRESH_EXPIRY', '1h'),
   SESSION_SECRET: secret('SESSION_SECRET', 32),
 
-  COOKIE_DOMAIN: str('COOKIE_DOMAIN', 'localhost'),
+  COOKIE_DOMAIN: optionalStr('COOKIE_DOMAIN', 'localhost'),
   COOKIE_SECURE: bool('COOKIE_SECURE', false),
   COOKIE_SAME_SITE: str('COOKIE_SAME_SITE', 'lax') as 'strict' | 'lax' | 'none',
   COOKIE_PATH: str('COOKIE_PATH', '/'),

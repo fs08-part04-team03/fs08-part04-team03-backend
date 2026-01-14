@@ -94,25 +94,27 @@ function extractTokenFromInviteUrl(inviteUrl: string): string {
 }
 
 // refresh token cookie 옵션
-let refreshCookieOptions = undefined;
-if (env.NODE_ENV === 'production') {
-  refreshCookieOptions = (maxAgeMs: number): CookieOptions => ({
-    httpOnly: true,
-    secure: true,
-    sameSite: 'none',
-    domain: undefined,
-    path: '/',
-    maxAge: maxAgeMs,
-  });
-} else {
-  refreshCookieOptions = (maxAgeMs: number): CookieOptions => ({
+const refreshCookieOptions = (maxAgeMs: number): CookieOptions => {
+  if (env.NODE_ENV === 'production') {
+    return {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      domain: undefined, // 브라우저가 자동으로 설정하도록 함
+      path: '/',
+      maxAge: maxAgeMs,
+    };
+  }
+
+  return {
+    httpOnly: true, // 개발 환경에서도 httpOnly 적용
     secure: env.COOKIE_SECURE,
     sameSite: env.COOKIE_SAME_SITE,
-    domain: env.COOKIE_DOMAIN,
+    domain: env.COOKIE_DOMAIN, // 빈 문자열이면 undefined
     path: env.COOKIE_PATH,
     maxAge: maxAgeMs,
-  });
-}
+  };
+};
 
 export const authController = {
   // 회원가입
@@ -131,7 +133,14 @@ export const authController = {
     const { exp } = JwtUtil.verifyRefreshToken(refreshToken);
     const maxAge = Math.max(0, exp * 1000 - Date.now());
 
-    res.cookie('refreshToken', refreshToken, refreshCookieOptions(maxAge));
+    const cookieOptions = refreshCookieOptions(maxAge);
+
+    // 디버깅을 위한 로깅 (개발 환경에서만)
+    if (env.NODE_ENV === 'development') {
+      console.log('🍪 [SIGNUP] Setting refreshToken cookie with options:', cookieOptions);
+    }
+
+    res.cookie('refreshToken', refreshToken, cookieOptions);
     res
       .status(HttpStatus.CREATED)
       .json(ResponseUtil.success({ user, accessToken }, '회원가입 완료'));
@@ -153,7 +162,14 @@ export const authController = {
     const { exp } = JwtUtil.verifyRefreshToken(refreshToken);
     const maxAge = Math.max(0, exp * 1000 - Date.now());
 
-    res.cookie('refreshToken', refreshToken, refreshCookieOptions(maxAge));
+    const cookieOptions = refreshCookieOptions(maxAge);
+
+    // 디버깅을 위한 로깅 (개발 환경에서만)
+    if (env.NODE_ENV === 'development') {
+      console.log('🍪 [ADMIN] Setting refreshToken cookie with options:', cookieOptions);
+    }
+
+    res.cookie('refreshToken', refreshToken, cookieOptions);
     res
       .status(HttpStatus.CREATED)
       .json(ResponseUtil.success({ user, company, accessToken }, '어드민 회원가입 완료'));
@@ -171,18 +187,36 @@ export const authController = {
     const { exp } = JwtUtil.verifyRefreshToken(refreshToken);
     const maxAge = Math.max(0, exp * 1000 - Date.now());
 
-    res.cookie('refreshToken', refreshToken, refreshCookieOptions(maxAge));
+    const cookieOptions = refreshCookieOptions(maxAge);
+
+    // 디버깅을 위한 로깅 (개발 환경에서만)
+    if (env.NODE_ENV === 'development') {
+      console.log('🍪 [DEBUG] Setting refreshToken cookie with options:', cookieOptions);
+      console.log('🍪 [DEBUG] refreshToken length:', refreshToken.length);
+      console.log('🍪 [DEBUG] maxAge (ms):', maxAge);
+      console.log('🍪 [DEBUG] Request origin:', req.headers.origin);
+    }
+
+    res.cookie('refreshToken', refreshToken, cookieOptions);
     res.status(HttpStatus.OK).json(ResponseUtil.success({ user, accessToken }, '로그인 성공'));
   },
 
   // refresh (token 재발급)
   refresh: async (req: Request, res: Response) => {
-    const token = (req.cookies as Record<string, string | undefined> | undefined)?.refreshToken;
+    // 쿠키에서 refreshToken 추출
+    const token = req.cookies?.refreshToken as string | undefined;
+
+    // 디버깅을 위한 로깅 (개발 환경에서만)
+    if (env.NODE_ENV === 'development' && !token) {
+      console.log('🔍 [DEBUG] req.cookies:', req.cookies);
+      console.log('🔍 [DEBUG] req.headers.cookie:', req.headers.cookie);
+    }
+
     if (!token) {
       throw new CustomError(
         HttpStatus.UNAUTHORIZED,
         ErrorCodes.AUTH_UNAUTHORIZED,
-        'refresh token이 존재하지 않습니다.'
+        'refresh token이 존재하지 않습니다. 쿠키가 포함된 요청인지 확인하세요.'
       );
     }
 
@@ -196,7 +230,8 @@ export const authController = {
 
   // 로그아웃
   logout: async (req: Request, res: Response) => {
-    const token = (req.cookies as Record<string, string | undefined> | undefined)?.refreshToken;
+    const token = req.cookies?.refreshToken as string | undefined;
+
     if (token) {
       await authService.logoutByToken(token);
     }
