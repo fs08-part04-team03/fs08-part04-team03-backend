@@ -250,6 +250,7 @@ export const purchaseService = {
         shippingFee: true, // 배송비
         status: true, // 상태
         requestMessage: true, // 요청 비고
+        reason: true, // 승인 사유
         rejectReason: true, // 반려 사유
         purchaseItems: {
           // 상품 정보
