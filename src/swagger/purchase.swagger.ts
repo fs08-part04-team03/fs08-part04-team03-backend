@@ -81,6 +81,10 @@
  *         requestMessage:
  *           type: string
  *           description: 요청 메시지
+ *         reason:
+ *           type: string
+ *           nullable: true
+ *           description: 승인 사유/메시지 (관리자가 승인 시 입력)
  *         rejectReason:
  *           type: string
  *           description: 반려 사유
@@ -466,6 +470,10 @@
  *                       type: string
  *                       nullable: true
  *                       description: 요청 메시지
+ *                     reason:
+ *                       type: string
+ *                       nullable: true
+ *                       description: 승인 사유/메시지 (관리자가 승인 시 입력)
  *                     rejectReason:
  *                       type: string
  *                       nullable: true
@@ -642,6 +650,7 @@
  *       - 구매 요청의 상태를 APPROVED로 변경합니다.
  *       - 승인자(approver) 정보가 자동으로 기록됩니다.
  *       - 동시성 제어를 통해 중복 승인을 방지합니다.
+ *       - 선택적으로 승인 메시지를 함께 저장할 수 있습니다.
  *
  *       ### 승인 조건
  *       - 구매 요청이 존재해야 합니다.
@@ -652,6 +661,7 @@
  *       ### 승인 후 변경사항
  *       - `status`: PENDING → APPROVED
  *       - `approver`: 승인한 관리자 정보가 설정됩니다.
+ *       - `reason`: 승인 메시지가 저장됩니다 (선택사항).
  *       - `updatedAt`: 승인 시간으로 자동 업데이트됩니다.
  *       - `budget`: 당월 회사 예산에서 요청 금액(totalPrice + shippingFee)만큼 차감됩니다.
  *     tags: [Purchase]
@@ -664,6 +674,17 @@
  *         schema:
  *           type: string
  *         description: 구매 요청 ID
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               message:
+ *                 type: string
+ *                 description: 승인 메시지 (선택사항). 승인 시 요청자에게 전달할 메시지를 입력합니다.
+ *                 example: "승인합니다. 빠른 배송 부탁드립니다."
  *     responses:
  *       200:
  *         description: 구매 요청 승인 성공

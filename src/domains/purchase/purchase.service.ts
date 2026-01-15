@@ -250,6 +250,7 @@ export const purchaseService = {
         shippingFee: true, // 배송비
         status: true, // 상태
         requestMessage: true, // 요청 비고
+        reason: true, // 승인 사유
         rejectReason: true, // 반려 사유
         purchaseItems: {
           // 상품 정보
@@ -328,6 +329,7 @@ export const purchaseService = {
         shippingFee: true, // 배송비
         status: true, // 상태
         requestMessage: true, // 요청 비고
+        reason: true, // 승인 사유
         rejectReason: true, // 반려 사유
         purchaseItems: {
           // 상품 정보
@@ -406,6 +408,7 @@ export const purchaseService = {
       finalTotalPrice,
       status: purchaseDetail.status,
       requestMessage: purchaseDetail.requestMessage,
+      reason: purchaseDetail.reason,
       rejectReason: purchaseDetail.rejectReason,
       purchaseItems,
       requester: purchaseDetail.requester,
@@ -487,7 +490,12 @@ export const purchaseService = {
   },
 
   // 💰 [Purchase] 구매 요청 승인 API (관리자)
-  async approvePurchaseRequest(companyId: string, userId: string, purchaseRequestId: string) {
+  async approvePurchaseRequest(
+    companyId: string,
+    userId: string,
+    message: string | undefined,
+    purchaseRequestId: string
+  ) {
     // 구매 요청 존재 여부 확인 (회사 범위 포함)
     const purchaseRequest = await prisma.purchaseRequests.findFirst({
       where: {
@@ -523,6 +531,7 @@ export const purchaseService = {
         data: {
           status: purchaseStatus.APPROVED,
           approverId: userId,
+          reason: message,
         },
       });
 

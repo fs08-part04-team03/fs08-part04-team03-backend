@@ -224,6 +224,9 @@ export const purchaseController = {
 
   // 💰 [Purchase] 구매 요청 승인 API (관리자)
   approvePurchaseRequest: async (req: AuthenticatedRequest, res: Response) => {
+    // 구매 요청 승인 메시지
+    const { message } = req.body as { message?: string };
+
     // 사용자 정보가 없는 경우
     if (!req.user) {
       throw new CustomError(
@@ -246,6 +249,7 @@ export const purchaseController = {
     const result = await purchaseService.approvePurchaseRequest(
       req.user.companyId,
       req.user.id,
+      message,
       purchaseRequestId
     );
 
