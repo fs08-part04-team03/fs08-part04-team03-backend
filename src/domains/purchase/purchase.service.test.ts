@@ -298,6 +298,7 @@ describe('PurchaseService', () => {
       await purchaseService.approvePurchaseRequest(
         mockCompanyId,
         mockUserId,
+        undefined,
         mockPurchaseRequestId
       );
 
@@ -305,11 +306,82 @@ describe('PurchaseService', () => {
       expect(prisma.budgets.update).toHaveBeenCalled();
     });
 
+    it('승인 메시지와 함께 구매 요청을 승인해야 합니다', async () => {
+      const approvalMessage = '승인합니다. 빠른 배송 부탁드립니다.';
+      (prisma.purchaseRequests.findFirst as jest.Mock).mockResolvedValue(mockPurchaseRequest);
+      (prisma.purchaseRequests.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
+      (prisma.purchaseRequests.findUniqueOrThrow as jest.Mock).mockResolvedValue({
+        ...mockPurchaseRequest,
+        status: 'APPROVED',
+        reason: approvalMessage,
+      });
+      (prisma.budgets.findFirst as jest.Mock).mockResolvedValue(mockBudget);
+      (prisma.budgets.update as jest.Mock).mockResolvedValue({});
+
+      const result = await purchaseService.approvePurchaseRequest(
+        mockCompanyId,
+        mockUserId,
+        approvalMessage,
+        mockPurchaseRequestId
+      );
+
+      expect(prisma.purchaseRequests.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: mockPurchaseRequestId,
+          companyId: mockCompanyId,
+          status: 'PENDING',
+        },
+        data: {
+          status: 'APPROVED',
+          approverId: mockUserId,
+          reason: approvalMessage,
+        },
+      });
+      expect(result.data.reason).toBe(approvalMessage);
+    });
+
+    it('승인 메시지 없이도 구매 요청을 승인할 수 있어야 합니다', async () => {
+      (prisma.purchaseRequests.findFirst as jest.Mock).mockResolvedValue(mockPurchaseRequest);
+      (prisma.purchaseRequests.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
+      (prisma.purchaseRequests.findUniqueOrThrow as jest.Mock).mockResolvedValue({
+        ...mockPurchaseRequest,
+        status: 'APPROVED',
+        reason: undefined,
+      });
+      (prisma.budgets.findFirst as jest.Mock).mockResolvedValue(mockBudget);
+      (prisma.budgets.update as jest.Mock).mockResolvedValue({});
+
+      await purchaseService.approvePurchaseRequest(
+        mockCompanyId,
+        mockUserId,
+        undefined,
+        mockPurchaseRequestId
+      );
+
+      expect(prisma.purchaseRequests.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: mockPurchaseRequestId,
+          companyId: mockCompanyId,
+          status: 'PENDING',
+        },
+        data: {
+          status: 'APPROVED',
+          approverId: mockUserId,
+          reason: undefined,
+        },
+      });
+    });
+
     it('구매 요청을 찾을 수 없으면 에러를 던져야 합니다', async () => {
       (prisma.purchaseRequests.findFirst as jest.Mock).mockResolvedValue(null);
 
       await expect(
-        purchaseService.approvePurchaseRequest(mockCompanyId, mockUserId, mockPurchaseRequestId)
+        purchaseService.approvePurchaseRequest(
+          mockCompanyId,
+          mockUserId,
+          undefined,
+          mockPurchaseRequestId
+        )
       ).rejects.toThrow('구매 요청을 찾을 수 없습니다.');
     });
 
@@ -318,7 +390,12 @@ describe('PurchaseService', () => {
       (prisma.purchaseRequests.findFirst as jest.Mock).mockResolvedValue(approvedRequest);
 
       await expect(
-        purchaseService.approvePurchaseRequest(mockCompanyId, mockUserId, mockPurchaseRequestId)
+        purchaseService.approvePurchaseRequest(
+          mockCompanyId,
+          mockUserId,
+          undefined,
+          mockPurchaseRequestId
+        )
       ).rejects.toThrow('이미 처리된 구매 요청입니다.');
     });
 
@@ -333,7 +410,12 @@ describe('PurchaseService', () => {
       (prisma.budgets.findFirst as jest.Mock).mockResolvedValue(lowBudget);
 
       await expect(
-        purchaseService.approvePurchaseRequest(mockCompanyId, mockUserId, mockPurchaseRequestId)
+        purchaseService.approvePurchaseRequest(
+          mockCompanyId,
+          mockUserId,
+          undefined,
+          mockPurchaseRequestId
+        )
       ).rejects.toThrow('예산이 부족하여 구매 요청을 승인할 수 없습니다.');
     });
   });
