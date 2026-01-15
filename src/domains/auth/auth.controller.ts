@@ -100,7 +100,6 @@ const refreshCookieOptions = (maxAgeMs: number): CookieOptions => {
       httpOnly: true,
       secure: true,
       sameSite: 'none',
-      domain: undefined, // 브라우저가 자동으로 설정하도록 함
       path: '/',
       maxAge: maxAgeMs,
     };
@@ -110,7 +109,6 @@ const refreshCookieOptions = (maxAgeMs: number): CookieOptions => {
     httpOnly: true, // 개발 환경에서도 httpOnly 적용
     secure: env.COOKIE_SECURE,
     sameSite: env.COOKIE_SAME_SITE,
-    domain: env.COOKIE_DOMAIN, // 빈 문자열이면 undefined
     path: env.COOKIE_PATH,
     maxAge: maxAgeMs,
   };
