@@ -1,4 +1,5 @@
 import type { Response, NextFunction } from 'express';
+import { role } from '@prisma/client';
 import type { AuthenticatedRequest, AuthTokenPayload } from '../types/common.types';
 import { CustomError } from '../utils/error.util';
 import { HttpStatus } from '../constants/httpStatus.constants';
@@ -8,9 +9,9 @@ type Role = AuthTokenPayload['role'];
 
 // 권한 등급
 const roleRank: Record<Role, number> = {
-  USER: 1,
-  MANAGER: 2,
-  ADMIN: 3,
+  [role.USER]: 1,
+  [role.MANAGER]: 2,
+  [role.ADMIN]: 3,
 };
 
 // 인증 필요 에러 생성 헬퍼

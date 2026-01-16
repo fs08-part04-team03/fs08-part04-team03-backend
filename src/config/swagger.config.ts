@@ -6,7 +6,7 @@ import { env } from './env.config';
 
 const servers = [{ url: `http://localhost:${env.PORT}`, description: 'Local development' }];
 if (env.API_HOST) {
-  servers.push({ url: `https://${env.API_HOST}`, description: 'Render production' });
+  servers.push({ url: `https://${env.API_HOST}`, description: 'Production' });
 }
 const options = {
   definition: {
@@ -20,7 +20,7 @@ const options = {
     components: {
       securitySchemes: {
         bearerAuth: {
-          type: 'http',
+          type: 'https',
           scheme: 'bearer',
           bearerFormat: 'JWT',
           description: 'Authorization: Bearer <accessToken>',

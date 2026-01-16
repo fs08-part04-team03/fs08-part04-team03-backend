@@ -82,15 +82,15 @@
  *       type: object
  *       required: [newPassword, newPasswordConfirm]
  *       properties:
- *         newPassword: { type: string, minLength: 1, maxLength: 30 }
- *         newPasswordConfirm: { type: string, minLength: 1, maxLength: 30 }
+ *         newPassword: { type: string, minLength: 8, maxLength: 30 }
+ *         newPasswordConfirm: { type: string, minLength: 8, maxLength: 30 }
  *     AdminProfilePatchBody:
  *       type: object
  *       properties:
  *         companyName: { type: string, minLength: 1, maxLength: 255 }
- *         newPassword: { type: string, minLength: 1, maxLength: 30 }
- *         newPasswordConfirm: { type: string, minLength: 1, maxLength: 30 }
- *       description: companyName 또는 newPassword 중 하나 이상 필수
+ *         newPassword: { type: string, minLength: 8, maxLength: 30 }
+ *         newPasswordConfirm: { type: string, minLength: 8, maxLength: 30 }
+ *       description: companyName, newPassword, 또는 image 중 하나 이상 필수 (image는 multipart/form-data 엔드포인트에서만 사용)
  *     UpdateRoleBody:
  *       type: object
  *       required: [role]
@@ -133,20 +133,50 @@
  * @openapi
  * /api/v1/user/me/profile:
  *   patch:
- *     summary: 내 비밀번호 변경 (USER/MANAGER)
+ *     summary: 내 프로필 변경 - 비밀번호/이미지 (USER/MANAGER)
+ *     description: 비밀번호 변경 또는 프로필 이미지 업로드 (또는 둘 다 가능). 최소 하나 이상의 필드 필요.
  *     tags: [User]
  *     security: [{ bearerAuth: [] }]
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
- *           schema: { $ref: '#/components/schemas/PasswordChangeBody' }
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               newPassword:
+ *                 type: string
+ *                 minLength: 8
+ *                 maxLength: 30
+ *                 description: 새 비밀번호 (선택)
+ *               newPasswordConfirm:
+ *                 type: string
+ *                 minLength: 8
+ *                 maxLength: 30
+ *                 description: 새 비밀번호 확인 (newPassword와 함께 필수)
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: 프로필 이미지 파일 (선택, 최대 5MB, jpg/jpeg/png/gif/webp)
+ *           encoding:
+ *             image:
+ *               contentType: image/jpeg, image/png, image/gif, image/webp
  *     responses:
  *       '200':
- *         description: 비밀번호 변경
+ *         description: 프로필 업데이트 성공
  *         content:
  *           application/json:
- *             schema: { $ref: '#/components/schemas/EmptySuccessResponse' }
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data: { $ref: '#/components/schemas/UserProfile' }
+ *                     message:
+ *                       type: string
+ *                       example: '프로필이 업데이트되었습니다.'
+ *       '400':
+ *         description: 잘못된 요청 (변경할 내용 없음, 지원하지 않는 파일 형식, 파일 크기 초과)
  *       '401':
  *         description: 인증 실패
  */
@@ -155,20 +185,47 @@
  * @openapi
  * /api/v1/user/admin/profile:
  *   patch:
- *     summary: 회사명/관리자 비밀번호 변경 (ADMIN)
+ *     summary: 관리자 프로필 변경 - 회사명/비밀번호/이미지 (ADMIN)
+ *     description: 회사명, 비밀번호, 프로필 이미지 변경 (최소 하나 이상 필요)
  *     tags: [User]
  *     security: [{ bearerAuth: [] }]
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
- *           schema: { $ref: '#/components/schemas/AdminProfilePatchBody' }
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               companyName:
+ *                 type: string
+ *                 minLength: 1
+ *                 maxLength: 255
+ *                 description: 회사명 (선택)
+ *               newPassword:
+ *                 type: string
+ *                 minLength: 8
+ *                 maxLength: 30
+ *                 description: 새 비밀번호 (선택)
+ *               newPasswordConfirm:
+ *                 type: string
+ *                 minLength: 8
+ *                 maxLength: 30
+ *                 description: 새 비밀번호 확인 (newPassword와 함께 필수)
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: 프로필 이미지 파일 (선택, 최대 5MB, jpg/jpeg/png/gif/webp)
+ *           encoding:
+ *             image:
+ *               contentType: image/jpeg, image/png, image/gif, image/webp
  *     responses:
  *       '200':
  *         description: 관리자 프로필 수정
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/EmptySuccessResponse' }
+ *       '400':
+ *         description: 잘못된 요청 (변경할 내용 없음, 지원하지 않는 파일 형식, 파일 크기 초과)
  *       '401':
  *         description: 인증 실패
  *       '403':
@@ -180,6 +237,20 @@
  * /api/v1/user/admin/{id}/role:
  *   patch:
  *     summary: 사용자 권한 변경 (ADMIN)
+ *     description: |
+ *       같은 회사 소속 사용자의 권한을 변경합니다.
+ *
+ *       **주요 기능:**
+ *       - 사용자 권한 변경 (USER, MANAGER, ADMIN)
+ *       - 같은 회사 사용자만 변경 가능 (테넌트 격리)
+ *
+ *       **제한 사항:**
+ *       - 관리자가 자신의 ADMIN 권한은 변경할 수 없음
+ *       - 다른 회사 사용자의 권한은 변경 불가
+ *
+ *       **보안 검증:**
+ *       - 대상 사용자의 companyId와 관리자의 companyId 일치 확인
+ *       - 자기 자신의 ADMIN 권한 변경 차단
  *     tags: [User]
  *     security: [{ bearerAuth: [] }]
  *     parameters:
@@ -209,6 +280,21 @@
  * /api/v1/user/admin/{id}/status:
  *   patch:
  *     summary: 사용자 활성/비활성 전환 (ADMIN)
+ *     description: |
+ *       같은 회사 소속 사용자의 활성화 상태를 변경합니다.
+ *
+ *       **주요 기능:**
+ *       - 사용자 계정 활성화/비활성화
+ *       - 같은 회사 사용자만 변경 가능 (테넌트 격리)
+ *       - 비활성화 시 refreshToken 자동 삭제
+ *
+ *       **제한 사항:**
+ *       - 관리자가 자신의 활성화 상태는 변경할 수 없음
+ *       - 다른 회사 사용자의 상태는 변경 불가
+ *
+ *       **보안 검증:**
+ *       - 대상 사용자의 companyId와 관리자의 companyId 일치 확인
+ *       - 자기 자신의 상태 변경 차단
  *     tags: [User]
  *     security: [{ bearerAuth: [] }]
  *     parameters:
@@ -238,6 +324,18 @@
  * /api/v1/user:
  *   get:
  *     summary: 회사 소속 사용자 목록 조회/검색 (ADMIN)
+ *     description: |
+ *       같은 회사에 소속된 사용자 목록을 조회합니다.
+ *
+ *       **주요 기능:**
+ *       - 같은 회사 사용자만 조회 가능 (테넌트 격리)
+ *       - 역할(role), 활성화 상태(isActive)로 필터링
+ *       - 이메일/이름으로 검색 (대소문자 무시)
+ *       - 페이지네이션 지원
+ *
+ *       **보안 검증:**
+ *       - 관리자 본인의 companyId로 자동 필터링
+ *       - 다른 회사 사용자는 조회 불가
  *     tags: [User]
  *     security: [{ bearerAuth: [] }]
  *     parameters:

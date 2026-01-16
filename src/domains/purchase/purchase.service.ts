@@ -1,4 +1,6 @@
-import { purchaseStatus, type Prisma } from '@prisma/client';
+import { purchaseStatus } from '@prisma/client';
+import { GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { prisma } from '../../common/database/prisma.client';
 import { CustomError } from '../../common/utils/error.util';
 import { HttpStatus } from '../../common/constants/httpStatus.constants';
@@ -11,6 +13,23 @@ import type {
 } from './purchase.types';
 import { ResponseUtil } from '../../common/utils/response.util';
 import { notificationService } from '../notification/notification.service';
+import { s3Client, S3_BUCKET_NAME, PRESIGNED_URL_EXPIRES_IN } from '../../config/s3.config';
+
+// Presigned URL 생성 헬퍼 함수
+const getPresignedUrlForProduct = async (imageKey: string | null): Promise<string | null> => {
+  if (!imageKey) return null;
+
+  try {
+    return await getSignedUrl(
+      s3Client,
+      new GetObjectCommand({ Bucket: S3_BUCKET_NAME, Key: imageKey }),
+      { expiresIn: PRESIGNED_URL_EXPIRES_IN }
+    );
+  } catch (error) {
+    console.error('Failed to generate presigned URL:', error);
+    return null;
+  }
+};
 
 export const purchaseService = {
   // 💰 [Purchase] 전체 구매 내역 목록 API (관리자)
@@ -114,7 +133,7 @@ export const purchaseService = {
       );
     }
 
-    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const result = await prisma.$transaction(async (tx) => {
       // 2. 구매 요청 생성
       const newPurchaseRequest = await tx.purchaseRequests.create({
         data: {
@@ -123,7 +142,7 @@ export const purchaseService = {
           totalPrice,
           shippingFee,
           approverId: userId, // 즉시 구매이므로 요청자가 승인자
-          status: 'APPROVED', // 즉시 구매이므로 바로 승인 처리
+          status: purchaseStatus.APPROVED, // 즉시 구매이므로 바로 승인 처리
         },
       });
 
@@ -233,6 +252,7 @@ export const purchaseService = {
         shippingFee: true, // 배송비
         status: true, // 상태
         requestMessage: true, // 요청 비고
+        reason: true, // 승인 사유
         rejectReason: true, // 반려 사유
         purchaseItems: {
           // 상품 정보
@@ -278,7 +298,126 @@ export const purchaseService = {
       );
     }
 
-    return ResponseUtil.success(purchaseDetail, '내 구매 상세 내역을 조회했습니다.');
+    // purchaseItems에 imageUrl 추가
+    const purchaseItemsWithUrls = await Promise.all(
+      purchaseDetail.purchaseItems.map(async (item) => ({
+        ...item,
+        products: {
+          ...item.products,
+          imageUrl: await getPresignedUrlForProduct(item.products.image),
+        },
+      }))
+    );
+
+    return ResponseUtil.success(
+      { ...purchaseDetail, purchaseItems: purchaseItemsWithUrls },
+      '내 구매 상세 내역을 조회했습니다.'
+    );
+  },
+
+  // 💰 [Purchase] 구매 요청 상세 조회 API (관리자)
+  async getPurchaseRequestDetail(companyId: string, purchaseRequestId: string) {
+    // 구매 요청 상세 조회 (관리자는 모든 구매 요청 조회 가능)
+    const purchaseDetail = await prisma.purchaseRequests.findFirst({
+      where: {
+        id: purchaseRequestId,
+        companyId,
+      },
+      select: {
+        id: true,
+        createdAt: true, // 요청일
+        updatedAt: true, // 승인/반려일
+        totalPrice: true, // 가격
+        shippingFee: true, // 배송비
+        status: true, // 상태
+        requestMessage: true, // 요청 비고
+        reason: true, // 승인 사유
+        rejectReason: true, // 반려 사유
+        purchaseItems: {
+          // 상품 정보
+          select: {
+            id: true,
+            quantity: true,
+            priceSnapshot: true,
+            products: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+                link: true,
+              },
+            },
+          },
+        },
+        requester: {
+          // 요청인 정보
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        approver: {
+          // 승인자/반려자 정보
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    // 존재하지 않으면 404 에러 반환
+    if (!purchaseDetail) {
+      throw new CustomError(
+        HttpStatus.NOT_FOUND,
+        ErrorCodes.PURCHASE_NOT_FOUND,
+        '구매 요청을 찾을 수 없습니다.'
+      );
+    }
+
+    // approvedAt 계산: status가 APPROVED일 때만 updatedAt 사용
+    const approvedAt =
+      purchaseDetail.status === purchaseStatus.APPROVED ? purchaseDetail.updatedAt : null;
+
+    // 상품 금액 합계 계산 (배송비 제외)
+    const itemsTotalPrice = purchaseDetail.totalPrice;
+
+    // 최종 금액 계산 (상품 + 배송비)
+    const finalTotalPrice = purchaseDetail.totalPrice + purchaseDetail.shippingFee;
+
+    // 각 구매 항목에 itemTotal과 imageUrl 추가
+    const purchaseItems = await Promise.all(
+      purchaseDetail.purchaseItems.map(async (item) => ({
+        ...item,
+        itemTotal: item.quantity * item.priceSnapshot,
+        products: {
+          ...item.products,
+          imageUrl: await getPresignedUrlForProduct(item.products.image),
+        },
+      }))
+    );
+
+    // 응답 데이터 재구성
+    const response = {
+      id: purchaseDetail.id,
+      createdAt: purchaseDetail.createdAt,
+      updatedAt: purchaseDetail.updatedAt,
+      approvedAt,
+      itemsTotalPrice,
+      shippingFee: purchaseDetail.shippingFee,
+      finalTotalPrice,
+      status: purchaseDetail.status,
+      requestMessage: purchaseDetail.requestMessage,
+      reason: purchaseDetail.reason,
+      rejectReason: purchaseDetail.rejectReason,
+      purchaseItems,
+      requester: purchaseDetail.requester,
+      approver: purchaseDetail.approver,
+    };
+
+    return ResponseUtil.success(response, '구매 요청 상세 내역을 조회했습니다.');
   },
 
   // 💰 [Purchase] 구매 요청 확인 API (관리자)
@@ -353,7 +492,12 @@ export const purchaseService = {
   },
 
   // 💰 [Purchase] 구매 요청 승인 API (관리자)
-  async approvePurchaseRequest(companyId: string, userId: string, purchaseRequestId: string) {
+  async approvePurchaseRequest(
+    companyId: string,
+    userId: string,
+    message: string | undefined,
+    purchaseRequestId: string
+  ) {
     // 구매 요청 존재 여부 확인 (회사 범위 포함)
     const purchaseRequest = await prisma.purchaseRequests.findFirst({
       where: {
@@ -370,7 +514,7 @@ export const purchaseService = {
       );
     }
 
-    if (purchaseRequest.status !== 'PENDING') {
+    if (purchaseRequest.status !== purchaseStatus.PENDING) {
       throw new CustomError(
         HttpStatus.BAD_REQUEST,
         ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
@@ -378,72 +522,76 @@ export const purchaseService = {
       );
     }
 
-    // status = PENDING 조건까지 포함해서 원자적으로 승인 처리
-    const updateResult = await prisma.purchaseRequests.update({
-      where: {
-        id: purchaseRequestId,
-        companyId,
-        status: 'PENDING',
-      },
-      data: {
-        status: 'APPROVED',
-        approverId: userId,
-      },
-    });
+    const result = await prisma.$transaction(async (tx) => {
+      // status = PENDING 조건까지 포함해서 원자적으로 승인 처리
+      const updateResult = await tx.purchaseRequests.updateMany({
+        where: {
+          id: purchaseRequestId,
+          companyId,
+          status: purchaseStatus.PENDING,
+        },
+        data: {
+          status: purchaseStatus.APPROVED,
+          approverId: userId,
+          reason: message,
+        },
+      });
 
-    // 승인된 만큼 예산도 삭감시키기
-    const now = new Date();
-    const budget = await prisma.budgets.findFirst({
-      where: {
-        companyId,
-        year: now.getUTCFullYear(),
-        month: now.getUTCMonth() + 1,
-      },
-    });
-    if (!budget) {
-      throw new CustomError(
-        HttpStatus.BAD_REQUEST,
-        ErrorCodes.GENERAL_NOT_FOUND,
-        '이번 달 예산을 찾을 수 없습니다.'
-      );
-    }
+      if (updateResult.count === 0) {
+        // 다른 트랜잭션에서 먼저 처리된 경우
+        throw new CustomError(
+          HttpStatus.BAD_REQUEST,
+          ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
+          '이미 처리된 구매 요청입니다.'
+        );
+      }
 
-    // 예산 부족 시 에러 반환
-    if (budget.amount < updateResult.totalPrice + updateResult.shippingFee) {
-      throw new CustomError(
-        HttpStatus.BAD_REQUEST,
-        ErrorCodes.BUDGET_EXCEEDED,
-        '예산이 부족하여 구매 요청을 승인할 수 없습니다.'
-      );
-    }
+      // updateMany는 업데이트된 레코드를 반환하지 않으므로 다시 조회
+      const updatedRequest = await tx.purchaseRequests.findUniqueOrThrow({
+        where: { id: purchaseRequestId },
+      });
 
-    await prisma.budgets.update({
-      where: {
-        companyId_year_month: {
+      // 승인된 만큼 예산도 삭감시키기
+      const now = new Date();
+      const budget = await tx.budgets.findFirst({
+        where: {
           companyId,
           year: now.getUTCFullYear(),
           month: now.getUTCMonth() + 1,
         },
-      },
-      data: {
-        amount: budget.amount - (updateResult.totalPrice + updateResult.shippingFee),
-      },
-    });
+      });
 
-    if (!updateResult) {
-      // 다른 트랜잭션에서 먼저 처리된 경우
-      throw new CustomError(
-        HttpStatus.BAD_REQUEST,
-        ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
-        '이미 처리된 구매 요청입니다.'
-      );
-    }
+      if (!budget) {
+        throw new CustomError(
+          HttpStatus.BAD_REQUEST,
+          ErrorCodes.GENERAL_NOT_FOUND,
+          '이번 달 예산을 찾을 수 없습니다.'
+        );
+      }
 
-    const result = await prisma.purchaseRequests.findFirst({
-      where: {
-        id: purchaseRequestId,
-        companyId,
-      },
+      // 예산 부족 시 에러 반환
+      if (budget.amount < updatedRequest.totalPrice + updatedRequest.shippingFee) {
+        throw new CustomError(
+          HttpStatus.BAD_REQUEST,
+          ErrorCodes.BUDGET_EXCEEDED,
+          '예산이 부족하여 구매 요청을 승인할 수 없습니다.'
+        );
+      }
+
+      await tx.budgets.update({
+        where: {
+          companyId_year_month: {
+            companyId,
+            year: now.getUTCFullYear(),
+            month: now.getUTCMonth() + 1,
+          },
+        },
+        data: {
+          amount: budget.amount - (updatedRequest.totalPrice + updatedRequest.shippingFee),
+        },
+      });
+
+      return updatedRequest;
     });
 
     try {
@@ -484,7 +632,7 @@ export const purchaseService = {
       );
     }
 
-    if (purchaseRequest.status !== 'PENDING') {
+    if (purchaseRequest.status !== purchaseStatus.PENDING) {
       throw new CustomError(
         HttpStatus.BAD_REQUEST,
         ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
@@ -497,10 +645,10 @@ export const purchaseService = {
       where: {
         id: purchaseRequestId,
         companyId,
-        status: 'PENDING',
+        status: purchaseStatus.PENDING,
       },
       data: {
-        status: 'REJECTED',
+        status: purchaseStatus.REJECTED,
         approverId: userId,
         rejectReason: body.reason,
       },
@@ -545,7 +693,7 @@ export const purchaseService = {
     items: Array<{ productId: number; quantity: number }>,
     requestMessage?: string
   ) {
-    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const result = await prisma.$transaction(async (tx) => {
       // 1. Cart 테이블에서 요청한 모든 상품이 있는지 확인
       const cartItems = await tx.carts.findMany({
         where: {
@@ -606,7 +754,7 @@ export const purchaseService = {
           requesterId: userId,
           totalPrice,
           shippingFee,
-          status: 'PENDING',
+          status: purchaseStatus.PENDING,
           requestMessage,
         },
       });
@@ -673,7 +821,7 @@ export const purchaseService = {
     // - APPROVED: 이미 승인됨 (취소 불가)
     // - REJECTED: 이미 반려됨 (취소 불가)
     // - CANCELLED: 이미 취소됨 (중복 취소 방지)
-    if (purchaseRequest.status !== 'PENDING') {
+    if (purchaseRequest.status !== purchaseStatus.PENDING) {
       throw new CustomError(
         HttpStatus.BAD_REQUEST,
         ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
@@ -695,10 +843,10 @@ export const purchaseService = {
         id: purchaseRequestId,
         companyId,
         requesterId: userId,
-        status: 'PENDING', // 원자적 조건: PENDING 상태일 때만 업데이트
+        status: purchaseStatus.PENDING, // 원자적 조건: PENDING 상태일 때만 업데이트
       },
       data: {
-        status: 'CANCELLED',
+        status: purchaseStatus.CANCELLED,
       },
     });
 
@@ -749,7 +897,7 @@ export const purchaseService = {
     const thisMonthExpenses = await prisma.purchaseRequests.aggregate({
       where: {
         companyId,
-        status: 'APPROVED',
+        status: purchaseStatus.APPROVED,
         updatedAt: {
           gte: thisMonthStart,
           lte: thisMonthEnd,
@@ -765,7 +913,7 @@ export const purchaseService = {
     const lastMonthExpenses = await prisma.purchaseRequests.aggregate({
       where: {
         companyId,
-        status: 'APPROVED',
+        status: purchaseStatus.APPROVED,
         updatedAt: {
           gte: lastMonthStart,
           lte: lastMonthEnd,
@@ -781,7 +929,7 @@ export const purchaseService = {
     const thisYearExpenses = await prisma.purchaseRequests.aggregate({
       where: {
         companyId,
-        status: 'APPROVED',
+        status: purchaseStatus.APPROVED,
         updatedAt: {
           gte: thisYearStart,
           lte: thisYearEnd,
@@ -797,7 +945,7 @@ export const purchaseService = {
     const lastYearExpenses = await prisma.purchaseRequests.aggregate({
       where: {
         companyId,
-        status: 'APPROVED',
+        status: purchaseStatus.APPROVED,
         updatedAt: {
           gte: lastYearStart,
           lte: lastYearEnd,
@@ -882,7 +1030,7 @@ export const purchaseService = {
     const thisMonthExpenses = await prisma.purchaseRequests.aggregate({
       where: {
         companyId,
-        status: 'APPROVED',
+        status: purchaseStatus.APPROVED,
         updatedAt: {
           gte: thisMonthStart,
           lte: thisMonthEnd,
@@ -898,7 +1046,7 @@ export const purchaseService = {
     const lastMonthExpenses = await prisma.purchaseRequests.aggregate({
       where: {
         companyId,
-        status: 'APPROVED',
+        status: purchaseStatus.APPROVED,
         updatedAt: {
           gte: lastMonthStart,
           lte: lastMonthEnd,
@@ -914,7 +1062,7 @@ export const purchaseService = {
     const thisYearExpenses = await prisma.purchaseRequests.aggregate({
       where: {
         companyId,
-        status: 'APPROVED',
+        status: purchaseStatus.APPROVED,
         updatedAt: {
           gte: thisYearStart,
           lte: thisYearEnd,
@@ -930,7 +1078,7 @@ export const purchaseService = {
     const lastYearExpenses = await prisma.purchaseRequests.aggregate({
       where: {
         companyId,
-        status: 'APPROVED',
+        status: purchaseStatus.APPROVED,
         updatedAt: {
           gte: lastYearStart,
           lte: lastYearEnd,
@@ -957,7 +1105,7 @@ export const purchaseService = {
     const totalExpenses = await prisma.purchaseRequests.aggregate({
       where: {
         companyId,
-        status: 'APPROVED',
+        status: purchaseStatus.APPROVED,
       },
       _sum: {
         totalPrice: true,
@@ -1018,7 +1166,7 @@ export const purchaseService = {
       where: {
         purchaseRequests: {
           companyId,
-          status: 'APPROVED',
+          status: purchaseStatus.APPROVED,
           createdAt: {
             gte: thisMonthStart,
             lte: thisMonthEnd,
@@ -1087,7 +1235,7 @@ export const purchaseService = {
         const expenses = await prisma.purchaseRequests.aggregate({
           where: {
             companyId,
-            status: 'APPROVED',
+            status: purchaseStatus.APPROVED,
             updatedAt: {
               gte: monthStart,
               lte: monthEnd,

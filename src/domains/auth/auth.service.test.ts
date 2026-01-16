@@ -3,6 +3,7 @@ import argon2 from 'argon2';
 import { prisma } from '@/common/database/prisma.client';
 import { JwtUtil } from '@/common/utils/jwt.util';
 import { CustomError } from '@/common/utils/error.util';
+import { ErrorCodes } from '@/common/constants/errorCodes.constants';
 import { createHash } from 'node:crypto';
 import { authService } from './auth.service';
 
@@ -19,6 +20,7 @@ jest.mock('@/common/database/prisma.client', () => ({
     users: {
       findFirst: jest.fn(),
       findUnique: jest.fn(),
+      findMany: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
       updateMany: jest.fn(),
@@ -30,7 +32,7 @@ jest.mock('@/common/database/prisma.client', () => ({
     budgetCriteria: {
       create: jest.fn(),
     },
-    $transaction: jest.fn((callback) => callback(prisma)),
+    $transaction: jest.fn(),
   },
 }));
 
@@ -240,13 +242,24 @@ describe('AuthService', () => {
       role: 'USER' as const,
       password: 'hashed-password',
       isActive: true,
+      profileImage: null,
+      companies: { name: '테스트회사' },
     };
 
-    it('정상적으로 로그인이 완료되어야 합니다', async () => {
-      // Given
-      (prisma.users.findFirst as jest.Mock).mockResolvedValue(mockUser);
+    const anotherUser = {
+      id: 'user-id-2',
+      companyId: 'company-id-2',
+      email: 'test@example.com',
+      name: '테스트 사용자',
+      role: 'USER' as const,
+      password: 'hashed-password-2',
+      isActive: true,
+      profileImage: null,
+      companies: { name: '두번째회사' },
+    };
+
+    const mockTokenResult = () => {
       (prisma.users.update as jest.Mock).mockResolvedValue({});
-      jest.spyOn(argon2, 'verify').mockResolvedValue(true);
       (JwtUtil.generateAccessToken as jest.Mock).mockReturnValue('login-access-token');
       (JwtUtil.generateRefreshToken as jest.Mock).mockReturnValue('login-refresh-token');
       (JwtUtil.buildAccessPayload as jest.Mock).mockReturnValue({
@@ -255,6 +268,13 @@ describe('AuthService', () => {
         email: mockUser.email,
         role: mockUser.role,
       });
+    };
+
+    it('정상적으로 로그인이 완료되어야 합니다', async () => {
+      // Given
+      (prisma.users.findMany as jest.Mock).mockResolvedValue([mockUser]);
+      jest.spyOn(argon2, 'verify').mockResolvedValue(true);
+      mockTokenResult();
 
       // When
       const result = await authService.login(validLoginInput);
@@ -266,17 +286,41 @@ describe('AuthService', () => {
       expect(result.user.email).toBe(validLoginInput.email);
     });
 
+    it('companyId가 있으면 해당 회사로 로그인되어야 합니다', async () => {
+      // Given
+      const input = { ...validLoginInput, companyId: mockUser.companyId };
+      (prisma.users.findFirst as jest.Mock).mockResolvedValue(mockUser);
+      jest.spyOn(argon2, 'verify').mockResolvedValue(true);
+      mockTokenResult();
+
+      // When
+      const result = await authService.login(input);
+
+      // Then
+      expect(result).toHaveProperty('accessToken', 'login-access-token');
+      expect(result.user.companyId).toBe(mockUser.companyId);
+    });
+
     it('존재하지 않는 이메일이면 에러를 던져야 합니다', async () => {
       // Given
-      (prisma.users.findFirst as jest.Mock).mockResolvedValue(null);
+      (prisma.users.findMany as jest.Mock).mockResolvedValue([]);
 
       // When & Then
       await expect(authService.login(validLoginInput)).rejects.toThrow(CustomError);
     });
 
+    it('companyId가 일치하지 않으면 에러를 던져야 합니다', async () => {
+      // Given
+      const input = { ...validLoginInput, companyId: 'unknown-company' };
+      (prisma.users.findFirst as jest.Mock).mockResolvedValue(null);
+
+      // When & Then
+      await expect(authService.login(input)).rejects.toThrow(CustomError);
+    });
+
     it('비밀번호가 틀리면 에러를 던져야 합니다', async () => {
       // Given
-      (prisma.users.findFirst as jest.Mock).mockResolvedValue(mockUser);
+      (prisma.users.findMany as jest.Mock).mockResolvedValue([mockUser]);
       jest.spyOn(argon2, 'verify').mockResolvedValue(false);
 
       // When & Then
@@ -286,11 +330,53 @@ describe('AuthService', () => {
     it('비활성화된 계정이면 에러를 던져야 합니다', async () => {
       // Given
       const inactiveUser = { ...mockUser, isActive: false };
-      (prisma.users.findFirst as jest.Mock).mockResolvedValue(inactiveUser);
+      (prisma.users.findMany as jest.Mock).mockResolvedValue([inactiveUser]);
       jest.spyOn(argon2, 'verify').mockResolvedValue(true);
 
       // When & Then
       await expect(authService.login(validLoginInput)).rejects.toThrow(CustomError);
+    });
+
+    it('여러 회사 계정이면 회사 선택이 필요합니다', async () => {
+      // Given
+      (prisma.users.findMany as jest.Mock).mockResolvedValue([mockUser, anotherUser]);
+      jest.spyOn(argon2, 'verify').mockResolvedValue(true);
+
+      // When & Then
+      await expect(authService.login(validLoginInput)).rejects.toMatchObject({
+        errorCode: ErrorCodes.AUTH_COMPANY_SELECTION_REQUIRED,
+        statusCode: 409,
+        details: {
+          requiresCompanySelection: true,
+          companies: expect.any(Array),
+        },
+      });
+    });
+
+    it('비활성 계정이 함께 있어도 활성 계정이 하나면 바로 로그인됩니다', async () => {
+      // Given
+      const inactiveUser = { ...anotherUser, isActive: false };
+      (prisma.users.findMany as jest.Mock).mockResolvedValue([mockUser, inactiveUser]);
+      jest.spyOn(argon2, 'verify').mockResolvedValueOnce(true).mockResolvedValueOnce(true);
+      mockTokenResult();
+
+      // When
+      const result = await authService.login(validLoginInput);
+
+      // Then
+      expect(result).toHaveProperty('accessToken', 'login-access-token');
+      expect(result.user.companyId).toBe(mockUser.companyId);
+    });
+
+    it('여러 회사 계정에서 비밀번호가 모두 틀리면 에러를 던져야 합니다', async () => {
+      // Given
+      (prisma.users.findMany as jest.Mock).mockResolvedValue([mockUser, anotherUser]);
+      jest.spyOn(argon2, 'verify').mockResolvedValue(false);
+
+      // When & Then
+      await expect(authService.login(validLoginInput)).rejects.toMatchObject({
+        errorCode: ErrorCodes.AUTH_INVALID_CREDENTIALS,
+      });
     });
   });
 

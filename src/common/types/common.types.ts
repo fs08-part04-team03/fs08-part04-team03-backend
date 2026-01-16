@@ -1,11 +1,12 @@
 import type { Request } from 'express';
+import type { role } from '@prisma/client';
 
 // 인증 토큰 페이로드
 export type AuthTokenPayload = {
   id: string;
   companyId: string;
   email: string;
-  role: 'USER' | 'MANAGER' | 'ADMIN';
+  role: role;
   iat: number;
   exp: number;
 };

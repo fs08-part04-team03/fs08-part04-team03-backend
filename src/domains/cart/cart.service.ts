@@ -1,138 +1,162 @@
+import { GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { prisma } from '../../common/database/prisma.client';
 import { CustomError } from '../../common/utils/error.util';
 import { HttpStatus } from '../../common/constants/httpStatus.constants';
 import { ErrorCodes } from '../../common/constants/errorCodes.constants';
 import { ResponseUtil } from '../../common/utils/response.util';
+import { s3Client, S3_BUCKET_NAME, PRESIGNED_URL_EXPIRES_IN } from '../../config/s3.config';
+
+// Presigned URL 생성 헬퍼 함수
+const getPresignedUrlForProduct = async (imageKey: string | null): Promise<string | null> => {
+  if (!imageKey) return null;
+
+  try {
+    return await getSignedUrl(
+      s3Client,
+      new GetObjectCommand({ Bucket: S3_BUCKET_NAME, Key: imageKey }),
+      { expiresIn: PRESIGNED_URL_EXPIRES_IN }
+    );
+  } catch (error) {
+    console.error('Failed to generate presigned URL:', error);
+    return null;
+  }
+};
 
 export const cartService = {
   // 🛒 [Cart] 장바구니에 상품 추가 API
   addToCart: async (userId: string, productId: number, quantity: number) => {
-    // 1. 상품 존재 여부 및 활성화 상태 확인
-    const product = await prisma.products.findUnique({
-      where: { id: productId },
-      select: {
-        id: true,
-        name: true,
-        price: true,
-        isActive: true,
-        companyId: true,
-      },
-    });
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. 사용자의 회사 ID 확인 (먼저 조회하여 테넌트 격리에 사용)
+      const user = await tx.users.findUnique({
+        where: { id: userId },
+        select: { companyId: true },
+      });
 
-    if (!product) {
-      throw new CustomError(
-        HttpStatus.NOT_FOUND,
-        ErrorCodes.GENERAL_NOT_FOUND,
-        '존재하지 않는 상품입니다.'
-      );
-    }
+      if (!user) {
+        throw new CustomError(
+          HttpStatus.NOT_FOUND,
+          ErrorCodes.GENERAL_NOT_FOUND,
+          '사용자를 찾을 수 없습니다.'
+        );
+      }
 
-    if (!product.isActive) {
-      throw new CustomError(
-        HttpStatus.BAD_REQUEST,
-        ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
-        '비활성화된 상품은 장바구니에 추가할 수 없습니다.'
-      );
-    }
+      if (!user.companyId) {
+        throw new CustomError(
+          HttpStatus.FORBIDDEN,
+          ErrorCodes.AUTH_FORBIDDEN,
+          '회사에 소속된 사용자만 장바구니를 사용할 수 있습니다.'
+        );
+      }
 
-    // 2. 사용자의 회사 ID 확인
-    const user = await prisma.users.findUnique({
-      where: { id: userId },
-      select: { companyId: true },
-    });
-
-    if (!user) {
-      throw new CustomError(
-        HttpStatus.NOT_FOUND,
-        ErrorCodes.GENERAL_NOT_FOUND,
-        '사용자를 찾을 수 없습니다.'
-      );
-    }
-
-    // 3. 같은 회사의 상품인지 확인
-    if (product.companyId !== user.companyId) {
-      throw new CustomError(
-        HttpStatus.BAD_REQUEST,
-        ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
-        '다른 회사의 상품은 장바구니에 추가할 수 없습니다.'
-      );
-    }
-
-    // 4. 장바구니에 이미 해당 상품이 있는지 확인
-    const existingCartItem = await prisma.carts.findFirst({
-      where: {
-        userId,
-        productId,
-      },
-    });
-
-    let cartItem;
-
-    if (existingCartItem) {
-      // 5-1. 이미 존재하는 경우: 수량 증가
-      cartItem = await prisma.carts.update({
-        where: { id: existingCartItem.id },
-        data: {
-          quantity: existingCartItem.quantity + quantity,
+      // 2. 상품 존재 여부 및 활성화 상태 확인 (테넌트 격리: companyId 확인)
+      const product = await tx.products.findFirst({
+        where: {
+          id: productId,
+          companyId: user.companyId, // 같은 회사의 상품만 조회
         },
-        include: {
-          products: {
-            select: {
-              id: true,
-              name: true,
-              price: true,
-              image: true,
-              link: true,
-              isActive: true,
-            },
-          },
+        select: {
+          id: true,
+          name: true,
+          price: true,
+          isActive: true,
+          companyId: true,
         },
       });
-    } else {
-      // 5-2. 새로운 상품인 경우: 새 항목 추가
-      cartItem = await prisma.carts.create({
-        data: {
+
+      if (!product) {
+        throw new CustomError(
+          HttpStatus.NOT_FOUND,
+          ErrorCodes.GENERAL_NOT_FOUND,
+          '존재하지 않는 상품이거나 접근 권한이 없습니다.'
+        );
+      }
+
+      if (!product.isActive) {
+        throw new CustomError(
+          HttpStatus.BAD_REQUEST,
+          ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
+          '비활성화된 상품은 장바구니에 추가할 수 없습니다.'
+        );
+      }
+
+      // 3. 장바구니에 이미 해당 상품이 있는지 확인
+      const existingCartItem = await tx.carts.findFirst({
+        where: {
           userId,
           productId,
-          quantity,
-        },
-        include: {
-          products: {
-            select: {
-              id: true,
-              name: true,
-              price: true,
-              image: true,
-              link: true,
-              isActive: true,
-            },
-          },
         },
       });
-    }
 
-    const data = {
-      id: cartItem.id,
-      quantity: cartItem.quantity,
-      updatedAt: cartItem.updatedAt,
-      product: {
-        id: cartItem.products.id,
-        name: cartItem.products.name,
-        price: cartItem.products.price,
-        image: cartItem.products.image,
-        link: cartItem.products.link,
-        isActive: cartItem.products.isActive,
-      },
-      subtotal: cartItem.products.price * cartItem.quantity,
-      isNew: !existingCartItem, // 새로 추가된 항목인지 여부
-    };
+      let cartItem;
 
-    // 6. 응답 데이터 구성 - isNew에 따라 메시지 동적 변경
-    const message = data.isNew
+      if (existingCartItem) {
+        // 5-1. 이미 존재하는 경우: 수량 증가
+        cartItem = await tx.carts.update({
+          where: { id: existingCartItem.id },
+          data: {
+            quantity: existingCartItem.quantity + quantity,
+          },
+          include: {
+            products: {
+              select: {
+                id: true,
+                name: true,
+                price: true,
+                image: true,
+                link: true,
+                isActive: true,
+              },
+            },
+          },
+        });
+      } else {
+        // 5-2. 새로운 상품인 경우: 새 항목 추가
+        cartItem = await tx.carts.create({
+          data: {
+            userId,
+            productId,
+            quantity,
+          },
+          include: {
+            products: {
+              select: {
+                id: true,
+                name: true,
+                price: true,
+                image: true,
+                link: true,
+                isActive: true,
+              },
+            },
+          },
+        });
+      }
+
+      return {
+        id: cartItem.id,
+        quantity: cartItem.quantity,
+        updatedAt: cartItem.updatedAt,
+        product: {
+          id: cartItem.products.id,
+          name: cartItem.products.name,
+          price: cartItem.products.price,
+          image: cartItem.products.image,
+          imageUrl: await getPresignedUrlForProduct(cartItem.products.image),
+          link: cartItem.products.link,
+          isActive: cartItem.products.isActive,
+        },
+        subtotal: cartItem.products.price * cartItem.quantity,
+        isNew: !existingCartItem, // 새로 추가된 항목인지 여부
+      };
+    });
+
+    // 응답 데이터 구성 - isNew에 따라 메시지 동적 변경
+    const message = result.isNew
       ? '장바구니에 상품이 추가되었습니다.'
       : '장바구니 상품의 수량이 증가했습니다.';
 
-    return ResponseUtil.success(data, message);
+    return ResponseUtil.success(result, message);
   },
 
   // 🛒 [Cart] 내 장바구니 조회 API
@@ -168,24 +192,27 @@ export const cartService = {
     });
 
     // 각 아이템에 소계 추가
-    const itemsWithSubtotal = cartItems.map((item) => {
-      const subtotal = item.products.price * item.quantity;
-      return {
-        id: item.id,
-        quantity: item.quantity,
-        updatedAt: item.updatedAt,
-        product: {
-          id: item.products.id,
-          name: item.products.name,
-          price: item.products.price,
-          image: item.products.image,
-          link: item.products.link,
-          isActive: item.products.isActive,
-          createdAt: item.products.createdAt,
-        },
-        subtotal, // 아이템별 소계 (가격 × 수량)
-      };
-    });
+    const itemsWithSubtotal = await Promise.all(
+      cartItems.map(async (item) => {
+        const subtotal = item.products.price * item.quantity;
+        return {
+          id: item.id,
+          quantity: item.quantity,
+          updatedAt: item.updatedAt,
+          product: {
+            id: item.products.id,
+            name: item.products.name,
+            price: item.products.price,
+            image: item.products.image,
+            imageUrl: await getPresignedUrlForProduct(item.products.image),
+            link: item.products.link,
+            isActive: item.products.isActive,
+            createdAt: item.products.createdAt,
+          },
+          subtotal, // 아이템별 소계 (가격 × 수량)
+        };
+      })
+    );
 
     // 현재 페이지의 총 금액 계산
     const currentPageTotalPrice = itemsWithSubtotal.reduce((sum, item) => sum + item.subtotal, 0);
@@ -229,86 +256,159 @@ export const cartService = {
 
   // 🛒 [Cart] 장바구니 수량 수정 API
   updateQuantity: async (userId: string, cartItemId: string, quantity: number) => {
-    // 1. 장바구니 항목 존재 여부 확인
-    const cartItem = await prisma.carts.findUnique({
-      where: { id: cartItemId },
-      include: {
-        products: {
-          select: {
-            id: true,
-            name: true,
-            price: true,
-            image: true,
-            link: true,
-            isActive: true,
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. 사용자 정보 조회 (companyId 확인용)
+      const user = await tx.users.findUnique({
+        where: { id: userId },
+        select: { companyId: true },
+      });
+
+      if (!user) {
+        throw new CustomError(
+          HttpStatus.NOT_FOUND,
+          ErrorCodes.GENERAL_NOT_FOUND,
+          '사용자를 찾을 수 없습니다.'
+        );
+      }
+
+      if (!user.companyId) {
+        throw new CustomError(
+          HttpStatus.FORBIDDEN,
+          ErrorCodes.AUTH_FORBIDDEN,
+          '회사에 소속된 사용자만 장바구니를 사용할 수 있습니다.'
+        );
+      }
+
+      // 2. 장바구니 항목 존재 여부 확인
+      const cartItem = await tx.carts.findUnique({
+        where: { id: cartItemId },
+        include: {
+          products: {
+            select: {
+              id: true,
+              name: true,
+              price: true,
+              image: true,
+              link: true,
+              isActive: true,
+              companyId: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    if (!cartItem || cartItem.userId !== userId) {
-      throw new CustomError(
-        HttpStatus.NOT_FOUND,
-        ErrorCodes.GENERAL_NOT_FOUND,
-        '장바구니 항목을 찾을 수 없습니다.'
-      );
-    }
+      if (!cartItem || cartItem.userId !== userId) {
+        throw new CustomError(
+          HttpStatus.NOT_FOUND,
+          ErrorCodes.GENERAL_NOT_FOUND,
+          '장바구니 항목을 찾을 수 없습니다.'
+        );
+      }
 
-    // 2. 수량 업데이트
-    const updatedCartItem = await prisma.carts.update({
-      where: { id: cartItemId },
-      data: { quantity },
-      include: {
-        products: {
-          select: {
-            id: true,
-            name: true,
-            price: true,
-            image: true,
-            link: true,
-            isActive: true,
+      // 3. 테넌트 격리: 같은 회사의 상품인지 확인
+      if (cartItem.products.companyId !== user.companyId) {
+        throw new CustomError(
+          HttpStatus.FORBIDDEN,
+          ErrorCodes.AUTH_FORBIDDEN,
+          '접근 권한이 없는 상품입니다.'
+        );
+      }
+
+      // 4. 수량 업데이트
+      const updatedCartItem = await tx.carts.update({
+        where: { id: cartItemId },
+        data: { quantity },
+        include: {
+          products: {
+            select: {
+              id: true,
+              name: true,
+              price: true,
+              image: true,
+              link: true,
+              isActive: true,
+            },
           },
         },
-      },
+      });
+
+      // 3. 응답 데이터 구성
+      return {
+        id: updatedCartItem.id,
+        quantity: updatedCartItem.quantity,
+        updatedAt: updatedCartItem.updatedAt,
+        product: {
+          id: updatedCartItem.products.id,
+          name: updatedCartItem.products.name,
+          price: updatedCartItem.products.price,
+          image: updatedCartItem.products.image,
+          imageUrl: await getPresignedUrlForProduct(updatedCartItem.products.image),
+          link: updatedCartItem.products.link,
+          isActive: updatedCartItem.products.isActive,
+        },
+        subtotal: updatedCartItem.products.price * updatedCartItem.quantity,
+      };
     });
 
-    // 3. 응답 데이터 구성
-    const data = {
-      id: updatedCartItem.id,
-      quantity: updatedCartItem.quantity,
-      updatedAt: updatedCartItem.updatedAt,
-      product: {
-        id: updatedCartItem.products.id,
-        name: updatedCartItem.products.name,
-        price: updatedCartItem.products.price,
-        image: updatedCartItem.products.image,
-        link: updatedCartItem.products.link,
-        isActive: updatedCartItem.products.isActive,
-      },
-      subtotal: updatedCartItem.products.price * updatedCartItem.quantity,
-    };
-
-    return ResponseUtil.success(data, '장바구니 상품 수량이 수정되었습니다.');
+    return ResponseUtil.success(result, '장바구니 상품 수량이 수정되었습니다.');
   },
 
   // 🛒 [Cart] 장바구니 삭제 API
   deleteFromCart: async (userId: string, cartItemId: string) => {
-    // 1. 장바구니 항목 존재 여부 확인
-    const cartItem = await prisma.carts.findUnique({
-      where: { id: cartItemId },
-    });
+    await prisma.$transaction(async (tx) => {
+      // 1. 사용자 정보 조회 (companyId 확인용)
+      const user = await tx.users.findUnique({
+        where: { id: userId },
+        select: { companyId: true },
+      });
 
-    if (!cartItem || cartItem.userId !== userId) {
-      throw new CustomError(
-        HttpStatus.NOT_FOUND,
-        ErrorCodes.GENERAL_NOT_FOUND,
-        '장바구니 항목을 찾을 수 없습니다.'
-      );
-    }
+      if (!user) {
+        throw new CustomError(
+          HttpStatus.NOT_FOUND,
+          ErrorCodes.GENERAL_NOT_FOUND,
+          '사용자를 찾을 수 없습니다.'
+        );
+      }
 
-    // 2. 장바구니 항목 삭제
-    await prisma.carts.delete({
-      where: { id: cartItemId },
+      if (!user.companyId) {
+        throw new CustomError(
+          HttpStatus.FORBIDDEN,
+          ErrorCodes.AUTH_FORBIDDEN,
+          '회사에 소속된 사용자만 장바구니를 사용할 수 있습니다.'
+        );
+      }
+
+      // 2. 장바구니 항목 존재 여부 및 테넌트 검증
+      const cartItem = await tx.carts.findUnique({
+        where: { id: cartItemId },
+        include: {
+          products: {
+            select: { companyId: true },
+          },
+        },
+      });
+
+      if (!cartItem || cartItem.userId !== userId) {
+        throw new CustomError(
+          HttpStatus.NOT_FOUND,
+          ErrorCodes.GENERAL_NOT_FOUND,
+          '장바구니 항목을 찾을 수 없습니다.'
+        );
+      }
+
+      // 3. 테넌트 격리: 같은 회사의 상품인지 확인
+      if (cartItem.products.companyId !== user.companyId) {
+        throw new CustomError(
+          HttpStatus.FORBIDDEN,
+          ErrorCodes.AUTH_FORBIDDEN,
+          '접근 권한이 없는 상품입니다.'
+        );
+      }
+
+      // 4. 장바구니 항목 삭제
+      await tx.carts.delete({
+        where: { id: cartItemId },
+      });
     });
 
     return ResponseUtil.success({ id: cartItemId }, '장바구니에서 상품이 삭제되었습니다.');
@@ -325,37 +425,81 @@ export const cartService = {
       );
     }
 
-    // 2. 장바구니 항목들 존재 여부 및 소유권 확인
-    const cartItems = await prisma.carts.findMany({
-      where: {
-        id: { in: cartItemIds },
-        userId,
-      },
-    });
+    const result = await prisma.$transaction(async (tx) => {
+      // 2. 사용자 정보 조회 (companyId 확인용)
+      const user = await tx.users.findUnique({
+        where: { id: userId },
+        select: { companyId: true },
+      });
 
-    // 3. 요청된 ID와 실제 찾은 항목 수 비교
-    if (cartItems.length !== cartItemIds.length) {
-      throw new CustomError(
-        HttpStatus.BAD_REQUEST,
-        ErrorCodes.GENERAL_NOT_FOUND,
-        '일부 장바구니 항목을 찾을 수 없거나 권한이 없습니다.'
+      if (!user) {
+        throw new CustomError(
+          HttpStatus.NOT_FOUND,
+          ErrorCodes.GENERAL_NOT_FOUND,
+          '사용자를 찾을 수 없습니다.'
+        );
+      }
+
+      if (!user.companyId) {
+        throw new CustomError(
+          HttpStatus.FORBIDDEN,
+          ErrorCodes.AUTH_FORBIDDEN,
+          '회사에 소속된 사용자만 장바구니를 사용할 수 있습니다.'
+        );
+      }
+
+      // 3. 장바구니 항목들 존재 여부, 소유권 및 테넌트 검증
+      const cartItems = await tx.carts.findMany({
+        where: {
+          id: { in: cartItemIds },
+          userId,
+        },
+        include: {
+          products: {
+            select: { companyId: true },
+          },
+        },
+      });
+
+      // 4. 요청된 ID와 실제 찾은 항목 수 비교
+      if (cartItems.length !== cartItemIds.length) {
+        throw new CustomError(
+          HttpStatus.BAD_REQUEST,
+          ErrorCodes.GENERAL_BAD_REQUEST,
+          '일부 장바구니 항목을 찾을 수 없거나 권한이 없습니다.'
+        );
+      }
+
+      // 5. 테넌트 격리: 모든 상품이 같은 회사의 것인지 확인
+      const hasInvalidProduct = cartItems.some(
+        (item) => item.products.companyId !== user.companyId
       );
-    }
 
-    // 4. 트랜잭션으로 일괄 삭제
-    const deletedCount = await prisma.carts.deleteMany({
-      where: {
-        id: { in: cartItemIds },
-        userId,
-      },
+      if (hasInvalidProduct) {
+        throw new CustomError(
+          HttpStatus.FORBIDDEN,
+          ErrorCodes.AUTH_FORBIDDEN,
+          '접근 권한이 없는 상품이 포함되어 있습니다.'
+        );
+      }
+
+      // 6. 일괄 삭제
+      const deletedCount = await tx.carts.deleteMany({
+        where: {
+          id: { in: cartItemIds },
+          userId,
+        },
+      });
+
+      return {
+        deletedCount: deletedCount.count,
+        deletedIds: cartItemIds,
+      };
     });
 
     return ResponseUtil.success(
-      {
-        deletedCount: deletedCount.count,
-        deletedIds: cartItemIds,
-      },
-      `${deletedCount.count}개의 상품이 장바구니에서 삭제되었습니다.`
+      result,
+      `${result.deletedCount}개의 상품이 장바구니에서 삭제되었습니다.`
     );
   },
 };

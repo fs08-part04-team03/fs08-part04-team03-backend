@@ -32,7 +32,11 @@
  *               description: 상품명
  *             image:
  *               type: string
- *               description: 상품 이미지 URL
+ *               description: 상품 이미지 S3 키
+ *             imageUrl:
+ *               type: string
+ *               nullable: true
+ *               description: 상품 이미지 Presigned URL
  *             link:
  *               type: string
  *               description: 상품 링크
@@ -77,6 +81,10 @@
  *         requestMessage:
  *           type: string
  *           description: 요청 메시지
+ *         reason:
+ *           type: string
+ *           nullable: true
+ *           description: 승인 사유/메시지 (관리자가 승인 시 입력)
  *         rejectReason:
  *           type: string
  *           description: 반려 사유
@@ -217,6 +225,18 @@
  * /api/v1/purchase/admin/purchaseNow:
  *   post:
  *     summary: 즉시 구매 (관리자)
+ *     description: |
+ *       관리자가 즉시 구매를 진행합니다 (승인 절차 없이 바로 APPROVED 상태로 생성).
+ *
+ *       **주요 기능:**
+ *       - 승인 절차 없이 즉시 구매 처리
+ *       - 같은 회사의 활성화된 상품만 구매 가능 (테넌트 격리)
+ *       - 구매 시점의 가격을 스냅샷으로 저장
+ *
+ *       **보안 검증:**
+ *       - 상품의 companyId와 사용자의 companyId 일치 확인
+ *       - 활성화된 상품만 구매 가능
+ *       - 다른 회사의 상품 접근 차단
  *     tags: [Purchase]
  *     security:
  *       - bearerAuth: []
@@ -379,9 +399,172 @@
 
 /**
  * @swagger
+ * /api/v1/purchase/admin/getPurchaseRequestDetail/{purchaseRequestId}:
+ *   get:
+ *     summary: 구매 요청 상세 조회 (관리자)
+ *     description: |
+ *       관리자가 모든 구매 요청의 상세 내역을 조회할 수 있습니다.
+ *
+ *       ### 조회 가능한 정보
+ *       - 구매 요청 기본 정보 (ID, 요청일, 승인/반려일, 승인일, 상품 금액, 배송비, 최종 금액, 상태)
+ *       - 요청 메시지 및 반려 사유
+ *       - 구매 항목 목록 (상품명, 수량, 가격 스냅샷, 항목 소계, 이미지, 링크)
+ *       - 요청인 정보 (이름, 이메일)
+ *       - 승인자/반려자 정보 (이름, 이메일)
+ *     tags: [Purchase]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: purchaseRequestId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: 구매 요청 ID
+ *     responses:
+ *       200:
+ *         description: 구매 요청 상세 조회 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                       description: 구매 요청 ID
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                       description: 요청일
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *                       description: 수정일
+ *                     approvedAt:
+ *                       type: string
+ *                       format: date-time
+ *                       nullable: true
+ *                       description: 승인일 (APPROVED 상태일 때만)
+ *                     itemsTotalPrice:
+ *                       type: number
+ *                       description: 상품 금액 합계 (배송비 제외)
+ *                     shippingFee:
+ *                       type: number
+ *                       description: 배송비
+ *                     finalTotalPrice:
+ *                       type: number
+ *                       description: 최종 금액 (상품 + 배송비)
+ *                     status:
+ *                       type: string
+ *                       enum: [PENDING, APPROVED, REJECTED, CANCELLED]
+ *                       description: 구매 요청 상태
+ *                     requestMessage:
+ *                       type: string
+ *                       nullable: true
+ *                       description: 요청 메시지
+ *                     reason:
+ *                       type: string
+ *                       nullable: true
+ *                       description: 승인 사유/메시지 (관리자가 승인 시 입력)
+ *                     rejectReason:
+ *                       type: string
+ *                       nullable: true
+ *                       description: 반려 사유
+ *                     purchaseItems:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                             format: uuid
+ *                             description: 구매 항목 ID
+ *                           quantity:
+ *                             type: integer
+ *                             description: 수량
+ *                           priceSnapshot:
+ *                             type: number
+ *                             description: 구매 시점 가격
+ *                           itemTotal:
+ *                             type: number
+ *                             description: 항목 소계 (수량 × 단가)
+ *                           products:
+ *                             type: object
+ *                             properties:
+ *                               id:
+ *                                 type: integer
+ *                                 description: 상품 ID
+ *                               name:
+ *                                 type: string
+ *                                 description: 상품명
+ *                               image:
+ *                                 type: string
+ *                                 description: 상품 이미지 URL
+ *                               link:
+ *                                 type: string
+ *                                 description: 상품 링크
+ *                     requester:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           format: uuid
+ *                           description: 요청자 ID
+ *                         name:
+ *                           type: string
+ *                           description: 요청자 이름
+ *                         email:
+ *                           type: string
+ *                           description: 요청자 이메일
+ *                     approver:
+ *                       type: object
+ *                       nullable: true
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           format: uuid
+ *                           description: 승인자 ID
+ *                         name:
+ *                           type: string
+ *                           description: 승인자 이름
+ *                         email:
+ *                           type: string
+ *                           description: 승인자 이메일
+ *                 message:
+ *                   type: string
+ *                   example: "구매 요청 상세 내역을 조회했습니다."
+ *       401:
+ *         description: 인증 실패
+ *       403:
+ *         description: 권한 없음 (관리자만 접근 가능)
+ *       404:
+ *         description: 구매 요청을 찾을 수 없음
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "구매 요청을 찾을 수 없습니다."
+ */
+
+/**
+ * @swagger
  * /api/v1/purchase/admin/managePurchaseRequests:
  *   get:
- *     summary: 구매 요청 확인 (관리자)
+ *     summary: 구매 요청 목록 조회 (관리자)
  *     tags: [Purchase]
  *     security:
  *       - bearerAuth: []
@@ -467,6 +650,7 @@
  *       - 구매 요청의 상태를 APPROVED로 변경합니다.
  *       - 승인자(approver) 정보가 자동으로 기록됩니다.
  *       - 동시성 제어를 통해 중복 승인을 방지합니다.
+ *       - 선택적으로 승인 메시지를 함께 저장할 수 있습니다.
  *
  *       ### 승인 조건
  *       - 구매 요청이 존재해야 합니다.
@@ -477,6 +661,7 @@
  *       ### 승인 후 변경사항
  *       - `status`: PENDING → APPROVED
  *       - `approver`: 승인한 관리자 정보가 설정됩니다.
+ *       - `reason`: 승인 메시지가 저장됩니다 (선택사항).
  *       - `updatedAt`: 승인 시간으로 자동 업데이트됩니다.
  *       - `budget`: 당월 회사 예산에서 요청 금액(totalPrice + shippingFee)만큼 차감됩니다.
  *     tags: [Purchase]
@@ -489,6 +674,17 @@
  *         schema:
  *           type: string
  *         description: 구매 요청 ID
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               message:
+ *                 type: string
+ *                 description: 승인 메시지 (선택사항). 승인 시 요청자에게 전달할 메시지를 입력합니다.
+ *                 example: "승인합니다. 빠른 배송 부탁드립니다."
  *     responses:
  *       200:
  *         description: 구매 요청 승인 성공
@@ -615,7 +811,20 @@
  * /api/v1/purchase/user/requestPurchase:
  *   post:
  *     summary: 구매 요청
- *     description: 장바구니에 있는 상품으로 구매 요청을 생성합니다. 요청 성공 시 해당 상품은 장바구니에서 삭제됩니다.
+ *     description: |
+ *       장바구니에 있는 상품으로 구매 요청을 생성합니다.
+ *       요청 성공 시 해당 상품은 장바구니에서 자동 삭제됩니다.
+ *
+ *       **주요 기능:**
+ *       - 장바구니의 상품으로 구매 요청 생성 (PENDING 상태)
+ *       - 같은 회사의 상품만 구매 요청 가능 (테넌트 격리)
+ *       - 구매 시점의 가격을 스냅샷으로 저장
+ *       - 요청된 상품은 장바구니에서 자동 삭제
+ *
+ *       **검증 사항:**
+ *       - 장바구니에 해당 상품이 존재해야 함
+ *       - 요청 수량과 장바구니 수량이 일치해야 함
+ *       - 같은 회사의 상품만 구매 가능
  *     tags: [Purchase]
  *     security:
  *       - bearerAuth: []
@@ -981,77 +1190,6 @@
  *                 message:
  *                   type: string
  *                   example: "구매 관리 대시보드 정보를 조회했습니다."
- *       401:
- *         description: 인증 실패
- *       403:
- *         description: 권한 없음 (관리자만 접근 가능)
- */
-
-/**
- * @swagger
- * /api/v1/purchase/admin/monthlyExpenses:
- *   get:
- *     summary: 최근 1년간 월별 지출 내역 조회
- *     description: 최근 12개월간의 월별 지출 내역을 조회합니다 (승인된 구매 요청만 집계).
- *     tags:
- *       - Purchase
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: 최근 1년간 월별 지출 내역 조회 성공
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 data:
- *                   type: object
- *                   properties:
- *                     monthlyExpenses:
- *                       type: array
- *                       items:
- *                         type: object
- *                         properties:
- *                           year:
- *                             type: integer
- *                             description: 연도
- *                             example: 2025
- *                           month:
- *                             type: integer
- *                             description: 월
- *                             example: 1
- *                           totalExpense:
- *                             type: number
- *                             description: 해당 월의 총 지출액 (totalPrice + shippingFee)
- *                             example: 150000
- *                     period:
- *                       type: object
- *                       properties:
- *                         from:
- *                           type: object
- *                           properties:
- *                             year:
- *                               type: integer
- *                               example: 2025
- *                             month:
- *                               type: integer
- *                               example: 1
- *                         to:
- *                           type: object
- *                           properties:
- *                             year:
- *                               type: integer
- *                               example: 2026
- *                             month:
- *                               type: integer
- *                               example: 1
- *                 message:
- *                   type: string
- *                   example: "최근 1년간 월별 지출 내역을 조회했습니다."
  *       401:
  *         description: 인증 실패
  *       403:

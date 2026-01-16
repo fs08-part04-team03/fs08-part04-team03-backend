@@ -1,6 +1,8 @@
 import { Router } from 'express';
+import { role } from '@prisma/client';
 import { requireMinRole } from '../../common/middlewares/role.middleware';
 import { verifyAccessToken } from '../../common/middlewares/auth.middleware';
+import { verifyTenantAccess } from '../../common/middlewares/tenant.middleware';
 import { validateRequest } from '../../common/middlewares/validator.middleware';
 import { cartValidator } from './cart.validator';
 import { cartController } from './cart.controller';
@@ -11,7 +13,8 @@ const router = Router();
 router.post(
   '/addToCart',
   verifyAccessToken,
-  requireMinRole('USER'),
+  verifyTenantAccess,
+  requireMinRole(role.USER),
   cartValidator.validateAddToCart,
   validateRequest,
   cartController.addToCart
@@ -21,7 +24,8 @@ router.post(
 router.get(
   '/getMyCart',
   verifyAccessToken,
-  requireMinRole('USER'),
+  verifyTenantAccess,
+  requireMinRole(role.USER),
   cartValidator.validateGetMyCart,
   validateRequest,
   cartController.getMyCart
@@ -31,7 +35,8 @@ router.get(
 router.patch(
   '/updateQuantity',
   verifyAccessToken,
-  requireMinRole('USER'),
+  verifyTenantAccess,
+  requireMinRole(role.USER),
   cartValidator.validateUpdateQuantity,
   validateRequest,
   cartController.updateQuantity
@@ -41,7 +46,8 @@ router.patch(
 router.delete(
   '/deleteFromCart',
   verifyAccessToken,
-  requireMinRole('USER'),
+  verifyTenantAccess,
+  requireMinRole(role.USER),
   cartValidator.validateDeleteFromCart,
   validateRequest,
   cartController.deleteFromCart
@@ -51,7 +57,8 @@ router.delete(
 router.delete(
   '/deleteMultiple',
   verifyAccessToken,
-  requireMinRole('USER'),
+  verifyTenantAccess,
+  requireMinRole(role.USER),
   cartValidator.validateDeleteMultipleFromCart,
   validateRequest,
   cartController.deleteMultipleFromCart

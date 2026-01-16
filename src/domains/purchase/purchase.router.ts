@@ -1,7 +1,9 @@
 import { Router } from 'express';
+import { role } from '@prisma/client';
 import { checkBudget } from '../../common/middlewares/purchase.middleware';
 import { requireMinRole } from '../../common/middlewares/role.middleware';
 import { verifyAccessToken } from '../../common/middlewares/auth.middleware';
+import { verifyTenantAccess } from '../../common/middlewares/tenant.middleware';
 import { validateRequest } from '../../common/middlewares/validator.middleware';
 import { purchaseValidator } from './purchase.validator';
 import { purchaseController } from './purchase.controller';
@@ -12,7 +14,8 @@ const router = Router();
 router.get(
   '/admin/getAllPurchases',
   verifyAccessToken,
-  requireMinRole('MANAGER'),
+  verifyTenantAccess,
+  requireMinRole(role.MANAGER),
   purchaseValidator.validatePurchaseList,
   validateRequest,
   purchaseController.getAllPurchases
@@ -22,7 +25,8 @@ router.get(
 router.post(
   '/admin/purchaseNow',
   verifyAccessToken,
-  requireMinRole('MANAGER'),
+  verifyTenantAccess,
+  requireMinRole(role.MANAGER),
   purchaseValidator.validatePurchaseNow,
   validateRequest,
   checkBudget,
@@ -33,7 +37,8 @@ router.post(
 router.get(
   '/user/getMyPurchases',
   verifyAccessToken,
-  requireMinRole('USER'),
+  verifyTenantAccess,
+  requireMinRole(role.USER),
   purchaseValidator.validateGetMyPurchase,
   validateRequest,
   purchaseController.getMyPurchases
@@ -43,17 +48,30 @@ router.get(
 router.get(
   '/user/getMyPurchaseDetail/:id',
   verifyAccessToken,
-  requireMinRole('USER'),
+  verifyTenantAccess,
+  requireMinRole(role.USER),
   purchaseValidator.validateGetMyPurchaseDetail,
   validateRequest,
   purchaseController.getMyPurchaseDetail
+);
+
+// 💰 [Purchase] 구매 요청 상세 조회 API (관리자)
+router.get(
+  '/admin/getPurchaseRequestDetail/:id',
+  verifyAccessToken,
+  verifyTenantAccess,
+  requireMinRole(role.MANAGER),
+  purchaseValidator.validateGetPurchaseRequestDetail,
+  validateRequest,
+  purchaseController.getPurchaseRequestDetail
 );
 
 // 💰 [Purchase] 구매 요청 관리/조회 API (관리자)
 router.get(
   '/admin/managePurchaseRequests',
   verifyAccessToken,
-  requireMinRole('MANAGER'),
+  verifyTenantAccess,
+  requireMinRole(role.MANAGER),
   purchaseValidator.validateManagePurchaseRequests,
   validateRequest,
   purchaseController.managePurchaseRequests
@@ -63,7 +81,8 @@ router.get(
 router.patch(
   '/admin/approvePurchaseRequest/:id',
   verifyAccessToken,
-  requireMinRole('MANAGER'),
+  verifyTenantAccess,
+  requireMinRole(role.MANAGER),
   purchaseValidator.validateApprovePurchaseRequest,
   validateRequest,
   purchaseController.approvePurchaseRequest
@@ -73,7 +92,8 @@ router.patch(
 router.patch(
   '/admin/rejectPurchaseRequest/:id',
   verifyAccessToken,
-  requireMinRole('MANAGER'),
+  verifyTenantAccess,
+  requireMinRole(role.MANAGER),
   purchaseValidator.validateRejectPurchaseRequest,
   validateRequest,
   purchaseController.rejectPurchaseRequest
@@ -83,7 +103,8 @@ router.patch(
 router.post(
   '/user/requestPurchase',
   verifyAccessToken,
-  requireMinRole('USER'),
+  verifyTenantAccess,
+  requireMinRole(role.USER),
   purchaseValidator.validateRequestPurchase,
   validateRequest,
   checkBudget,
@@ -94,7 +115,8 @@ router.post(
 router.post(
   '/user/urgentRequestPurchase',
   verifyAccessToken,
-  requireMinRole('USER'),
+  verifyTenantAccess,
+  requireMinRole(role.USER),
   purchaseValidator.validateRequestPurchase,
   validateRequest,
   purchaseController.requestPurchase
@@ -104,7 +126,8 @@ router.post(
 router.patch(
   '/user/cancelPurchaseRequest/:id',
   verifyAccessToken,
-  requireMinRole('USER'),
+  verifyTenantAccess,
+  requireMinRole(role.USER),
   purchaseValidator.validateCancelPurchaseRequest,
   validateRequest,
   purchaseController.cancelPurchaseRequest
@@ -114,7 +137,8 @@ router.patch(
 router.get(
   '/admin/expenseStatistics',
   verifyAccessToken,
-  requireMinRole('MANAGER'),
+  verifyTenantAccess,
+  requireMinRole(role.MANAGER),
   purchaseController.getExpenseStatistics
 );
 
@@ -122,7 +146,8 @@ router.get(
 router.get(
   '/admin/purchaseDashboard',
   verifyAccessToken,
-  requireMinRole('MANAGER'),
+  verifyTenantAccess,
+  requireMinRole(role.MANAGER),
   purchaseController.getPurchaseDashboard
 );
 

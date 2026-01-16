@@ -12,11 +12,19 @@
  *     summary: 장바구니에 상품 추가
  *     description: |
  *       장바구니에 상품을 추가합니다.
+ *
  *       **주요 기능:**
  *       - 새로운 상품을 장바구니에 추가
  *       - 이미 있는 상품은 수량 증가 (중복 처리)
- *       - 같은 회사의 상품만 추가 가능
+ *       - 같은 회사의 상품만 추가 가능 (테넌트 격리)
  *       - 비활성화된 상품은 추가 불가
+ *       - 회사에 소속되지 않은 사용자는 이용 불가
+ *
+ *       **보안 검증:**
+ *       - 사용자의 companyId 확인
+ *       - 상품의 companyId와 일치 여부 확인
+ *       - 다른 회사의 상품 접근 차단
+ *
  *       **응답에 포함된 isNew 플래그:**
  *       - `true`: 새로 추가된 상품 → "장바구니에 상품이 추가되었습니다."
  *       - `false`: 기존 상품의 수량 증가 → "장바구니 상품의 수량이 증가했습니다."
@@ -85,6 +93,12 @@
  *                           type: string
  *                           nullable: true
  *                           example: "01_농심_새우깡.png"
+ *                           description: S3 키
+ *                         imageUrl:
+ *                           type: string
+ *                           nullable: true
+ *                           example: "https://bucket.s3.amazonaws.com/products/abc123.jpg?X-Amz-..."
+ *                           description: S3 Presigned URL
  *                         link:
  *                           type: string
  *                           example: "https://example.com/products/1001"
@@ -314,6 +328,12 @@
  *                           type: string
  *                           nullable: true
  *                           example: "01_농심_새우깡.png"
+ *                           description: S3 키
+ *                         imageUrl:
+ *                           type: string
+ *                           nullable: true
+ *                           example: "https://bucket.s3.amazonaws.com/products/abc123.jpg?X-Amz-..."
+ *                           description: S3 Presigned URL
  *                         link:
  *                           type: string
  *                           example: "https://example.com/products/1001"

@@ -29,6 +29,11 @@
  *         businessNumber: { type: string, example: "123-45-67890" }
  *         createdAt: { type: string, format: date-time }
  *         updatedAt: { type: string, format: date-time }
+ *     AuthCompanySummary:
+ *       type: object
+ *       properties:
+ *         id: { type: string, format: uuid }
+ *         name: { type: string, example: "Acme Inc" }
  *     AuthSignupRequest:
  *       type: object
  *       required: [name, email, password, passwordConfirm, inviteUrl]
@@ -69,6 +74,10 @@
  *       properties:
  *         email: { type: string, format: email }
  *         password: { type: string }
+ *         companyId:
+ *           type: string
+ *           format: uuid
+ *           description: '회사 선택 단계에서 사용하는 회사 ID'
  *     AuthTokenPayload:
  *       type: object
  *       properties:
@@ -126,6 +135,22 @@
  *             message:
  *               type: string
  *               example: '로그아웃 완료'
+ *     AuthCompanySelectionRequiredError:
+ *       type: object
+ *       properties:
+ *         success: { type: boolean, example: false }
+ *         error:
+ *           type: object
+ *           properties:
+ *             code: { type: string, example: "AUTH_COMPANY_SELECTION_REQUIRED" }
+ *             message: { type: string, example: "회사 선택이 필요합니다." }
+ *             details:
+ *               type: object
+ *               properties:
+ *                 requiresCompanySelection: { type: boolean, example: true }
+ *                 companies:
+ *                   type: array
+ *                   items: { $ref: '#/components/schemas/AuthCompanySummary' }
  *     AuthCsrfResponse:
  *       type: object
  *       properties:
@@ -223,6 +248,11 @@
  *             schema: { $ref: '#/components/schemas/AuthLoginResponse' }
  *       '401':
  *         description: 인증 실패 또는 비활성 계정
+ *       '409':
+ *         description: 회사 선택 필요
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/AuthCompanySelectionRequiredError' }
  */
 
 /**
