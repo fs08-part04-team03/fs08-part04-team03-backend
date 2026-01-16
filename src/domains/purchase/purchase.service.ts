@@ -34,7 +34,7 @@ export const purchaseService = {
   async getAllPurchases(companyId: string, query: GetAllPurchasesQuery) {
     // 기본 값 설정
     const page = query.page || 1;
-    const limit = query.limit || 10;
+    const limit = query.limit || 6;
     const sortBy = query.sortBy || 'createdAt';
     const order = query.order || 'desc';
     // 건너뛸 항목 수 계산
@@ -174,7 +174,7 @@ export const purchaseService = {
   async getMyPurchases(companyId: string, userId: string, query: GetAllPurchasesQuery) {
     // 기본 값 설정
     const page = query.page || 1;
-    const limit = query.limit || 10;
+    const limit = query.limit || 6;
     const sortBy = query.sortBy || 'createdAt';
     const order = query.order || 'desc';
     // 건너뛸 항목 수 계산
@@ -425,7 +425,7 @@ export const purchaseService = {
   ) {
     // 기본 값 설정
     const page = query.page || 1;
-    const limit = query.limit || 10;
+    const limit = query.limit || 6;
     const sortBy = query.sortBy || 'createdAt';
     const order = query.order || 'desc';
     const { status } = query;
