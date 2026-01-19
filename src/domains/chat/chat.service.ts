@@ -1,8 +1,7 @@
 import { ChatOpenAI } from '@langchain/openai';
 import { PromptTemplate } from '@langchain/core/prompts';
-import { StringOutputParser } from '@langchain/core/output_parsers';
+import { StringOutputParser, JsonOutputParser } from '@langchain/core/output_parsers';
 import { RunnableSequence } from '@langchain/core/runnables';
-import type { Prisma } from '@prisma/client';
 import { env } from '../../config/env.config';
 import { prisma } from '../../common/database/prisma.client';
 import { CustomError } from '../../common/utils/error.util';
@@ -12,13 +11,13 @@ import { ErrorCodes } from '../../common/constants/errorCodes.constants';
 // 컨텍스트 데이터 타입 정의
 interface ContextData {
   products?: Array<{
-    id: string;
+    id: number;
     name: string;
-    price: Prisma.Decimal;
-    categoryId: string;
+    price: number;
+    categoryId: number;
   }>;
   categories?: Array<{
-    id: string;
+    id: number;
     name: string;
   }>;
   budget?: {
@@ -26,18 +25,18 @@ interface ContextData {
     companyId: string;
     year: number;
     month: number;
-    amount: Prisma.Decimal;
+    amount: number;
   } | null;
   thisMonthPurchases?: {
     _sum: {
-      totalPrice: Prisma.Decimal | null;
+      totalPrice: number | null;
     };
     _count: number;
   };
   recentPurchases?: Array<{
     id: string;
     status: string;
-    totalPrice: Prisma.Decimal;
+    totalPrice: number;
     createdAt: Date;
   }>;
   stats?: {
@@ -64,9 +63,9 @@ interface RecommendProductsResponse {
   query: string;
   answer: string;
   recommendedProducts: Array<{
-    id: string;
+    id: number;
     name: string;
-    price: Prisma.Decimal;
+    price: number;
     categoies: { name: string } | null;
   }>;
 }
@@ -85,19 +84,8 @@ const getLLM = () => {
   return llm;
 };
 
-// Prisma Decimal을 숫자로 변환하는 헬퍼 함수
-const serializeContextData = (data: ContextData): string =>
-  JSON.stringify(
-    data,
-    (_key, value) => {
-      // Prisma.Decimal 타입을 숫자로 변환
-      if (value && typeof value === 'object' && 'toNumber' in value) {
-        return (value as Prisma.Decimal).toNumber();
-      }
-      return value as unknown;
-    },
-    2
-  );
+// 컨텍스트 데이터를 JSON 문자열로 변환하는 헬퍼 함수
+const serializeContextData = (data: ContextData): string => JSON.stringify(data, null, 2);
 
 // 데이터베이스 스키마 정보
 const getSchemaInfo = () => `
@@ -348,34 +336,29 @@ export const chatService = {
 
       // 상품 목록을 ID와 함께 포맷팅
       const productList = products
-        .map((p) => {
-          const priceNum = (p.price as Prisma.Decimal).toNumber();
-          return `- ID: ${p.id}, 이름: ${p.name}, 카테고리: ${p.categoies?.name || '기타'}, 가격: ${priceNum.toLocaleString()}원`;
-        })
+        .map(
+          (p) =>
+            `- ID: ${p.id}, 이름: ${p.name}, 카테고리: ${p.categoies?.name || '기타'}, 가격: ${p.price.toLocaleString()}원`
+        )
         .join('\n');
 
-      const chain = RunnableSequence.from([recommendPrompt, model, new StringOutputParser()]);
+      const parser = new JsonOutputParser<{
+        answer: string;
+        productIds: string[];
+      }>();
 
-      const response = await chain.invoke({
+      const chain = RunnableSequence.from([recommendPrompt, model, parser]);
+
+      const result = await chain.invoke({
         query,
         products: productList,
       });
 
-      // JSON 응답 파싱
-      const jsonMatch = response.match(/{[^]*}/);
-      if (!jsonMatch) {
-        throw new Error('LLM 응답에서 JSON을 찾을 수 없습니다.');
-      }
-
-      const result = JSON.parse(jsonMatch[0]) as {
-        answer: string;
-        productIds: string[];
-      };
-
-      // LLM이 선택한 상품 ID로 실제 상품 필터링
-      const recommendedProducts = products.filter((p) =>
-        result.productIds.includes(p.id.toString())
-      );
+      // LLM이 선택한 상품 ID로 실제 상품 필터링 (순서 보존)
+      const productsById = new Map(products.map((p) => [p.id.toString(), p]));
+      const recommendedProducts = result.productIds
+        .map((id) => productsById.get(String(id)))
+        .filter((p): p is (typeof products)[number] => Boolean(p));
 
       return {
         query,
