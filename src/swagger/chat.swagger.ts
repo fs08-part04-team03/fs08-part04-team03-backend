@@ -28,6 +28,9 @@
  *           example: ["안녕하세요!", "네, 안녕하세요! 무엇을 도와드릴까요?"]
  *     ChatResponse:
  *       type: object
+ *       description: |
+ *         챗봇 응답 (API 응답 형식).
+ *         실제로는 data.reply만 반환되며, 서비스 레이어의 전체 응답(message, response, contextData)은 내부적으로만 사용됩니다.
  *       properties:
  *         success:
  *           type: boolean
@@ -40,7 +43,11 @@
  *           properties:
  *             reply:
  *               type: string
- *               description: 챗봇의 응답 메시지
+ *               description: |
+ *                 챗봇의 응답 메시지.
+ *                 사용자 권한에 따라 제공되는 정보가 다릅니다:
+ *                 - USER: 본인의 구매 요청만 조회 가능
+ *                 - MANAGER/ADMIN: 회사 전체 정보 조회 가능
  *               example: "🥤 목이 마르시군요! 시원한 음료를 추천해드릴게요. 저희 회사에서 판매 중인 상품 중에서 콜라, 사이다, 오렌지주스를 추천드립니다!"
  *     ChatQueryRequest:
  *       type: object

@@ -258,7 +258,8 @@ export const chatService = {
         contextData,
       };
     } catch (error) {
-      console.error('Chat error:', error);
+      const safeMessage = error instanceof Error ? error.message : String(error);
+      console.error('Chat error:', safeMessage);
       throw new CustomError(
         HttpStatus.INTERNAL_SERVER_ERROR,
         ErrorCodes.GENERAL_INTERNAL_ERROR,
@@ -355,6 +356,7 @@ export const chatService = {
           status: 'APPROVED',
           createdAt: {
             gte: new Date(now.getFullYear(), now.getMonth(), 1),
+            lt: new Date(now.getFullYear(), now.getMonth() + 1, 1),
           },
         },
         _sum: { totalPrice: true },
@@ -481,7 +483,8 @@ export const chatService = {
         contextData,
       };
     } catch (error) {
-      console.error('Query error:', error);
+      const safeMessage = error instanceof Error ? error.message : String(error);
+      console.error('Query error:', safeMessage);
       throw new CustomError(
         HttpStatus.INTERNAL_SERVER_ERROR,
         ErrorCodes.GENERAL_INTERNAL_ERROR,
@@ -539,7 +542,8 @@ export const chatService = {
         recommendedProducts,
       };
     } catch (error) {
-      console.error('Recommendation error:', error);
+      const safeMessage = error instanceof Error ? error.message : String(error);
+      console.error('Recommendation error:', safeMessage);
       throw new CustomError(
         HttpStatus.INTERNAL_SERVER_ERROR,
         ErrorCodes.GENERAL_INTERNAL_ERROR,
@@ -558,7 +562,8 @@ export const chatService = {
     try {
       return await this.queryWithAgent(companyId, query, userRole, userId);
     } catch (error) {
-      console.error('Statistics error:', error);
+      const safeMessage = error instanceof Error ? error.message : String(error);
+      console.error('Statistics error:', safeMessage);
       throw new CustomError(
         HttpStatus.INTERNAL_SERVER_ERROR,
         ErrorCodes.GENERAL_INTERNAL_ERROR,
