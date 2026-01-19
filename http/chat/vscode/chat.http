@@ -1,0 +1,130 @@
+@baseUrl = http://localhost:4000/api/v1
+@accessToken = your-access-token-here
+
+# Chat API 테스트
+# 사전 준비: /auth/login으로 로그인하여 accessToken을 받아야 합니다.
+# VSCode REST Client 설정: "rest-client.rememberCookiesForSubsequentRequests": true
+
+### 1) 챗봇 대화 - 인사
+# @name chatGreeting
+POST {{baseUrl}}/chat
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "message": "안녕하세요!",
+  "chatHistory": []
+}
+
+### 2) 챗봇 대화 - 음료 추천
+# @name chatRecommend
+POST {{baseUrl}}/chat
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "message": "목이 마른데, 마실만한 것을 추천해주세요",
+  "chatHistory": [
+    "안녕하세요!",
+    "네, 안녕하세요! 무엇을 도와드릴까요?"
+  ]
+}
+
+### 3) 챗봇 대화 - 예산 조회
+# @name chatBudget
+POST {{baseUrl}}/chat
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "message": "이번 달 예산은 얼마나 남았나요?",
+  "chatHistory": []
+}
+
+### 4) 챗봇 대화 - 구매 현황 조회
+# @name chatPurchase
+POST {{baseUrl}}/chat
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "message": "최근 구매 요청 현황 알려줘",
+  "chatHistory": []
+}
+
+### 5) 자연어 쿼리 - 구매 건수
+# @name query
+POST {{baseUrl}}/chat/query
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "query": "이번 달 구매 요청 건수는?"
+}
+
+### 6) 자연어 쿼리 - 총 지출 금액
+# @name queryExpense
+POST {{baseUrl}}/chat/query
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "query": "이번 달 총 지출 금액은?"
+}
+
+### 7) AI 상품 추천 - 음료
+# @name recommendDrink
+POST {{baseUrl}}/chat/recommend
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "query": "시원한 음료 추천해줘"
+}
+
+### 8) AI 상품 추천 - 간식
+# @name recommendSnack
+POST {{baseUrl}}/chat/recommend
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "query": "간식거리 추천해줘"
+}
+
+### 9) AI 통계 조회 - 지출 금액
+# @name statisticsExpense
+POST {{baseUrl}}/chat/statistics
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "query": "이번 달 총 지출 금액은?"
+}
+
+### 10) AI 통계 조회 - 카테고리별 통계
+# @name statisticsCategory
+POST {{baseUrl}}/chat/statistics
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "query": "가장 많이 구매한 카테고리는?"
+}
+
+### 11) 잘못된 요청 - 빈 메시지 (400 에러)
+POST {{baseUrl}}/chat
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "message": ""
+}
+
+### 12) 인증 없이 요청 (401 에러)
+POST {{baseUrl}}/chat
+Content-Type: application/json
+
+{
+  "message": "안녕하세요!"
+}
