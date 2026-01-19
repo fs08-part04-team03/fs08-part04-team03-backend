@@ -25,13 +25,27 @@ const getCompanyId = (req: AuthenticatedRequest) => {
   return companyId;
 };
 
+// 사용자 정보 가져오기
+const getUserInfo = (req: AuthenticatedRequest) => {
+  const { user } = req;
+  if (!user) {
+    throw new CustomError(
+      HttpStatus.UNAUTHORIZED,
+      ErrorCodes.AUTH_UNAUTHORIZED,
+      '사용자 인증이 필요합니다.'
+    );
+  }
+  return { userId: user.id, userRole: user.role };
+};
+
 export const chatController = {
   // 챗봇 대화 (메인 엔드포인트)
   chat: async (req: ChatRequest, res: Response) => {
     const companyId = getCompanyId(req);
+    const { userId, userRole } = getUserInfo(req);
     const { message, chatHistory = [] } = req.body as { message: string; chatHistory?: string[] };
 
-    if (!message || typeof message !== 'string' || message.trim() === '') {
+    if (!message || message.trim() === '') {
       throw new CustomError(
         HttpStatus.BAD_REQUEST,
         ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
@@ -39,7 +53,7 @@ export const chatController = {
       );
     }
 
-    const result = await chatService.chat(companyId, message, chatHistory);
+    const result = await chatService.chat(companyId, message, userRole, userId, chatHistory);
 
     // 프론트엔드가 기대하는 응답 형식으로 변환
     const responseData = {
@@ -52,9 +66,10 @@ export const chatController = {
   // 자연어 쿼리 처리
   query: async (req: ChatQueryRequest, res: Response) => {
     const companyId = getCompanyId(req);
+    const { userId, userRole } = getUserInfo(req);
     const { query } = req.body as { query: string };
 
-    if (!query || typeof query !== 'string' || query.trim() === '') {
+    if (!query || query.trim() === '') {
       throw new CustomError(
         HttpStatus.BAD_REQUEST,
         ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
@@ -62,7 +77,7 @@ export const chatController = {
       );
     }
 
-    const result = await chatService.queryWithAgent(companyId, query);
+    const result = await chatService.queryWithAgent(companyId, query, userRole, userId);
     res.status(HttpStatus.OK).json(ResponseUtil.success(result, '쿼리 처리 완료'));
   },
 
@@ -71,7 +86,7 @@ export const chatController = {
     const companyId = getCompanyId(req);
     const { query } = req.body as { query: string };
 
-    if (!query || typeof query !== 'string' || query.trim() === '') {
+    if (!query || query.trim() === '') {
       throw new CustomError(
         HttpStatus.BAD_REQUEST,
         ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
@@ -86,9 +101,10 @@ export const chatController = {
   // 통계 조회
   getStatistics: async (req: StatisticsRequest, res: Response) => {
     const companyId = getCompanyId(req);
+    const { userId, userRole } = getUserInfo(req);
     const { query } = req.body as { query: string };
 
-    if (!query || typeof query !== 'string' || query.trim() === '') {
+    if (!query || query.trim() === '') {
       throw new CustomError(
         HttpStatus.BAD_REQUEST,
         ErrorCodes.GENERAL_INVALID_REQUEST_BODY,
@@ -96,7 +112,7 @@ export const chatController = {
       );
     }
 
-    const result = await chatService.getStatistics(companyId, query);
+    const result = await chatService.getStatistics(companyId, query, userRole, userId);
     res.status(HttpStatus.OK).json(ResponseUtil.success(result, '통계 조회 완료'));
   },
 };

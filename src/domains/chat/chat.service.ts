@@ -162,13 +162,15 @@ export const chatService = {
   async chat(
     companyId: string,
     message: string,
+    userRole: string,
+    userId: string,
     chatHistory: string[] = []
   ): Promise<ChatResponse> {
     try {
       const model = getLLM();
 
-      // 메시지 분석하여 필요한 데이터 조회
-      const contextData = await this.getContextData(companyId, message);
+      // 메시지 분석하여 필요한 데이터 조회 (권한 기반 필터링)
+      const contextData = await this.getContextData(companyId, message, userRole, userId);
 
       const chain = RunnableSequence.from([chatPrompt, model, new StringOutputParser()]);
 
@@ -193,8 +195,13 @@ export const chatService = {
     }
   },
 
-  // 메시지에 따라 필요한 컨텍스트 데이터 조회
-  async getContextData(companyId: string, message: string): Promise<ContextData> {
+  // 메시지에 따라 필요한 컨텍스트 데이터 조회 (권한 기반 필터링)
+  async getContextData(
+    companyId: string,
+    message: string,
+    userRole: string,
+    userId: string
+  ): Promise<ContextData> {
     const lowerMessage = message.toLowerCase();
     const contextData: ContextData = {};
 
@@ -256,8 +263,15 @@ export const chatService = {
       lowerMessage.includes('요청') ||
       lowerMessage.includes('현황')
     ) {
+      // 권한에 따른 접근 제어
+      const isManagerOrAbove = userRole === 'MANAGER' || userRole === 'ADMIN';
+
       contextData.recentPurchases = await prisma.purchaseRequests.findMany({
-        where: { companyId },
+        where: {
+          companyId,
+          // USER는 자신이 요청한 것만, MANAGER/ADMIN은 모든 요청 조회
+          ...(isManagerOrAbove ? {} : { requesterId: userId }),
+        },
         select: {
           id: true,
           status: true,
@@ -276,12 +290,18 @@ export const chatService = {
       lowerMessage.includes('얼마') ||
       lowerMessage.includes('총')
     ) {
+      // 권한에 따른 접근 제어
+      const isManagerOrAbove = userRole === 'MANAGER' || userRole === 'ADMIN';
+
       contextData.stats = {
         totalProducts: await prisma.products.count({ where: { companyId, isActive: true } }),
         totalUsers: await prisma.users.count({ where: { companyId, isActive: true } }),
-        pendingRequests: await prisma.purchaseRequests.count({
-          where: { companyId, status: 'PENDING' },
-        }),
+        // USER는 대기 중인 구매 요청 개수를 볼 수 없음
+        pendingRequests: isManagerOrAbove
+          ? await prisma.purchaseRequests.count({
+              where: { companyId, status: 'PENDING' },
+            })
+          : 0,
       };
     }
 
@@ -289,10 +309,15 @@ export const chatService = {
   },
 
   // 자연어 쿼리 (기존 호환)
-  async queryWithAgent(companyId: string, query: string): Promise<QueryResponse> {
+  async queryWithAgent(
+    companyId: string,
+    query: string,
+    userRole: string,
+    userId: string
+  ): Promise<QueryResponse> {
     try {
       const model = getLLM();
-      const contextData = await this.getContextData(companyId, query);
+      const contextData = await this.getContextData(companyId, query, userRole, userId);
 
       const chain = RunnableSequence.from([queryPrompt, model, new StringOutputParser()]);
 
@@ -376,9 +401,14 @@ export const chatService = {
   },
 
   // 통계 조회
-  async getStatistics(companyId: string, query: string): Promise<QueryResponse> {
+  async getStatistics(
+    companyId: string,
+    query: string,
+    userRole: string,
+    userId: string
+  ): Promise<QueryResponse> {
     try {
-      return await this.queryWithAgent(companyId, query);
+      return await this.queryWithAgent(companyId, query, userRole, userId);
     } catch (error) {
       console.error('Statistics error:', error);
       throw new CustomError(
