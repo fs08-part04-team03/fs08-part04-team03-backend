@@ -74,6 +74,48 @@
  *             contextData:
  *               type: object
  *               description: 응답 생성에 사용된 데이터
+ *     RecommendProductsResponse:
+ *       type: object
+ *       properties:
+ *         success:
+ *           type: boolean
+ *           example: true
+ *         message:
+ *           type: string
+ *           example: "상품 추천 완료"
+ *         data:
+ *           type: object
+ *           properties:
+ *             query:
+ *               type: string
+ *               description: 입력한 쿼리
+ *               example: "목이 마른데, 마실만한 것을 추천해주세요"
+ *             answer:
+ *               type: string
+ *               description: AI의 답변
+ *               example: "🥤 시원한 음료를 추천해드릴게요! 콜라, 사이다, 오렌지주스를 추천드립니다."
+ *             recommendedProducts:
+ *               type: array
+ *               description: 추천된 상품 목록
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                     description: 상품 ID
+ *                   name:
+ *                     type: string
+ *                     description: 상품명
+ *                   price:
+ *                     type: number
+ *                     description: 상품 가격
+ *                   categoies:
+ *                     type: object
+ *                     nullable: true
+ *                     properties:
+ *                       name:
+ *                         type: string
+ *                         description: 카테고리명
  */
 
 /**
@@ -197,7 +239,7 @@
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ChatQueryResponse'
+ *               $ref: '#/components/schemas/RecommendProductsResponse'
  *       400:
  *         description: 잘못된 요청
  *       401:

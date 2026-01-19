@@ -39,7 +39,6 @@ interface ContextData {
     status: string;
     totalPrice: Prisma.Decimal;
     createdAt: Date;
-    requestMessage: string | null;
   }>;
   stats?: {
     totalProducts: number;
@@ -270,7 +269,6 @@ export const chatService = {
           status: true,
           totalPrice: true,
           createdAt: true,
-          requestMessage: true,
         },
         take: 10,
         orderBy: { createdAt: 'desc' },
