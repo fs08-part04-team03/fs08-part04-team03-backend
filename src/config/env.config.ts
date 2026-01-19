@@ -117,4 +117,7 @@ export const env = {
   AWS_S3_BUCKET_NAME: str('AWS_S3_BUCKET_NAME'),
 
   NOTIFICATION_RETENTION_DAYS: int('NOTIFICATION_RETENTION_DAYS', 14),
+
+  // OpenAI API 설정
+  OPENAI_API_KEY: str('OPENAI_API_KEY'),
 } as const;
