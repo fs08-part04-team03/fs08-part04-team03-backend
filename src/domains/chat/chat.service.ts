@@ -122,12 +122,18 @@ const recommendPrompt = PromptTemplate.fromTemplate(`
 
 사용자 요청: {query}
 
-사용 가능한 상품 목록:
+사용 가능한 상품 목록 (ID와 함께):
 {products}
 
 위 상품 목록에서 사용자의 요청에 가장 적합한 상품 3개를 선택하여 추천해주세요.
 추천 이유와 함께 친근하게 한글로 답변해주세요.
 각 상품의 이름과 가격을 포함해주세요.
+
+응답은 반드시 다음 JSON 형식으로만 출력해주세요:
+{{
+  "answer": "사용자에게 보여줄 추천 메시지 (친근하고 이모지 포함)",
+  "productIds": ["상품ID1", "상품ID2", "상품ID3"]
+}}
 `);
 
 // 일반 질의를 위한 프롬프트
@@ -340,24 +346,41 @@ export const chatService = {
         take: 100,
       });
 
+      // 상품 목록을 ID와 함께 포맷팅
       const productList = products
         .map((p) => {
           const priceNum = (p.price as Prisma.Decimal).toNumber();
-          return `- ${p.name} (${p.categoies?.name || '기타'}): ${priceNum.toLocaleString()}원`;
+          return `- ID: ${p.id}, 이름: ${p.name}, 카테고리: ${p.categoies?.name || '기타'}, 가격: ${priceNum.toLocaleString()}원`;
         })
         .join('\n');
 
       const chain = RunnableSequence.from([recommendPrompt, model, new StringOutputParser()]);
 
-      const answer = await chain.invoke({
+      const response = await chain.invoke({
         query,
         products: productList,
       });
 
+      // JSON 응답 파싱
+      const jsonMatch = response.match(/{[^]*}/);
+      if (!jsonMatch) {
+        throw new Error('LLM 응답에서 JSON을 찾을 수 없습니다.');
+      }
+
+      const result = JSON.parse(jsonMatch[0]) as {
+        answer: string;
+        productIds: string[];
+      };
+
+      // LLM이 선택한 상품 ID로 실제 상품 필터링
+      const recommendedProducts = products.filter((p) =>
+        result.productIds.includes(p.id.toString())
+      );
+
       return {
         query,
-        answer,
-        recommendedProducts: products.slice(0, 5),
+        answer: result.answer,
+        recommendedProducts,
       };
     } catch (error) {
       console.error('Recommendation error:', error);
