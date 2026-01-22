@@ -146,7 +146,7 @@ export const purchaseController = {
     }
 
     // 구매 요청 ID가 없는 경우
-    const purchaseRequestId = req.params.id;
+    const purchaseRequestId = req.params.id as string;
     if (!purchaseRequestId) {
       throw new CustomError(
         HttpStatus.BAD_REQUEST,
@@ -178,7 +178,7 @@ export const purchaseController = {
     }
 
     // 구매 요청 ID가 없는 경우
-    const purchaseRequestId = req.params.id;
+    const purchaseRequestId = req.params.id as string;
     if (!purchaseRequestId) {
       throw new CustomError(
         HttpStatus.BAD_REQUEST,
@@ -236,7 +236,7 @@ export const purchaseController = {
       );
     }
 
-    const purchaseRequestId = req.params.id;
+    const purchaseRequestId = req.params.id as string;
     if (!purchaseRequestId) {
       throw new CustomError(
         HttpStatus.BAD_REQUEST,
@@ -268,7 +268,7 @@ export const purchaseController = {
       );
     }
 
-    const purchaseRequestId = req.params.id;
+    const purchaseRequestId = req.params.id as string;
     if (!purchaseRequestId) {
       throw new CustomError(
         HttpStatus.BAD_REQUEST,
@@ -394,7 +394,7 @@ export const purchaseController = {
       );
     }
 
-    const purchaseRequestId = req.params.id;
+    const purchaseRequestId = req.params.id as string;
     if (!purchaseRequestId) {
       throw new CustomError(
         HttpStatus.BAD_REQUEST,
