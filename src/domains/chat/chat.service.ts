@@ -334,34 +334,39 @@ export const chatService = {
       });
     }
 
-    // 예산 관련 키워드
+    // 예산 관련 키워드 - MANAGER/ADMIN만 조회 가능
     if (
       lowerMessage.includes('예산') ||
       lowerMessage.includes('지출') ||
       lowerMessage.includes('비용') ||
       lowerMessage.includes('금액')
     ) {
-      const now = new Date();
-      contextData.budget = await prisma.budgets.findFirst({
-        where: {
-          companyId,
-          year: now.getFullYear(),
-          month: now.getMonth() + 1,
-        },
-      });
+      // 권한 체크: MANAGER 또는 ADMIN만 예산 정보 조회 가능
+      const isManagerOrAbove = userRole === 'MANAGER' || userRole === 'ADMIN';
 
-      contextData.thisMonthPurchases = await prisma.purchaseRequests.aggregate({
-        where: {
-          companyId,
-          status: 'APPROVED',
-          createdAt: {
-            gte: new Date(now.getFullYear(), now.getMonth(), 1),
-            lt: new Date(now.getFullYear(), now.getMonth() + 1, 1),
+      if (isManagerOrAbove) {
+        const now = new Date();
+        contextData.budget = await prisma.budgets.findFirst({
+          where: {
+            companyId,
+            year: now.getFullYear(),
+            month: now.getMonth() + 1,
           },
-        },
-        _sum: { totalPrice: true },
-        _count: true,
-      });
+        });
+
+        contextData.thisMonthPurchases = await prisma.purchaseRequests.aggregate({
+          where: {
+            companyId,
+            status: 'APPROVED',
+            createdAt: {
+              gte: new Date(now.getFullYear(), now.getMonth(), 1),
+              lt: new Date(now.getFullYear(), now.getMonth() + 1, 1),
+            },
+          },
+          _sum: { totalPrice: true },
+          _count: true,
+        });
+      }
     }
 
     // 구매/주문 관련 키워드
@@ -413,7 +418,10 @@ export const chatService = {
 
       contextData.stats = {
         totalProducts: await prisma.products.count({ where: { companyId, isActive: true } }),
-        totalUsers: await prisma.users.count({ where: { companyId, isActive: true } }),
+        // USER는 전체 사용자 수를 볼 수 없음
+        totalUsers: isManagerOrAbove
+          ? await prisma.users.count({ where: { companyId, isActive: true } })
+          : 0,
         // USER는 대기 중인 구매 요청 개수를 볼 수 없음
         pendingRequests: isManagerOrAbove
           ? await prisma.purchaseRequests.count({
